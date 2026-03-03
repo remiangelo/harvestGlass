@@ -1,0 +1,188 @@
+import SwiftUI
+
+struct ChatDetailView: View {
+    let authViewModel: AuthViewModel
+    let conversationId: String
+    let partnerUserId: String
+    var matchId: String?
+
+    @State private var viewModel = ChatViewModel()
+    @Environment(\.dismiss) private var dismiss
+
+    var body: some View {
+        VStack(spacing: 0) {
+            // Safety warning banner
+            if let warning = viewModel.safetyWarning {
+                HStack(spacing: HarvestTheme.Spacing.sm) {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .foregroundStyle(HarvestTheme.Colors.warning)
+                    Text(warning)
+                        .font(HarvestTheme.Typography.caption)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    Spacer()
+                }
+                .padding(.horizontal)
+                .padding(.vertical, HarvestTheme.Spacing.sm)
+                .background(HarvestTheme.Colors.warning.opacity(0.1))
+            }
+
+            // Messages
+            ScrollViewReader { proxy in
+                ScrollView {
+                    LazyVStack(spacing: HarvestTheme.Spacing.sm) {
+                        ForEach(viewModel.messages) { message in
+                            MessageBubbleView(
+                                message: message,
+                                isSent: message.isSentBy(authViewModel.currentUserId ?? "")
+                            )
+                            .id(message.id)
+                        }
+                    }
+                    .padding(.horizontal)
+                    .padding(.vertical, HarvestTheme.Spacing.sm)
+                }
+                .onChange(of: viewModel.messages.count) { _, _ in
+                    if let lastId = viewModel.messages.last?.id {
+                        withAnimation {
+                            proxy.scrollTo(lastId, anchor: .bottom)
+                        }
+                    }
+                }
+            }
+
+            Divider()
+
+            // Input bar
+            HStack(spacing: HarvestTheme.Spacing.sm) {
+                TextField("Type a message...", text: $viewModel.messageText, axis: .vertical)
+                    .font(HarvestTheme.Typography.bodyRegular)
+                    .lineLimit(1...4)
+                    .padding(.horizontal, HarvestTheme.Spacing.md)
+                    .padding(.vertical, HarvestTheme.Spacing.sm)
+                    .background {
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                            .fill(.ultraThinMaterial)
+                            .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.xl))
+                    }
+
+                Button {
+                    Task {
+                        await viewModel.sendMessage(
+                            conversationId: conversationId,
+                            senderId: authViewModel.currentUserId ?? ""
+                        )
+                    }
+                } label: {
+                    Image(systemName: "paperplane.fill")
+                        .font(.title3)
+                        .foregroundStyle(HarvestTheme.Colors.primary)
+                        .frame(width: 40, height: 40)
+                }
+                .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+            }
+            .padding(.horizontal)
+            .padding(.vertical, HarvestTheme.Spacing.sm)
+        }
+        .navigationTitle(viewModel.partnerProfile?.displayName ?? "Chat")
+        .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Menu {
+                    Button(role: .destructive) {
+                        viewModel.showReportSheet = true
+                    } label: {
+                        Label("Report", systemImage: "exclamationmark.triangle")
+                    }
+
+                    Button(role: .destructive) {
+                        viewModel.showBlockAlert = true
+                    } label: {
+                        Label("Block", systemImage: "hand.raised")
+                    }
+
+                    Button(role: .destructive) {
+                        viewModel.showUnmatchAlert = true
+                    } label: {
+                        Label("Unmatch", systemImage: "heart.slash")
+                    }
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                }
+            }
+        }
+        .task {
+            await viewModel.loadPartnerProfile(userId: partnerUserId)
+            await viewModel.loadMessages(conversationId: conversationId)
+            viewModel.subscribeToRealtime(conversationId: conversationId)
+            if let matchId, let userId = authViewModel.currentUserId {
+                await viewModel.loadSafetyAnalysis(
+                    matchId: matchId,
+                    userId: userId,
+                    otherUserId: partnerUserId
+                )
+            }
+        }
+        .onDisappear {
+            viewModel.unsubscribe()
+        }
+        .sheet(isPresented: $viewModel.showMindfulWarning) {
+            if let analysis = viewModel.mindfulAnalysis {
+                MindfulWarningView(
+                    analysis: analysis,
+                    onEdit: {
+                        viewModel.dismissMindfulWarning()
+                    },
+                    onSendAnyway: {
+                        Task { await viewModel.confirmSendDespiteWarning() }
+                    }
+                )
+                .presentationDetents([.medium, .large])
+            }
+        }
+        .sheet(isPresented: $viewModel.showReportSheet) {
+            ReportUserView(
+                reporterId: authViewModel.currentUserId ?? "",
+                reportedUserId: partnerUserId,
+                onSubmit: { category, description in
+                    Task {
+                        await viewModel.reportUser(
+                            reporterId: authViewModel.currentUserId ?? "",
+                            reportedUserId: partnerUserId,
+                            category: category,
+                            description: description
+                        )
+                    }
+                }
+            )
+            .presentationDetents([.medium])
+        }
+        .alert("Block User", isPresented: $viewModel.showBlockAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Block", role: .destructive) {
+                Task {
+                    await viewModel.blockUser(
+                        userId: authViewModel.currentUserId ?? "",
+                        blockedUserId: partnerUserId
+                    )
+                    dismiss()
+                }
+            }
+        } message: {
+            Text("Are you sure you want to block this user? You won't see each other anymore.")
+        }
+        .alert("Unmatch", isPresented: $viewModel.showUnmatchAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Unmatch", role: .destructive) {
+                if let matchId {
+                    Task {
+                        await viewModel.unmatchUser(matchId: matchId)
+                        dismiss()
+                    }
+                }
+            }
+        } message: {
+            Text("Are you sure you want to unmatch? This conversation will be removed.")
+        }
+    }
+}

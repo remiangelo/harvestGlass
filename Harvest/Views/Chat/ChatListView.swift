@@ -1,0 +1,121 @@
+import SwiftUI
+
+struct ChatListView: View {
+    let authViewModel: AuthViewModel
+    @State private var viewModel = MatchesViewModel()
+    @State private var searchText = ""
+
+    private var filteredConversations: [ConversationWithProfile] {
+        if searchText.isEmpty {
+            return viewModel.conversations
+        }
+        return viewModel.conversations.filter {
+            $0.profile.displayName.localizedCaseInsensitiveContains(searchText)
+        }
+    }
+
+    var body: some View {
+        NavigationStack {
+            VStack(spacing: 0) {
+                // Search bar
+                HStack {
+                    Image(systemName: "magnifyingglass")
+                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    TextField("Search conversations", text: $searchText)
+                        .font(HarvestTheme.Typography.bodyRegular)
+                }
+                .padding(HarvestTheme.Spacing.sm)
+                .background {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                        .fill(.ultraThinMaterial)
+                        .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.md))
+                }
+                .padding(.horizontal)
+                .padding(.vertical, HarvestTheme.Spacing.sm)
+
+                if filteredConversations.isEmpty {
+                    Spacer()
+                    VStack(spacing: HarvestTheme.Spacing.md) {
+                        Image(systemName: "bubble.left")
+                            .font(.system(size: 50))
+                            .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                        Text("No messages yet")
+                            .font(HarvestTheme.Typography.h3)
+                        Text("Start swiping to find your match")
+                            .font(HarvestTheme.Typography.bodyRegular)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    }
+                    Spacer()
+                } else {
+                    List(filteredConversations) { convoWithProfile in
+                        NavigationLink {
+                            ChatDetailView(
+                                authViewModel: authViewModel,
+                                conversationId: convoWithProfile.conversation.id,
+                                partnerUserId: convoWithProfile.profile.id
+                            )
+                        } label: {
+                            chatRow(convoWithProfile)
+                        }
+                        .listRowSeparator(.hidden)
+                    }
+                    .listStyle(.plain)
+                }
+            }
+            .navigationTitle("Messages")
+            .refreshable {
+                if let userId = authViewModel.currentUserId {
+                    await viewModel.loadConversations(userId: userId)
+                }
+            }
+            .task {
+                if let userId = authViewModel.currentUserId {
+                    await viewModel.loadConversations(userId: userId)
+                }
+            }
+        }
+    }
+
+    private func chatRow(_ convoWithProfile: ConversationWithProfile) -> some View {
+        HStack(spacing: HarvestTheme.Spacing.sm) {
+            AsyncImage(url: URL(string: convoWithProfile.profile.primaryPhoto ?? "")) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Circle().fill(HarvestTheme.Colors.divider)
+            }
+            .frame(width: 55, height: 55)
+            .clipShape(Circle())
+
+            VStack(alignment: .leading, spacing: 4) {
+                HStack {
+                    Text(convoWithProfile.profile.displayName)
+                        .font(HarvestTheme.Typography.bodyRegular)
+                        .fontWeight(.semibold)
+
+                    Spacer()
+
+                    if let time = convoWithProfile.conversation.lastMessageAt {
+                        Text(formatTime(time))
+                            .font(HarvestTheme.Typography.caption)
+                            .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    }
+                }
+
+                Text(convoWithProfile.conversation.lastMessagePreview ?? "Tap to start chatting")
+                    .font(HarvestTheme.Typography.bodySmall)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .lineLimit(2)
+            }
+        }
+        .padding(.vertical, 4)
+    }
+
+    private func formatTime(_ isoString: String) -> String {
+        let formatter = ISO8601DateFormatter()
+        guard let date = formatter.date(from: isoString) else { return "" }
+
+        let relativeFormatter = RelativeDateTimeFormatter()
+        relativeFormatter.unitsStyle = .abbreviated
+        return relativeFormatter.localizedString(for: date, relativeTo: Date())
+    }
+}

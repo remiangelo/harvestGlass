@@ -1,0 +1,35 @@
+import Foundation
+import Observation
+
+@Observable
+final class MatchesViewModel {
+    var recentMatches: [MatchWithProfile] = []
+    var conversations: [ConversationWithProfile] = []
+    var isLoading = false
+    var error: String?
+
+    private let matchService = MatchService()
+
+    func loadMatches(userId: String) async {
+        isLoading = true
+        defer { isLoading = false }
+
+        do {
+            async let matchesTask = matchService.getMatches(userId: userId)
+            async let conversationsTask = matchService.getConversations(userId: userId)
+
+            recentMatches = try await matchesTask
+            conversations = try await conversationsTask
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    func loadConversations(userId: String) async {
+        do {
+            conversations = try await matchService.getConversations(userId: userId)
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+}

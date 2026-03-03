@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		C6B0EBBF2F565B8F0082DD1D /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = C6B0EBA12F5660A00082DD1D /* Supabase */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		C6B0EB792F5657820082DD1D /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -52,6 +56,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C6B0EBBF2F565B8F0082DD1D /* Supabase in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +117,7 @@
 			);
 			name = Harvest;
 			packageProductDependencies = (
+				C6B0EBA12F5660A00082DD1D /* Supabase */,
 			);
 			productName = Harvest;
 			productReference = C6B0EB6B2F5657810082DD1D /* Harvest.app */;
@@ -195,6 +201,9 @@
 			);
 			mainGroup = C6B0EB622F5657810082DD1D;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				C6B0EBA02F5660A00082DD1D /* XCRemoteSwiftPackageReference "supabase-swift" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = C6B0EB6C2F5657810082DD1D /* Products */;
 			projectDirPath = "";
@@ -400,6 +409,7 @@
 				DEVELOPMENT_TEAM = L3P46Q9398;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -432,6 +442,7 @@
 				DEVELOPMENT_TEAM = L3P46Q9398;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -578,6 +589,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		C6B0EBA02F5660A00082DD1D /* XCRemoteSwiftPackageReference "supabase-swift" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/supabase/supabase-swift";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.0.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		C6B0EBA12F5660A00082DD1D /* Supabase */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = C6B0EBA02F5660A00082DD1D /* XCRemoteSwiftPackageReference "supabase-swift" */;
+			productName = Supabase;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = C6B0EB632F5657810082DD1D /* Project object */;
 }

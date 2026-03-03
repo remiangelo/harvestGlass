@@ -1,0 +1,99 @@
+import Foundation
+import Supabase
+
+struct SwipeService {
+    private var client: SupabaseClient { SupabaseManager.shared.client }
+
+    func saveSwipe(swiperId: String, swipedId: String, action: SwipeAction) async throws -> SwipeResult {
+        do {
+            let _: [Swipe] = try await client
+                .from("swipes")
+                .insert([
+                    "swiper_id": swiperId,
+                    "swiped_id": swipedId,
+                    "action": action.rawValue
+                ])
+                .select()
+                .execute()
+                .value
+
+            if action == .like || action == .superLike {
+                struct MatchStatus: Decodable {
+                    let isMatched: Bool
+                    let matchId: String?
+                    enum CodingKeys: String, CodingKey {
+                        case isMatched = "is_matched"
+                        case matchId = "match_id"
+                    }
+                }
+
+                let result: [MatchStatus] = try await client
+                    .rpc("get_match_status", params: [
+                        "user_a": swiperId,
+                        "user_b": swipedId
+                    ])
+                    .execute()
+                    .value
+
+                if let status = result.first, status.isMatched {
+                    return SwipeResult(success: true, isMatch: true, matchId: status.matchId)
+                }
+            }
+
+            return SwipeResult(success: true)
+        } catch {
+            let nsError = error as NSError
+            if nsError.localizedDescription.contains("23505") {
+                return SwipeResult(success: false, error: "You have already swiped on this profile")
+            }
+            throw error
+        }
+    }
+
+    func getSwipeHistory(userId: String) async throws -> [String] {
+        struct SwipeRecord: Decodable {
+            let swipedId: String
+            enum CodingKeys: String, CodingKey {
+                case swipedId = "swiped_id"
+            }
+        }
+
+        let records: [SwipeRecord] = try await client
+            .from("swipes")
+            .select("swiped_id")
+            .eq("swiper_id", value: userId)
+            .execute()
+            .value
+
+        return records.map(\.swipedId)
+    }
+
+    func getDiscoverProfiles(userId: String, excludeIds: [String], filters: FilterPreferences? = nil) async throws -> [UserProfile] {
+        var query = client
+            .from("users")
+            .select()
+            .neq("id", value: userId)
+
+        for excludeId in excludeIds {
+            query = query.neq("id", value: excludeId)
+        }
+
+        if let filters {
+            query = query
+                .gte("age", value: filters.ageMin)
+                .lte("age", value: filters.ageMax)
+
+            if !filters.showMe.isEmpty && !filters.showMe.contains("Everyone") {
+                query = query.in("gender", values: filters.showMe)
+            }
+        }
+
+        let profiles: [UserProfile] = try await query
+            .not("photos", operator: .is, value: "null")
+            .limit(20)
+            .execute()
+            .value
+
+        return profiles
+    }
+}
