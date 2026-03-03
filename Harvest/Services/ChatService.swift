@@ -73,15 +73,13 @@ struct ChatService {
         return created.first?.id
     }
 
-    @available(*, deprecated, message: "Update to new Realtime filter syntax when available")
     func subscribeToMessages(conversationId: String, onMessage: @escaping @Sendable (Message) -> Void) -> RealtimeChannelV2 {
         let channel = client.realtimeV2.channel("messages:\(conversationId)")
 
         let changes = channel.postgresChange(
             InsertAction.self,
-            schema: "public",
             table: "messages",
-            filter: "conversation_id=eq.\(conversationId)"
+            filter: .eq("conversation_id", value: conversationId)
         )
 
         Task {
@@ -93,7 +91,7 @@ struct ChatService {
         }
 
         Task {
-            await channel.subscribe()
+            try? await channel.subscribeWithError()
         }
 
         return channel
@@ -103,5 +101,61 @@ struct ChatService {
         Task {
             await channel.unsubscribe()
         }
+    }
+
+    // MARK: - Read Receipts
+
+    func markAsRead(messageId: String) async throws {
+        let now = ISO8601DateFormatter().string(from: Date())
+        try await client
+            .from("messages")
+            .update([
+                "is_read": AnyJSON.bool(true),
+                "read_at": AnyJSON.string(now)
+            ])
+            .eq("id", value: messageId)
+            .execute()
+    }
+
+    // MARK: - Typing Indicators
+
+    func sendTypingIndicator(conversationId: String, userId: String) async {
+        let channel = client.realtimeV2.channel("typing:\(conversationId)")
+
+        Task {
+            try? await channel.subscribeWithError()
+        }
+
+        try? await Task.sleep(for: .milliseconds(200))
+
+        await channel.broadcast(
+            event: "typing",
+            message: ["user_id": AnyJSON.string(userId)]
+        )
+
+        Task {
+            try? await Task.sleep(for: .seconds(1))
+            await channel.unsubscribe()
+        }
+    }
+
+    func subscribeToTyping(conversationId: String, onTyping: @escaping @Sendable (String) -> Void) -> RealtimeChannelV2 {
+        let channel = client.realtimeV2.channel("typing:\(conversationId)")
+
+        let broadcasts = channel.broadcastStream(event: "typing")
+
+        Task {
+            for await message in broadcasts {
+                if let userId = message["user_id"]?.stringValue {
+                    onTyping(userId)
+                }
+            }
+        }
+
+        Task {
+            try? await channel.subscribeWithError()
+        }
+
+        return channel
     }
 }

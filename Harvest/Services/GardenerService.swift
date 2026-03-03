@@ -16,12 +16,24 @@ struct GardenerService {
         encourage professional support.
         """
 
+    static let welcomeMessage = "Welcome to The Gardener! I'm your personal dating coach, here to help you grow authentic connections. Think of me as the friend who always gives you the honest (but kind) truth about your dating life. What's on your mind today?"
+
     private static let fallbackResponses = [
         "Every connection starts with a single seed of courage. What's on your mind today?",
         "Growth takes time, and that's perfectly okay. I'm here whenever you need to talk about your dating journey.",
         "Remember, the strongest relationships grow from authentic roots. How can I help you cultivate yours?",
         "Sometimes the best thing we can do is pause, reflect, and tend to our own garden before reaching out to others.",
-        "Dating can feel overwhelming at times. Let's break it down together — what specific challenge are you facing?"
+        "Dating can feel overwhelming at times. Let's break it down together — what specific challenge are you facing?",
+        "The best relationships bloom when both people are willing to be vulnerable. What does vulnerability look like for you?",
+        "A healthy relationship is like a well-tended garden — it needs sunlight, water, and patience. Which of those feels hardest for you right now?",
+        "One thing I've learned: the way someone treats a server or barista tells you more than any dating profile ever could.",
+        "Compatibility isn't about finding someone identical to you — it's about finding someone whose differences complement your strengths.",
+        "Before you can grow with someone else, it helps to know what season you're in yourself. How would you describe where you are right now?",
+        "Trust your gut. If something feels off, it probably is. What's your instinct telling you?",
+        "Great conversations start with genuine curiosity. Try asking your match about something they're passionate about — you might be surprised.",
+        "Rejection isn't a reflection of your worth — it's just a sign that particular garden wasn't meant to grow. What other seeds have you planted?",
+        "Setting boundaries isn't selfish — it's essential. Healthy roots need firm soil. Is there a boundary you've been hesitant to set?",
+        "Remember: you're not just looking for someone to like you. You're looking for someone you genuinely like too. What qualities matter most to you?"
     ]
 
     func sendMessage(userId: String, message: String, history: [GardenerMessage]) async throws -> String {
@@ -51,7 +63,7 @@ struct GardenerService {
 
         // Persist user message
         let now = ISO8601DateFormatter().string(from: Date())
-        try? await client
+        _ = try? await client
             .from("gardener_chats")
             .insert([
                 "user_id": userId,
@@ -62,7 +74,7 @@ struct GardenerService {
             .execute()
 
         // Persist assistant response
-        try? await client
+        _ = try? await client
             .from("gardener_chats")
             .insert([
                 "user_id": userId,

@@ -57,17 +57,8 @@ struct ProfileEditView: View {
 
             // Hobbies
             Section("Interests") {
-                ForEach(viewModel.editHobbies, id: \.self) { hobby in
-                    Text(hobby)
-                }
-                .onDelete { indexSet in
-                    viewModel.editHobbies.remove(atOffsets: indexSet)
-                }
-
-                HobbyAddRow { hobby in
-                    if !viewModel.editHobbies.contains(hobby) {
-                        viewModel.editHobbies.append(hobby)
-                    }
+                NavigationLink("Edit Interests (\(viewModel.editHobbies.count) selected)") {
+                    InterestPickerView(selectedInterests: $viewModel.editHobbies)
                 }
             }
             // Values
@@ -99,23 +90,3 @@ struct ProfileEditView: View {
     }
 }
 
-struct HobbyAddRow: View {
-    let onAdd: (String) -> Void
-    @State private var newHobby = ""
-
-    var body: some View {
-        HStack {
-            TextField("Add interest", text: $newHobby)
-            Button {
-                let trimmed = newHobby.trimmingCharacters(in: .whitespaces)
-                guard !trimmed.isEmpty else { return }
-                onAdd(trimmed)
-                newHobby = ""
-            } label: {
-                Image(systemName: "plus.circle.fill")
-                    .foregroundStyle(HarvestTheme.Colors.primary)
-            }
-            .disabled(newHobby.trimmingCharacters(in: .whitespaces).isEmpty)
-        }
-    }
-}

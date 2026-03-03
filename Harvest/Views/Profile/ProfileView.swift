@@ -34,6 +34,7 @@ struct ProfileView: View {
                             HStack(alignment: .firstTextBaseline) {
                                 Text(viewModel.profile?.displayName ?? "")
                                     .font(HarvestTheme.Typography.h2)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 if let age = viewModel.profile?.age {
                                     Text(", \(age)")
                                         .font(HarvestTheme.Typography.h3)
@@ -65,6 +66,7 @@ struct ProfileView: View {
                                     Text("Interests")
                                         .font(HarvestTheme.Typography.bodySmall)
                                         .fontWeight(.semibold)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                                     FlowLayout(spacing: HarvestTheme.Spacing.xs) {
                                         ForEach(hobbies, id: \.self) { hobby in
@@ -80,6 +82,7 @@ struct ProfileView: View {
                                     Text("Values I Bring")
                                         .font(HarvestTheme.Typography.bodySmall)
                                         .fontWeight(.semibold)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                                     FlowLayout(spacing: HarvestTheme.Spacing.xs) {
                                         ForEach(values) { value in
@@ -95,6 +98,7 @@ struct ProfileView: View {
                                     Text("Values I Seek")
                                         .font(HarvestTheme.Typography.bodySmall)
                                         .fontWeight(.semibold)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                                     FlowLayout(spacing: HarvestTheme.Spacing.xs) {
                                         ForEach(values) { value in
@@ -121,7 +125,7 @@ struct ProfileView: View {
                         .padding(.vertical, 14)
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(.ultraThinMaterial)
+                                .fill(.thinMaterial)
                                 .glassEffect(.regular.interactive(), in: .rect(cornerRadius: HarvestTheme.Radius.md))
                         }
                     }

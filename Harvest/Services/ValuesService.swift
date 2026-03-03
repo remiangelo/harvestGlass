@@ -12,8 +12,58 @@ struct ValuesService {
             .order("display_order", ascending: true)
             .execute()
             .value
-        return values
+
+        if !values.isEmpty { return values }
+
+        // Fallback values when database table is empty
+        return Self.defaultValues
     }
+
+    private static let defaultValues: [Value] = {
+        var values: [Value] = []
+        let categories: [(String, [String])] = [
+            ("communication", [
+                "Honesty", "Active Listening", "Openness", "Directness",
+                "Vulnerability", "Empathy", "Patience"
+            ]),
+            ("relationship", [
+                "Commitment", "Trust", "Loyalty", "Independence",
+                "Partnership", "Quality Time", "Physical Affection",
+                "Words of Affirmation", "Acts of Service"
+            ]),
+            ("lifestyle", [
+                "Adventure", "Stability", "Ambition", "Work-Life Balance",
+                "Health & Wellness", "Spontaneity", "Routine",
+                "Financial Responsibility", "Minimalism"
+            ]),
+            ("personal growth", [
+                "Self-Awareness", "Continuous Learning", "Resilience",
+                "Accountability", "Gratitude", "Mindfulness",
+                "Emotional Intelligence", "Courage"
+            ]),
+            ("social", [
+                "Family", "Friendship", "Community", "Inclusivity",
+                "Generosity", "Humor", "Respect", "Kindness",
+                "Cultural Awareness"
+            ]),
+            ("core beliefs", [
+                "Authenticity", "Integrity", "Compassion", "Faith",
+                "Justice", "Freedom", "Creativity", "Purpose"
+            ])
+        ]
+
+        for (category, names) in categories {
+            for (index, name) in names.enumerated() {
+                values.append(Value(
+                    id: "\(category)-\(index)",
+                    name: name,
+                    category: category,
+                    displayOrder: index
+                ))
+            }
+        }
+        return values
+    }()
 
     func getUserValuesBrought(userId: String) async throws -> [Value] {
         struct JoinedValue: Decodable {

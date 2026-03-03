@@ -7,8 +7,22 @@ final class ChatViewModel {
     var messages: [Message] = []
     var partnerProfile: UserProfile?
     var isLoading = false
-    var messageText = ""
+    var messageText = "" {
+        didSet {
+            if !messageText.isEmpty {
+                scheduleTypingIndicator()
+            }
+        }
+    }
     var error: String?
+
+    // Typing indicator
+    var isPartnerTyping = false
+    private var typingChannel: RealtimeChannelV2?
+    private var typingDebounceTask: Task<Void, Never>?
+    private var typingDismissTask: Task<Void, Never>?
+    private var activeConversationId = ""
+    private var activeUserId = ""
 
     // Mindful messaging
     var mindfulAnalysis: MindfulMessagingService.MindfulAnalysis?
@@ -124,11 +138,56 @@ final class ChatViewModel {
 
     func subscribeToRealtime(conversationId: String) {
         channel = chatService.subscribeToMessages(conversationId: conversationId) { [weak self] message in
-            Task { @MainActor in
+            Task { @MainActor [weak self] in
                 guard let self else { return }
                 if !self.messages.contains(where: { $0.id == message.id }) {
                     self.messages.append(message)
                 }
+            }
+        }
+    }
+
+    func subscribeToTyping(conversationId: String, currentUserId: String) {
+        activeConversationId = conversationId
+        activeUserId = currentUserId
+        typingChannel = chatService.subscribeToTyping(conversationId: conversationId) { [weak self] userId in
+            Task { @MainActor [weak self] in
+                guard let self, userId != currentUserId else { return }
+                self.isPartnerTyping = true
+                self.typingDismissTask?.cancel()
+                self.typingDismissTask = Task {
+                    try? await Task.sleep(for: .seconds(3))
+                    guard !Task.isCancelled else { return }
+                    self.isPartnerTyping = false
+                }
+            }
+        }
+    }
+
+    private func scheduleTypingIndicator() {
+        typingDebounceTask?.cancel()
+        typingDebounceTask = Task {
+            try? await Task.sleep(for: .milliseconds(500))
+            guard !Task.isCancelled else { return }
+            if !activeConversationId.isEmpty, !activeUserId.isEmpty {
+                await chatService.sendTypingIndicator(
+                    conversationId: activeConversationId,
+                    userId: activeUserId
+                )
+            }
+        }
+    }
+
+    func markMessagesAsRead(currentUserId: String) async {
+        let unreadMessages = messages.filter { !$0.isRead && !$0.isSentBy(currentUserId) }
+        for message in unreadMessages {
+            do {
+                try await chatService.markAsRead(messageId: message.id)
+                if let index = messages.firstIndex(where: { $0.id == message.id }) {
+                    messages[index].isRead = true
+                }
+            } catch {
+                // Non-critical
             }
         }
     }
@@ -138,6 +197,12 @@ final class ChatViewModel {
             chatService.unsubscribe(channel: channel)
         }
         channel = nil
+        if let typingChannel {
+            chatService.unsubscribe(channel: typingChannel)
+        }
+        typingChannel = nil
+        typingDebounceTask?.cancel()
+        typingDismissTask?.cancel()
     }
 
     func ensureConversation(matchId: String, user1Id: String, user2Id: String) async -> String? {

@@ -20,17 +20,25 @@ struct MessageBubbleView: View {
                                 .fill(HarvestTheme.Colors.primary)
                         } else {
                             BubbleShape(isSent: false)
-                                .fill(.ultraThinMaterial)
+                                .fill(.thinMaterial)
                                 .glassEffect(.regular, in: BubbleShape(isSent: false))
                         }
                     }
 
-                if let time = message.createdAt {
-                    Text(formatMessageTime(time))
-                        .font(.system(size: 10))
-                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                        .padding(.horizontal, 4)
+                HStack(spacing: 4) {
+                    if let time = message.createdAt {
+                        Text(formatMessageTime(time))
+                            .font(.system(size: 10))
+                            .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    }
+
+                    if isSent {
+                        Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark.circle")
+                            .font(.system(size: 10))
+                            .foregroundStyle(message.isRead ? HarvestTheme.Colors.primary : HarvestTheme.Colors.textTertiary)
+                    }
                 }
+                .padding(.horizontal, 4)
             }
 
             if !isSent { Spacer(minLength: 60) }
@@ -46,7 +54,7 @@ struct MessageBubbleView: View {
     }
 }
 
-struct BubbleShape: Shape, @preconcurrency InsettableShape {
+struct BubbleShape: Shape, InsettableShape {
     let isSent: Bool
 
     func path(in rect: CGRect) -> Path {

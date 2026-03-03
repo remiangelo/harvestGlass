@@ -13,7 +13,7 @@ struct GlassBadge: View {
             .padding(.vertical, HarvestTheme.Spacing.xs)
             .background {
                 Capsule()
-                    .fill(.ultraThinMaterial)
+                    .fill(.thinMaterial)
                     .glassEffect(.regular, in: .capsule)
             }
     }

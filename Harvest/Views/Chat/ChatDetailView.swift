@@ -37,6 +37,10 @@ struct ChatDetailView: View {
                             )
                             .id(message.id)
                         }
+
+                        if viewModel.isPartnerTyping {
+                            TypingIndicatorView()
+                        }
                     }
                     .padding(.horizontal)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
@@ -61,7 +65,7 @@ struct ChatDetailView: View {
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .background {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                            .fill(.ultraThinMaterial)
+                            .fill(.thinMaterial)
                             .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.xl))
                     }
 
@@ -115,6 +119,10 @@ struct ChatDetailView: View {
             await viewModel.loadPartnerProfile(userId: partnerUserId)
             await viewModel.loadMessages(conversationId: conversationId)
             viewModel.subscribeToRealtime(conversationId: conversationId)
+            if let userId = authViewModel.currentUserId {
+                viewModel.subscribeToTyping(conversationId: conversationId, currentUserId: userId)
+                await viewModel.markMessagesAsRead(currentUserId: userId)
+            }
             if let matchId, let userId = authViewModel.currentUserId {
                 await viewModel.loadSafetyAnalysis(
                     matchId: matchId,

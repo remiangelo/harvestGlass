@@ -7,8 +7,14 @@ struct SettingsView: View {
     @State private var matchNotifications = true
     @State private var messageNotifications = true
     @State private var showLogoutAlert = false
+    @State private var showDeleteAlert = false
     @State private var subscriptionViewModel = SubscriptionViewModel()
     @State private var mindfulMessagingEnabled = MindfulMessagingService().isEnabled
+
+    // Privacy toggles
+    @State private var showLocation = UserDefaults.standard.object(forKey: "showLocation") as? Bool ?? true
+    @State private var showAge = UserDefaults.standard.object(forKey: "showAge") as? Bool ?? true
+    @State private var showActiveStatus = UserDefaults.standard.object(forKey: "showActiveStatus") as? Bool ?? true
 
     var body: some View {
         Form {
@@ -45,6 +51,26 @@ struct SettingsView: View {
             }
 
             Section("Privacy") {
+                Toggle("Show Location", isOn: $showLocation)
+                    .tint(HarvestTheme.Colors.primary)
+                    .onChange(of: showLocation) { _, newValue in
+                        UserDefaults.standard.set(newValue, forKey: "showLocation")
+                    }
+
+                Toggle("Show Age", isOn: $showAge)
+                    .tint(HarvestTheme.Colors.primary)
+                    .onChange(of: showAge) { _, newValue in
+                        UserDefaults.standard.set(newValue, forKey: "showAge")
+                    }
+
+                Toggle("Show Active Status", isOn: $showActiveStatus)
+                    .tint(HarvestTheme.Colors.primary)
+                    .onChange(of: showActiveStatus) { _, newValue in
+                        UserDefaults.standard.set(newValue, forKey: "showActiveStatus")
+                    }
+            }
+
+            Section("Legal") {
                 NavigationLink("Privacy Policy") {
                     PrivacyPolicyView()
                 }
@@ -97,6 +123,19 @@ struct SettingsView: View {
                     }
                 }
             }
+
+            Section {
+                Button(role: .destructive) {
+                    showDeleteAlert = true
+                } label: {
+                    HStack {
+                        Spacer()
+                        Text("Delete Account")
+                            .fontWeight(.semibold)
+                        Spacer()
+                    }
+                }
+            }
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
@@ -114,6 +153,20 @@ struct SettingsView: View {
             }
         } message: {
             Text("Are you sure you want to log out?")
+        }
+        .alert("Delete Account", isPresented: $showDeleteAlert) {
+            Button("Cancel", role: .cancel) { }
+            Button("Delete", role: .destructive) {
+                Task {
+                    if let userId = authViewModel.currentUserId {
+                        let authService = AuthService()
+                        try? await authService.deleteAccount(userId: userId)
+                        await authViewModel.logout()
+                    }
+                }
+            }
+        } message: {
+            Text("This will permanently delete your account, profile, matches, and all messages. This action cannot be undone.")
         }
     }
 }

@@ -85,7 +85,7 @@ struct SafetyAnalysisService {
                     reports.append(report)
 
                     // Persist
-                    try? await client
+                    _ = try? await client
                         .from("red_flag_reports")
                         .insert([
                             "analysis_id": analysisId,
@@ -103,7 +103,7 @@ struct SafetyAnalysisService {
             let totalWeight = reports.reduce(0) { $0 + $1.severity }
             let scoreReduction = min(totalWeight, 30) // Cap reduction per message
 
-            try? await client
+            _ = try? await client
                 .from("safety_analyses")
                 .update([
                     "safety_score": AnyJSON.double(Double(max(0, 100 - scoreReduction))),

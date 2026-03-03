@@ -20,7 +20,7 @@ struct ChipView: View {
                         Capsule().fill(HarvestTheme.Colors.primary)
                     } else {
                         Capsule()
-                            .fill(.ultraThinMaterial)
+                            .fill(.thinMaterial)
                             .glassEffect(.regular.interactive(), in: .capsule)
                     }
                 }

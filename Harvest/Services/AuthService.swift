@@ -27,6 +27,48 @@ struct AuthService {
         try await client.auth.signOut()
     }
 
+    func deleteAccount(userId: String) async throws {
+        // Delete user data from tables in order (respecting foreign keys)
+        let tablesToClean = [
+            "gardener_chats", "daily_quizzes", "safety_analyses",
+            "red_flag_reports", "user_values_brought", "user_values_sought",
+            "user_blocks", "reports", "support_tickets", "user_preferences",
+            "user_subscriptions"
+        ]
+
+        for table in tablesToClean {
+            _ = try? await client
+                .from(table)
+                .delete()
+                .eq("user_id", value: userId)
+                .execute()
+        }
+
+        // Delete messages sent by user
+        _ = try? await client
+            .from("messages")
+            .delete()
+            .eq("sender_id", value: userId)
+            .execute()
+
+        // Delete swipes
+        _ = try? await client
+            .from("swipes")
+            .delete()
+            .eq("swiper_id", value: userId)
+            .execute()
+
+        // Delete user profile
+        _ = try? await client
+            .from("users")
+            .delete()
+            .eq("id", value: userId)
+            .execute()
+
+        // Sign out
+        try await client.auth.signOut()
+    }
+
     func getCurrentSession() async throws -> Auth.Session? {
         try await client.auth.session
     }

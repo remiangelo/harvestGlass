@@ -118,9 +118,12 @@ struct ProfileDetailView: View {
                 Button {
                     dismiss()
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.title)
+                    Image(systemName: "xmark")
+                        .font(.system(size: 16, weight: .bold))
                         .foregroundStyle(.white)
+                        .frame(width: 32, height: 32)
+                        .background(.black.opacity(0.5))
+                        .clipShape(Circle())
                         .shadow(radius: 4)
                 }
                 .padding()

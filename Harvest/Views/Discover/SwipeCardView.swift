@@ -139,13 +139,7 @@ struct SwipeCardView: View {
             .padding(HarvestTheme.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                    .fill(.ultraThinMaterial)
-                    .glassEffect(.regular, in: .rect(
-                        cornerRadii: .init(
-                            topLeading: 0, bottomLeading: HarvestTheme.Radius.xl,
-                            bottomTrailing: HarvestTheme.Radius.xl, topTrailing: 0
-                        )
-                    ))
+                    .fill(.black.opacity(0.4))
             }
         }
     }

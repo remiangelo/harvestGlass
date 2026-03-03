@@ -20,7 +20,7 @@ struct GlassCard<Content: View>: View {
             .padding(padding)
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(.ultraThinMaterial)
+                    .fill(.thinMaterial)
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
             }
     }
