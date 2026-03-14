@@ -248,4 +248,22 @@ final class ChatViewModel {
             self.error = error.localizedDescription
         }
     }
+
+    // MARK: - Retroactive Safety Analysis
+
+    func runRetroactiveSafetyAnalysis(conversationId: String, matchId: String, userId: String, otherUserId: String) async {
+        do {
+            let analysis = try await safetyService.analyzeConversationHistory(
+                conversationId: conversationId,
+                matchId: matchId,
+                userId: userId,
+                otherUserId: otherUserId
+            )
+            print("Retroactive analysis complete. Safety score: \(analysis.safetyScore), Red flags: \(analysis.redFlagCount)")
+        } catch {
+            print("Error running retroactive safety analysis: \(error)")
+            self.error = "Failed to analyze conversation history"
+        }
+    }
 }
+

@@ -84,16 +84,21 @@ struct SafetyAnalysisService {
                     )
                     reports.append(report)
 
-                    // Persist
-                    _ = try? await client
-                        .from("red_flag_reports")
-                        .insert([
-                            "analysis_id": analysisId,
-                            "category": category.rawValue,
-                            "severity": "\(category.weight)",
-                            "detail": "Message contains: \(keyword)"
-                        ])
-                        .execute()
+                    // Persist red flag report
+                    do {
+                        try await client
+                            .from("red_flag_reports")
+                            .insert([
+                                "analysis_id": analysisId,
+                                "category": category.rawValue,
+                                "severity": "\(category.weight)",
+                                "detail": "Message contains: \(keyword)"
+                            ])
+                            .execute()
+                    } catch {
+                        print("Warning: Failed to persist red flag report: \(error)")
+                        // Continue analyzing other keywords
+                    }
                     break // One flag per category per message
                 }
             }
@@ -103,15 +108,21 @@ struct SafetyAnalysisService {
             let totalWeight = reports.reduce(0) { $0 + $1.severity }
             let scoreReduction = min(totalWeight, 30) // Cap reduction per message
 
-            _ = try? await client
-                .from("safety_analyses")
-                .update([
-                    "safety_score": AnyJSON.double(Double(max(0, 100 - scoreReduction))),
-                    "red_flag_count": AnyJSON.double(Double(reports.count)),
-                    "last_analyzed_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
-                ])
-                .eq("id", value: analysisId)
-                .execute()
+            do {
+                try await client
+                    .from("safety_analyses")
+                    .update([
+                        "safety_score": AnyJSON.double(Double(max(0, 100 - scoreReduction))),
+                        "red_flag_count": AnyJSON.double(Double(reports.count)),
+                        "last_analyzed_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
+                    ])
+                    .eq("id", value: analysisId)
+                    .execute()
+            } catch {
+                print("Error: Failed to update safety score (critical): \(error)")
+                // This is critical - safety score should be updated
+                throw error
+            }
         }
 
         return reports
@@ -172,5 +183,199 @@ struct SafetyAnalysisService {
                 "message_id": messageId ?? ""
             ])
             .execute()
+    }
+
+    // MARK: - Retroactive Analysis
+
+    /// Analyze entire conversation history retroactively
+    /// This is useful for conversations that existed before safety analysis was implemented,
+    /// or to re-analyze conversations with updated red flag keywords
+    func analyzeConversationHistory(conversationId: String, matchId: String, userId: String, otherUserId: String) async throws -> SafetyAnalysis {
+        print("Starting retroactive safety analysis for conversation: \(conversationId)")
+
+        // Get or create safety analysis
+        let analysis = try await getOrCreateAnalysis(matchId: matchId, userId: userId, otherUserId: otherUserId)
+
+        // Fetch all messages from this conversation sent by the other user
+        let messages: [Message] = try await client
+            .from("messages")
+            .select()
+            .eq("conversation_id", value: conversationId)
+            .eq("sender_id", value: otherUserId) // Only analyze messages from the other person
+            .order("created_at", ascending: true)
+            .execute()
+            .value
+
+        guard !messages.isEmpty else {
+            print("No messages found to analyze")
+            return analysis
+        }
+
+        print("Analyzing \(messages.count) messages from other user")
+
+        // Clear existing red flag reports for this analysis
+        do {
+            try await client
+                .from("red_flag_reports")
+                .delete()
+                .eq("analysis_id", value: analysis.id)
+                .execute()
+        } catch {
+            print("Warning: Failed to clear existing red flag reports: \(error)")
+        }
+
+        // Analyze each message and collect red flags
+        var allRedFlags: [RedFlagReport] = []
+        var totalWeight = 0
+
+        for (index, message) in messages.enumerated() {
+            guard let content = message.content, !content.isEmpty else { continue }
+
+            let lowered = content.lowercased()
+            var foundInMessage: Set<RedFlagCategory> = []
+
+            // Check for red flags (one per category per message)
+            for (category, keywords) in Self.redFlagKeywords {
+                guard !foundInMessage.contains(category) else { continue }
+
+                for keyword in keywords {
+                    if lowered.contains(keyword) {
+                        let now = ISO8601DateFormatter().string(from: Date())
+                        let report = RedFlagReport(
+                            id: UUID().uuidString,
+                            analysisId: analysis.id,
+                            category: category,
+                            severity: category.weight,
+                            detail: "Message contains: \(keyword)",
+                            messageId: message.id,
+                            createdAt: now
+                        )
+                        allRedFlags.append(report)
+                        foundInMessage.insert(category)
+                        totalWeight += category.weight
+
+                        // Persist red flag report
+                        do {
+                            try await client
+                                .from("red_flag_reports")
+                                .insert([
+                                    "analysis_id": AnyJSON.string(analysis.id),
+                                    "category": AnyJSON.string(category.rawValue),
+                                    "severity": AnyJSON.string("\(category.weight)"),
+                                    "detail": AnyJSON.string("Message contains: \(keyword)"),
+                                    "message_id": AnyJSON.string(message.id)
+                                ])
+                                .execute()
+                        } catch {
+                            print("Warning: Failed to persist red flag report: \(error)")
+                        }
+
+                        break // One flag per category per message
+                    }
+                }
+            }
+
+            // Log progress every 10 messages
+            if (index + 1) % 10 == 0 {
+                print("Analyzed \(index + 1)/\(messages.count) messages, found \(allRedFlags.count) red flags")
+            }
+        }
+
+        // Calculate final safety score
+        // Start at 100, reduce by total weight, but cap individual message impact
+        let maxReductionPerMessage = 30
+        let messageCount = messages.count
+        let cappedWeight = min(totalWeight, maxReductionPerMessage * messageCount)
+        let finalScore = max(0, 100 - Int(Double(cappedWeight) / max(Double(messageCount), 1.0) * 2.0))
+
+        print("Retroactive analysis complete: \(allRedFlags.count) red flags found, safety score: \(finalScore)")
+
+        // Update safety analysis with results
+        do {
+            try await client
+                .from("safety_analyses")
+                .update([
+                    "safety_score": AnyJSON.double(Double(finalScore)),
+                    "total_messages": AnyJSON.double(Double(messageCount)),
+                    "red_flag_count": AnyJSON.double(Double(allRedFlags.count)),
+                    "last_analyzed_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
+                ])
+                .eq("id", value: analysis.id)
+                .execute()
+        } catch {
+            print("Error: Failed to update safety analysis: \(error)")
+            throw error
+        }
+
+        // Return updated analysis
+        return SafetyAnalysis(
+            id: analysis.id,
+            matchId: analysis.matchId,
+            userId: analysis.userId,
+            otherUserId: analysis.otherUserId,
+            safetyScore: finalScore,
+            totalMessages: messageCount,
+            firstMessageAt: analysis.firstMessageAt,
+            redFlagCount: allRedFlags.count,
+            lastAnalyzedAt: ISO8601DateFormatter().string(from: Date())
+        )
+    }
+
+    /// Analyze all conversations for a user retroactively
+    /// Useful for bulk analysis of existing conversations
+    func analyzeAllUserConversations(userId: String) async throws -> Int {
+        print("Starting bulk retroactive analysis for user: \(userId)")
+
+        // Get all matches for this user
+        struct MatchInfo: Decodable {
+            let id: String
+            let user1_id: String
+            let user2_id: String
+        }
+
+        let matches: [MatchInfo] = try await client
+            .from("matches")
+            .select("id, user1_id, user2_id")
+            .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+            .execute()
+            .value
+
+        print("Found \(matches.count) matches to analyze")
+
+        var analyzedCount = 0
+
+        for match in matches {
+            let otherUserId = match.user1_id == userId ? match.user2_id : match.user1_id
+
+            // Get conversation for this match
+            struct ConversationInfo: Decodable {
+                let id: String
+            }
+
+            let conversations: [ConversationInfo] = try await client
+                .from("conversations")
+                .select("id")
+                .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+                .or("user1_id.eq.\(otherUserId),user2_id.eq.\(otherUserId)")
+                .execute()
+                .value
+
+            guard let conversation = conversations.first else { continue }
+
+            do {
+                _ = try await analyzeConversationHistory(
+                    conversationId: conversation.id,
+                    matchId: match.id,
+                    userId: userId,
+                    otherUserId: otherUserId
+                )
+                analyzedCount += 1
+            } catch {
+                print("Warning: Failed to analyze conversation \(conversation.id): \(error)")
+            }
+        }
+
+        print("Bulk retroactive analysis complete: \(analyzedCount)/\(matches.count) conversations analyzed")
+        return analyzedCount
     }
 }

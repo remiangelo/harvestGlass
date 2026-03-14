@@ -36,34 +36,63 @@ struct AuthService {
             "user_subscriptions"
         ]
 
+        // Track failed deletions for error reporting
+        var deletionErrors: [String: Error] = [:]
+
+        // Delete from all related tables
         for table in tablesToClean {
-            _ = try? await client
-                .from(table)
-                .delete()
-                .eq("user_id", value: userId)
-                .execute()
+            do {
+                try await client
+                    .from(table)
+                    .delete()
+                    .eq("user_id", value: userId)
+                    .execute()
+            } catch {
+                print("Warning: Failed to delete from \(table): \(error)")
+                deletionErrors[table] = error
+            }
         }
 
         // Delete messages sent by user
-        _ = try? await client
-            .from("messages")
-            .delete()
-            .eq("sender_id", value: userId)
-            .execute()
+        do {
+            try await client
+                .from("messages")
+                .delete()
+                .eq("sender_id", value: userId)
+                .execute()
+        } catch {
+            print("Warning: Failed to delete messages: \(error)")
+            deletionErrors["messages"] = error
+        }
 
         // Delete swipes
-        _ = try? await client
-            .from("swipes")
-            .delete()
-            .eq("swiper_id", value: userId)
-            .execute()
+        do {
+            try await client
+                .from("swipes")
+                .delete()
+                .eq("swiper_id", value: userId)
+                .execute()
+        } catch {
+            print("Warning: Failed to delete swipes: \(error)")
+            deletionErrors["swipes"] = error
+        }
 
-        // Delete user profile
-        _ = try? await client
-            .from("users")
-            .delete()
-            .eq("id", value: userId)
-            .execute()
+        // Delete user profile (critical - throw if this fails)
+        do {
+            try await client
+                .from("users")
+                .delete()
+                .eq("id", value: userId)
+                .execute()
+        } catch {
+            print("Error: Failed to delete user profile: \(error)")
+            throw error // Critical failure - don't sign out if profile deletion fails
+        }
+
+        // Log any deletion errors but proceed with sign out
+        if !deletionErrors.isEmpty {
+            print("Account deletion completed with \(deletionErrors.count) non-critical errors")
+        }
 
         // Sign out
         try await client.auth.signOut()

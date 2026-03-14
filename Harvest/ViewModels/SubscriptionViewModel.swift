@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import StoreKit
 
 @Observable
 final class SubscriptionViewModel {
@@ -8,6 +9,8 @@ final class SubscriptionViewModel {
     var currentTier: SubscriptionTier?
     var isLoading = false
     var error: String?
+    var products: [Product] = []
+    var isPurchasing = false
 
     private let subscriptionService = SubscriptionService()
 
@@ -48,4 +51,95 @@ final class SubscriptionViewModel {
     var currentTierName: String {
         currentTier?.displayName ?? "Seed"
     }
+
+    // MARK: - StoreKit Purchase Methods
+
+    func loadProducts() async {
+        do {
+            products = try await subscriptionService.fetchProducts()
+        } catch {
+            self.error = "Failed to load products: \(error.localizedDescription)"
+            print("Error loading products: \(error)")
+        }
+    }
+
+    func purchase(product: Product, userId: String) async {
+        isPurchasing = true
+        error = nil
+        defer { isPurchasing = false }
+
+        do {
+            _ = try await subscriptionService.purchase(product: product, userId: userId)
+
+            // Reload subscription data after successful purchase
+            await loadSubscriptionData(userId: userId)
+
+        } catch SubscriptionError.userCancelled {
+            // Don't show error for user cancellation
+            return
+
+        } catch SubscriptionError.purchasePending {
+            error = "Your purchase is pending approval. Please check back later."
+
+        } catch {
+            error = error.localizedDescription
+            print("Error during purchase: \(error)")
+        }
+    }
+
+    func restorePurchases(userId: String) async {
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
+
+        do {
+            try await subscriptionService.restorePurchases(userId: userId)
+
+            // Reload subscription data after restore
+            await loadSubscriptionData(userId: userId)
+
+        } catch SubscriptionError.noPurchasesToRestore {
+            error = "No previous purchases found to restore."
+
+        } catch {
+            error = "Failed to restore purchases: \(error.localizedDescription)"
+            print("Error restoring purchases: \(error)")
+        }
+    }
+
+    func checkSubscriptionStatus(userId: String) async {
+        do {
+            try await subscriptionService.checkSubscriptionStatus(userId: userId)
+
+            // Reload subscription data to reflect any changes
+            await loadSubscriptionData(userId: userId)
+
+        } catch {
+            print("Error checking subscription status: \(error)")
+        }
+    }
+
+    func getProduct(for tier: SubscriptionTier, billingPeriod: BillingPeriod) -> Product? {
+        let productId: String
+
+        switch (tier.name, billingPeriod) {
+        case (.green, .monthly):
+            productId = SubscriptionService.ProductID.greenMonthly.rawValue
+        case (.green, .yearly):
+            productId = SubscriptionService.ProductID.greenYearly.rawValue
+        case (.gold, .monthly):
+            productId = SubscriptionService.ProductID.goldMonthly.rawValue
+        case (.gold, .yearly):
+            productId = SubscriptionService.ProductID.goldYearly.rawValue
+        default:
+            return nil
+        }
+
+        return products.first { $0.id == productId }
+    }
+}
+
+enum BillingPeriod {
+    case monthly
+    case yearly
 }

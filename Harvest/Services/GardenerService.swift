@@ -61,27 +61,35 @@ struct GardenerService {
             response = Self.fallbackResponses.randomElement() ?? Self.fallbackResponses[0]
         }
 
-        // Persist user message
+        // Persist chat history
         let now = ISO8601DateFormatter().string(from: Date())
-        _ = try? await client
-            .from("gardener_chats")
-            .insert([
-                "user_id": userId,
-                "role": "user",
-                "content": message,
-                "created_at": now
-            ])
-            .execute()
+
+        // Persist user message
+        do {
+            try await client
+                .from("gardener_chats")
+                .insert([
+                    "user_id": userId,
+                    "role": "user",
+                    "content": message,
+                    "created_at": now
+                ])
+                .execute()
+        } catch {
+            print("Warning: Failed to persist user message to gardener_chats: \(error)")
+            // Non-critical - continue with response even if persistence fails
+        }
 
         // Persist assistant response
-        _ = try? await client
-            .from("gardener_chats")
-            .insert([
-                "user_id": userId,
-                "role": "assistant",
-                "content": response,
-                "created_at": now
-            ])
+        do {
+            try await client
+                .from("gardener_chats")
+                .insert([
+                    "user_id": userId,
+                    "role": "assistant",
+                    "content": response,
+                    "created_at": now
+                ])
             .execute()
 
         return response

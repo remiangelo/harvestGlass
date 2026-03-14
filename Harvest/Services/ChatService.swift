@@ -84,14 +84,21 @@ struct ChatService {
 
         Task {
             for await change in changes {
-                if let message = try? change.decodeRecord(as: Message.self, decoder: JSONDecoder()) {
+                do {
+                    let message = try change.decodeRecord(as: Message.self, decoder: JSONDecoder())
                     onMessage(message)
+                } catch {
+                    print("Warning: Failed to decode message from realtime update: \(error)")
                 }
             }
         }
 
         Task {
-            try? await channel.subscribeWithError()
+            do {
+                try await channel.subscribeWithError()
+            } catch {
+                print("Error: Failed to subscribe to messages channel: \(error)")
+            }
         }
 
         return channel
@@ -122,11 +129,13 @@ struct ChatService {
     func sendTypingIndicator(conversationId: String, userId: String) async {
         let channel = client.realtimeV2.channel("typing:\(conversationId)")
 
-        Task {
-            try? await channel.subscribeWithError()
+        do {
+            try await channel.subscribeWithError()
+            try await Task.sleep(for: .milliseconds(200))
+        } catch {
+            print("Warning: Failed to setup typing indicator channel: \(error)")
+            return // Don't broadcast if subscription failed
         }
-
-        try? await Task.sleep(for: .milliseconds(200))
 
         await channel.broadcast(
             event: "typing",
@@ -134,7 +143,11 @@ struct ChatService {
         )
 
         Task {
-            try? await Task.sleep(for: .seconds(1))
+            do {
+                try await Task.sleep(for: .seconds(1))
+            } catch {
+                // Task cancelled, proceed with cleanup
+            }
             await channel.unsubscribe()
         }
     }
@@ -153,7 +166,11 @@ struct ChatService {
         }
 
         Task {
-            try? await channel.subscribeWithError()
+            do {
+                try await channel.subscribeWithError()
+            } catch {
+                print("Error: Failed to subscribe to typing indicators: \(error)")
+            }
         }
 
         return channel

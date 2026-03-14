@@ -32,3 +32,4 @@ struct ConversationWithProfile: Identifiable, Sendable {
 
     var id: String { conversation.id }
 }
+

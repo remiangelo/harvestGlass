@@ -3,7 +3,9 @@ import SwiftUI
 struct SubscriptionView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = SubscriptionViewModel()
-    @State private var showUpgradeAlert = false
+    @State private var showPurchaseSheet = false
+    @State private var selectedTier: SubscriptionTier?
+    @State private var billingPeriod: BillingPeriod = .monthly
 
     var body: some View {
         ScrollView {
@@ -25,15 +27,41 @@ struct SubscriptionView: View {
         }
         .navigationTitle("Subscription")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Restore") {
+                    Task {
+                        if let userId = authViewModel.currentUserId {
+                            await viewModel.restorePurchases(userId: userId)
+                        }
+                    }
+                }
+                .font(HarvestTheme.Typography.bodySmall)
+            }
+        }
         .task {
             if let userId = authViewModel.currentUserId {
                 await viewModel.loadSubscriptionData(userId: userId)
+                await viewModel.loadProducts()
+                await viewModel.checkSubscriptionStatus(userId: userId)
             }
         }
-        .alert("Coming Soon", isPresented: $showUpgradeAlert) {
-            Button("OK", role: .cancel) { }
+        .sheet(isPresented: $showPurchaseSheet) {
+            if let tier = selectedTier {
+                PurchaseSheet(
+                    tier: tier,
+                    viewModel: viewModel,
+                    authViewModel: authViewModel,
+                    billingPeriod: $billingPeriod
+                )
+            }
+        }
+        .alert("Error", isPresented: .constant(viewModel.error != nil)) {
+            Button("OK") { viewModel.error = nil }
         } message: {
-            Text("In-app purchases will be available soon. Stay tuned!")
+            if let error = viewModel.error {
+                Text(error)
+            }
         }
     }
 
@@ -105,9 +133,10 @@ struct SubscriptionView: View {
                         Spacer()
                     }
                     .padding(.vertical, 14)
-                } else {
+                } else if tier.name != .seed {
                     GlassButton(title: "Upgrade to \(tier.displayName)", style: .primary) {
-                        showUpgradeAlert = true
+                        selectedTier = tier
+                        showPurchaseSheet = true
                     }
                 }
             }

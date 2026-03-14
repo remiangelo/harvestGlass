@@ -89,7 +89,12 @@ final class OnboardingViewModel {
         let url = photoUrls[index]
         photoUrls.remove(at: index)
         Task {
-            try? await profileService.deletePhoto(photoUrl: url)
+            do {
+                try await profileService.deletePhoto(photoUrl: url)
+            } catch {
+                print("Warning: Failed to delete photo from storage: \(error)")
+                // Photo removed from UI, but may remain in storage
+            }
         }
     }
 

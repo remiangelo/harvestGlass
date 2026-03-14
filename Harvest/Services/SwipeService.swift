@@ -3,6 +3,9 @@ import Supabase
 
 struct SwipeService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
+    private let compatibilityService = CompatibilityService()
+    private let valuesService = ValuesService()
+    private let profileService = ProfileService()
 
     func saveSwipe(swiperId: String, swipedId: String, action: SwipeAction) async throws -> SwipeResult {
         do {
@@ -69,6 +72,7 @@ struct SwipeService {
     }
 
     func getDiscoverProfiles(userId: String, excludeIds: [String], filters: FilterPreferences? = nil) async throws -> [UserProfile] {
+        // Fetch basic filtered profiles
         var query = client
             .from("users")
             .select()
@@ -90,10 +94,56 @@ struct SwipeService {
 
         let profiles: [UserProfile] = try await query
             .not("photos", operator: .is, value: "null")
-            .limit(20)
+            .limit(50) // Fetch more to rank by compatibility
             .execute()
             .value
 
-        return profiles
+        // Get current user's profile and values for compatibility calculation
+        guard let currentUser = try? await profileService.getProfile(userId: userId) else {
+            return profiles // Fallback to unranked if can't get current user
+        }
+
+        let currentUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: userId)) ?? []
+        let currentUserValuesSought = (try? await valuesService.getUserValuesSought(userId: userId)) ?? []
+
+        // Fetch values for all candidate profiles
+        var otherUsersValues: [String: (brought: [Value], sought: [Value])] = [:]
+        for profile in profiles {
+            let brought = (try? await valuesService.getUserValuesBrought(userId: profile.id)) ?? []
+            let sought = (try? await valuesService.getUserValuesSought(userId: profile.id)) ?? []
+            otherUsersValues[profile.id] = (brought: brought, sought: sought)
+        }
+
+        // Rank profiles by compatibility
+        let rankedProfiles = compatibilityService.rankProfiles(
+            currentUser: currentUser,
+            profiles: profiles,
+            currentUserValuesBrought: currentUserValuesBrought,
+            currentUserValuesSought: currentUserValuesSought,
+            otherUsersValues: otherUsersValues
+        )
+
+        // Return top 20 by compatibility
+        return rankedProfiles.prefix(20).map { $0.profile }
+    }
+
+    /// Get compatibility score between current user and another user
+    func getCompatibilityScore(currentUserId: String, otherUserId: String) async throws -> CompatibilityScore {
+        let currentUser = try await profileService.getProfile(userId: currentUserId)
+        let otherUser = try await profileService.getProfile(userId: otherUserId)
+
+        let currentUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: currentUserId)) ?? []
+        let currentUserValuesSought = (try? await valuesService.getUserValuesSought(userId: currentUserId)) ?? []
+        let otherUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: otherUserId)) ?? []
+        let otherUserValuesSought = (try? await valuesService.getUserValuesSought(userId: otherUserId)) ?? []
+
+        return compatibilityService.calculateCompatibility(
+            currentUser: currentUser,
+            otherUser: otherUser,
+            currentUserValuesBrought: currentUserValuesBrought,
+            currentUserValuesSought: currentUserValuesSought,
+            otherUserValuesBrought: otherUserValuesBrought,
+            otherUserValuesSought: otherUserValuesSought
+        )
     }
 }

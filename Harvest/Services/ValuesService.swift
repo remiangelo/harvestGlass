@@ -5,17 +5,20 @@ struct ValuesService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
     func getAllValues() async throws -> [Value] {
-        let values: [Value] = try await client
-            .from("values")
-            .select()
-            .order("category", ascending: true)
-            .order("display_order", ascending: true)
-            .execute()
-            .value
+        do {
+            let values: [Value] = try await client
+                .from("values")
+                .select()
+                .order("category", ascending: true)
+                .order("display_order", ascending: true)
+                .execute()
+                .value
 
-        if !values.isEmpty { return values }
+            if !values.isEmpty { return values }
+        } catch {
+            // DB unavailable or decode error — fall through to defaults
+        }
 
-        // Fallback values when database table is empty
         return Self.defaultValues
     }
 

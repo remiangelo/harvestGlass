@@ -29,8 +29,21 @@ final class ProfileViewModel {
         do {
             profile = try await profileService.getProfile(userId: userId)
             syncEditableFields()
-            valuesBrought = try? await valuesService.getUserValuesBrought(userId: userId)
-            valuesSought = try? await valuesService.getUserValuesSought(userId: userId)
+
+            // Load values
+            do {
+                valuesBrought = try await valuesService.getUserValuesBrought(userId: userId)
+            } catch {
+                print("Warning: Failed to load values brought: \(error)")
+                valuesBrought = [] // Default to empty array
+            }
+
+            do {
+                valuesSought = try await valuesService.getUserValuesSought(userId: userId)
+            } catch {
+                print("Warning: Failed to load values sought: \(error)")
+                valuesSought = [] // Default to empty array
+            }
         } catch {
             self.error = error.localizedDescription
         }
@@ -74,11 +87,24 @@ final class ProfileViewModel {
         }
 
         do {
-            profile = try await profileService.updateProfile(userId: userId, updates: updates)
+            if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
+                profile = updated
+            } else {
+                // Server accepted but returned empty — patch local state
+                applyEditsLocally()
+            }
             isEditing = false
         } catch {
             self.error = error.localizedDescription
         }
+    }
+
+    private func applyEditsLocally() {
+        profile?.nickname = editNickname
+        profile?.bio = editBio
+        profile?.location = editLocation
+        profile?.hobbies = editHobbies
+        profile?.age = editAge
     }
 
     func uploadPhoto(userId: String, imageData: Data) async {
@@ -96,10 +122,14 @@ final class ProfileViewModel {
             var currentPhotos = profile?.photos ?? []
             currentPhotos.append(url)
 
-            profile = try await profileService.updateProfile(
+            if let updated = try await profileService.updateProfile(
                 userId: userId,
                 updates: ["photos": .array(currentPhotos.map { .string($0) })]
-            )
+            ) {
+                profile = updated
+            } else {
+                profile?.photos = currentPhotos
+            }
         } catch {
             self.error = "Failed to upload photo: \(error.localizedDescription)"
         }
@@ -113,10 +143,14 @@ final class ProfileViewModel {
             try await profileService.deletePhoto(photoUrl: url)
             photos.remove(at: index)
 
-            profile = try await profileService.updateProfile(
+            if let updated = try await profileService.updateProfile(
                 userId: userId,
                 updates: ["photos": .array(photos.map { .string($0) })]
-            )
+            ) {
+                profile = updated
+            } else {
+                profile?.photos = photos
+            }
         } catch {
             self.error = "Failed to delete photo: \(error.localizedDescription)"
         }

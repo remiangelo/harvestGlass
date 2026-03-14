@@ -12,10 +12,14 @@ final class GardenerViewModel {
     var todayCharUsage = 0
     var characterLimit = 3000
     var conversationsPerDay: Int? = 1
+    var remainingConversations = 0
+    var currentTier: SubscriptionTier?
     var error: String?
+    var rateLimitWarning: String?
 
     private let gardenerService = GardenerService()
     private let subscriptionService = SubscriptionService()
+    private let rateLimitService = RateLimitService()
 
     var isAtLimit: Bool {
         todayCharUsage >= characterLimit
@@ -41,7 +45,32 @@ final class GardenerViewModel {
     func sendMessage(userId: String) async {
         let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
-        guard !isAtLimit else { return }
+
+        // Check rate limits before sending
+        guard let tier = currentTier else {
+            error = "Unable to verify subscription tier"
+            return
+        }
+
+        do {
+            let limitCheck = try await rateLimitService.checkGardenerLimit(
+                userId: userId,
+                messageLength: text.count,
+                userTier: tier
+            )
+
+            if !limitCheck.canSend {
+                error = limitCheck.reason
+                rateLimitWarning = limitCheck.reason
+                return
+            }
+
+            // Update remaining counts for UI
+            remainingConversations = limitCheck.remainingConversations
+        } catch {
+            print("Warning: Rate limit check failed: \(error)")
+            // Continue with send - don't block user due to rate limit check failure
+        }
 
         isSending = true
         messageText = ""
@@ -72,6 +101,10 @@ final class GardenerViewModel {
                 createdAt: ISO8601DateFormatter().string(from: Date())
             )
             messages.append(assistantMsg)
+
+            // Track conversation for rate limiting
+            try? await rateLimitService.trackGardenerConversation(userId: userId)
+
         } catch {
             self.error = error.localizedDescription
         }
@@ -121,11 +154,29 @@ final class GardenerViewModel {
             if let sub = try await subscriptionService.getUserSubscription(userId: userId) {
                 let tiers = try await subscriptionService.getSubscriptionTiers()
                 if let tier = tiers.first(where: { $0.id == sub.tierId }) {
+                    currentTier = tier
                     characterLimit = tier.gardenerCharacterLimit
                     conversationsPerDay = tier.gardenerConversationsPerDay
+
+                    // Get current rate limit status
+                    let limitCheck = try await rateLimitService.checkGardenerLimit(
+                        userId: userId,
+                        messageLength: 0,
+                        userTier: tier
+                    )
+                    remainingConversations = limitCheck.remainingConversations
+                }
+            } else {
+                // No subscription - load seed tier
+                let tiers = try await subscriptionService.getSubscriptionTiers()
+                if let seedTier = tiers.first(where: { $0.name == .seed }) {
+                    currentTier = seedTier
+                    characterLimit = seedTier.gardenerCharacterLimit
+                    conversationsPerDay = seedTier.gardenerConversationsPerDay
                 }
             }
         } catch {
+            print("Warning: Failed to load tier limits: \(error)")
             // Use defaults
         }
     }

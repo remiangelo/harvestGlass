@@ -40,4 +40,24 @@ final class SafetyDashboardViewModel {
             self.error = error.localizedDescription
         }
     }
+
+    // MARK: - Retroactive Analysis
+
+    func runBulkRetroactiveAnalysis(userId: String) async {
+        isLoading = true
+        error = nil
+        defer { isLoading = false }
+
+        do {
+            let count = try await safetyService.analyzeAllUserConversations(userId: userId)
+            print("Bulk retroactive analysis complete: \(count) conversations analyzed")
+
+            // Reload dashboard with updated data
+            await loadDashboard(userId: userId)
+
+        } catch {
+            self.error = "Failed to analyze conversations: \(error.localizedDescription)"
+            print("Error during bulk retroactive analysis: \(error)")
+        }
+    }
 }

@@ -87,6 +87,20 @@ struct SafetyDashboardView: View {
         }
         .navigationTitle("Safety Dashboard")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button {
+                    Task {
+                        if let userId = authViewModel.currentUserId {
+                            await viewModel.runBulkRetroactiveAnalysis(userId: userId)
+                        }
+                    }
+                } label: {
+                    Label("Analyze All", systemImage: "arrow.clockwise")
+                }
+                .disabled(viewModel.isLoading)
+            }
+        }
         .task {
             if let userId = authViewModel.currentUserId {
                 await viewModel.loadDashboard(userId: userId)

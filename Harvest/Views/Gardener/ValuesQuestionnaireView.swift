@@ -108,13 +108,16 @@ struct ValuesQuestionnaireView: View {
 
         do {
             allValues = try await valuesService.getAllValues()
-            let brought = try await valuesService.getUserValuesBrought(userId: userId)
-            let sought = try await valuesService.getUserValuesSought(userId: userId)
-            selectedBrought = Set(brought.map(\.id))
-            selectedSought = Set(sought.map(\.id))
         } catch {
             self.error = error.localizedDescription
+            return // Can't show picker without values
         }
+
+        // Non-critical — user may not have saved values yet
+        let brought = try? await valuesService.getUserValuesBrought(userId: userId)
+        let sought = try? await valuesService.getUserValuesSought(userId: userId)
+        selectedBrought = Set((brought ?? []).map(\.id))
+        selectedSought = Set((sought ?? []).map(\.id))
     }
 
     private func save() async {
