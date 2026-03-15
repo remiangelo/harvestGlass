@@ -3,6 +3,8 @@ import SwiftUI
 struct LocationStepView: View {
     let viewModel: OnboardingViewModel
 
+    @State private var validationTask: Task<Void, Never>?
+
     var body: some View {
         VStack(spacing: HarvestTheme.Spacing.xl) {
             Spacer()
@@ -26,7 +28,25 @@ struct LocationStepView: View {
             }
             .padding(.horizontal, HarvestTheme.Spacing.xl)
 
+            if viewModel.isValidatingLocation {
+                ProgressView()
+                    .tint(HarvestTheme.Colors.primary)
+            } else if let resolved = viewModel.resolvedLocation {
+                Text(resolved)
+                    .font(HarvestTheme.Typography.bodySmall)
+                    .foregroundStyle(HarvestTheme.Colors.accent)
+            }
+
             Spacer()
+        }
+        .onChange(of: viewModel.location) {
+            viewModel.resolvedLocation = nil
+            validationTask?.cancel()
+            validationTask = Task {
+                try? await Task.sleep(for: .milliseconds(800))
+                guard !Task.isCancelled else { return }
+                await viewModel.validateLocation()
+            }
         }
     }
 }

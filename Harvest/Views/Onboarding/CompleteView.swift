@@ -41,18 +41,24 @@ struct CompleteView: View {
             GlassButton(title: "Start Exploring", icon: "safari", style: .primary) {
                 Task {
                     if let userId = authViewModel.currentUserId {
-                        let success = await viewModel.completeOnboarding(userId: userId)
-                        if success {
-                            await authViewModel.loadProfile()
+                        if let updatedProfile = await viewModel.completeOnboarding(userId: userId) {
+                            authViewModel.profile = updatedProfile
                         }
                     }
                 }
             }
+            .disabled(viewModel.isLoading)
             .padding(.horizontal, HarvestTheme.Spacing.lg)
 
             if viewModel.isLoading {
                 ProgressView()
                     .tint(HarvestTheme.Colors.primary)
+            }
+
+            if let error = viewModel.error {
+                Text(error)
+                    .font(HarvestTheme.Typography.bodySmall)
+                    .foregroundStyle(HarvestTheme.Colors.error)
             }
 
             Spacer(minLength: HarvestTheme.Spacing.xxl)

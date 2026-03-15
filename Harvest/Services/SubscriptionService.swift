@@ -163,7 +163,7 @@ struct SubscriptionService {
 
     // MARK: - Private Helpers
 
-    private func checkVerified<T>(_ result: VerificationResult<T>) throws -> T {
+    private func checkVerified(_ result: VerificationResult<Transaction>) throws -> Transaction {
         switch result {
         case .unverified(_, let error):
             throw SubscriptionError.verificationFailed(error)

@@ -34,17 +34,19 @@ struct CompatibilityService {
 
         // 3. Goals Alignment (15 points max)
         let goalsScore = calculateGoalsScore(
-            userGoals: currentUser.goals ?? [],
-            otherGoals: otherUser.goals ?? []
+            userGoals: currentUser.goalsList,
+            otherGoals: otherUser.goalsList
         )
         breakdown["goals"] = goalsScore
         totalScore += goalsScore
 
         // 4. Age Compatibility (10 points max)
-        let ageScore = calculateAgeScore(
-            userAge: currentUser.age,
-            otherAge: otherUser.age
-        )
+        let ageScore: Double
+        if let userAge = currentUser.age, let otherAge = otherUser.age {
+            ageScore = calculateAgeScore(userAge: userAge, otherAge: otherAge)
+        } else {
+            ageScore = 5.0 // Neutral score if age not provided
+        }
         breakdown["age"] = ageScore
         totalScore += ageScore
 

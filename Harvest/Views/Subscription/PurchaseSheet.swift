@@ -92,8 +92,7 @@ struct PurchaseSheet: View {
                     if let product = viewModel.getProduct(for: tier, billingPeriod: billingPeriod) {
                         GlassButton(
                             title: viewModel.isPurchasing ? "Processing..." : "Subscribe Now",
-                            style: .primary,
-                            isLoading: viewModel.isPurchasing
+                            style: .primary
                         ) {
                             Task {
                                 if let userId = authViewModel.currentUserId {

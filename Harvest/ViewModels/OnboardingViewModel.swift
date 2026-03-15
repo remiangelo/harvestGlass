@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Supabase
+import MapKit
 
 enum OnboardingStep: Int, CaseIterable {
     case age
@@ -28,6 +29,8 @@ final class OnboardingViewModel {
     var termsAccepted = false
     var isLoading = false
     var error: String?
+    var resolvedLocation: String?
+    var isValidatingLocation = false
 
     private let profileService = ProfileService()
 
@@ -47,7 +50,7 @@ final class OnboardingViewModel {
         case .goals: return !selectedGoals.isEmpty
         case .genderIdentity: return !gender.isEmpty
         case .interestedIn: return !interestedIn.isEmpty
-        case .location: return !location.trimmingCharacters(in: .whitespaces).isEmpty
+        case .location: return resolvedLocation != nil
         case .terms: return termsAccepted
         case .complete: return true
         }
@@ -98,7 +101,34 @@ final class OnboardingViewModel {
         }
     }
 
-    func completeOnboarding(userId: String) async -> Bool {
+    func validateLocation() async {
+        let query = location.trimmingCharacters(in: .whitespaces)
+        guard !query.isEmpty else {
+            resolvedLocation = nil
+            return
+        }
+
+        guard let request = MKGeocodingRequest(addressString: query) else {
+            resolvedLocation = nil
+            return
+        }
+
+        isValidatingLocation = true
+        defer { isValidatingLocation = false }
+
+        do {
+            let mapItems = try await request.mapItems
+            if let address = mapItems.first?.address {
+                resolvedLocation = address.shortAddress ?? address.fullAddress
+            } else {
+                resolvedLocation = nil
+            }
+        } catch {
+            resolvedLocation = nil
+        }
+    }
+
+    func completeOnboarding(userId: String) async -> UserProfile? {
         isLoading = true
         defer { isLoading = false }
 
@@ -115,11 +145,10 @@ final class OnboardingViewModel {
         ]
 
         do {
-            _ = try await profileService.updateProfile(userId: userId, updates: updates)
-            return true
+            return try await profileService.updateProfile(userId: userId, updates: updates)
         } catch {
             self.error = "Failed to save profile: \(error.localizedDescription)"
-            return false
+            return nil
         }
     }
 }

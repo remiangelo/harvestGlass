@@ -82,7 +82,7 @@ final class SubscriptionViewModel {
             error = "Your purchase is pending approval. Please check back later."
 
         } catch {
-            error = error.localizedDescription
+            self.error = error.localizedDescription
             print("Error during purchase: \(error)")
         }
     }
@@ -102,7 +102,7 @@ final class SubscriptionViewModel {
             error = "No previous purchases found to restore."
 
         } catch {
-            error = "Failed to restore purchases: \(error.localizedDescription)"
+            self.error = "Failed to restore purchases: \(error.localizedDescription)"
             print("Error restoring purchases: \(error)")
         }
     }

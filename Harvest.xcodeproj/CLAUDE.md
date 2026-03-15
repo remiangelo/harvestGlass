@@ -8,4 +8,15 @@
 | ID | Time | T | Title | Read |
 |----|------|---|-------|------|
 | #266 | 8:56 AM | 🔵 | Xcode project configuration with modern PBXFileSystemSynchronizedRootGroup | ~481 |
+
+### Mar 15, 2026
+
+| ID | Time | T | Title | Read |
+|----|------|---|-------|------|
+| #581 | 11:47 PM | 🔴 | Fixed duplicate CLAUDE.md build error by adding file system synchronization exception | ~367 |
+| #580 | " | 🔴 | Added PBXFileSystemSynchronizedBuildFileExceptionSet to exclude CLAUDE.md files from build | ~354 |
+| #579 | " | ✅ | Added PBXFileSystemSynchronizedBuildFileExceptionSet to Harvest synchronized group | ~283 |
+| #578 | " | 🔵 | Identified three PBXFileSystemSynchronizedRootGroup directories in Xcode project | ~353 |
+| #577 | " | 🔵 | Identified fileSystemSynchronizedGroups configuration in Xcode project | ~363 |
+| #576 | 11:46 PM | 🔵 | Identified fileSystemSynchronizedGroups feature in Xcode project configuration | ~309 |
 </claude-mem-context>

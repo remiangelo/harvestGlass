@@ -4,7 +4,7 @@ import Supabase
 struct GardenerService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
     private let openAI = OpenAIService()
-
+    
     private static let systemPrompt = """
         You are The Gardener, a warm, insightful AI dating coach for the Harvest dating app. \
         Your personality is nurturing and growth-oriented, using gardening metaphors naturally \
@@ -15,9 +15,9 @@ struct GardenerService {
         and action-oriented. Never give medical or legal advice. If someone expresses distress, \
         encourage professional support.
         """
-
+    
     static let welcomeMessage = "Welcome to The Gardener! I'm your personal dating coach, here to help you grow authentic connections. Think of me as the friend who always gives you the honest (but kind) truth about your dating life. What's on your mind today?"
-
+    
     private static let fallbackResponses = [
         "Every connection starts with a single seed of courage. What's on your mind today?",
         "Growth takes time, and that's perfectly okay. I'm here whenever you need to talk about your dating journey.",
@@ -35,21 +35,21 @@ struct GardenerService {
         "Setting boundaries isn't selfish — it's essential. Healthy roots need firm soil. Is there a boundary you've been hesitant to set?",
         "Remember: you're not just looking for someone to like you. You're looking for someone you genuinely like too. What qualities matter most to you?"
     ]
-
+    
     func sendMessage(userId: String, message: String, history: [GardenerMessage]) async throws -> String {
         // Build messages array
         var chatMessages: [OpenAIService.ChatMessage] = [
             .init(role: "system", content: Self.systemPrompt)
         ]
-
+        
         // Add last 10 history messages
         let recentHistory = history.suffix(10)
         for msg in recentHistory {
             chatMessages.append(.init(role: msg.role, content: msg.content))
         }
-
+        
         chatMessages.append(.init(role: "user", content: message))
-
+        
         let response: String
         do {
             response = try await openAI.sendChat(
@@ -60,10 +60,10 @@ struct GardenerService {
         } catch {
             response = Self.fallbackResponses.randomElement() ?? Self.fallbackResponses[0]
         }
-
+        
         // Persist chat history
         let now = ISO8601DateFormatter().string(from: Date())
-
+        
         // Persist user message
         do {
             try await client
@@ -79,7 +79,7 @@ struct GardenerService {
             print("Warning: Failed to persist user message to gardener_chats: \(error)")
             // Non-critical - continue with response even if persistence fails
         }
-
+        
         // Persist assistant response
         do {
             try await client
@@ -90,7 +90,10 @@ struct GardenerService {
                     "content": response,
                     "created_at": now
                 ])
-            .execute()
+                .execute()
+        } catch {
+            print("Warning: Failed to persist assistant response to gardener_chats: \(error)")
+        }
 
         return response
     }
@@ -114,9 +117,9 @@ struct GardenerService {
 
         let messages: [OpenAIService.ChatMessage] = [
             .init(role: "system", content: """
-                Generate a dating self-reflection quiz question. Return JSON: \
-                {"question": "...", "options": ["A", "B", "C", "D"], "category": "dating_style|values|communication|relationship_goals|personality"}
-                """),
+            Generate a dating self-reflection quiz question. Return JSON: \
+            {"question": "...", "options": ["A", "B", "C", "D"], "category": "dating_style|values|communication|relationship_goals|personality"}
+            """),
             .init(role: "user", content: "Generate a thoughtful quiz question about dating and relationships.")
         ]
 

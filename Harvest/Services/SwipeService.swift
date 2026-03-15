@@ -129,8 +129,12 @@ struct SwipeService {
 
     /// Get compatibility score between current user and another user
     func getCompatibilityScore(currentUserId: String, otherUserId: String) async throws -> CompatibilityScore {
-        let currentUser = try await profileService.getProfile(userId: currentUserId)
-        let otherUser = try await profileService.getProfile(userId: otherUserId)
+        guard let currentUser = try await profileService.getProfile(userId: currentUserId) else {
+            throw NSError(domain: "SwipeService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Current user profile not found"])
+        }
+        guard let otherUser = try await profileService.getProfile(userId: otherUserId) else {
+            throw NSError(domain: "SwipeService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Other user profile not found"])
+        }
 
         let currentUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: currentUserId)) ?? []
         let currentUserValuesSought = (try? await valuesService.getUserValuesSought(userId: currentUserId)) ?? []

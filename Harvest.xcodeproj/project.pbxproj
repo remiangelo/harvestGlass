@@ -33,9 +33,23 @@
 		C6B0EB822F5657820082DD1D /* HarvestUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = HarvestUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		C6B0EBFF2F660F010082DD1D /* Exceptions for "Harvest" folder in "Harvest" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				CLAUDE.md,
+				ViewModels/CLAUDE.md,
+			);
+			target = C6B0EB6A2F5657810082DD1D /* Harvest */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		C6B0EB6D2F5657810082DD1D /* Harvest */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				C6B0EBFF2F660F010082DD1D /* Exceptions for "Harvest" folder in "Harvest" target */,
+			);
 			path = Harvest;
 			sourceTree = "<group>";
 		};
@@ -409,14 +423,7 @@
 				DEVELOPMENT_TEAM = L3P46Q9398;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleURLTypes = (
-					{
-						CFBundleURLName = "HarvestGlass.Harvest";
-						CFBundleURLSchemes = (
-							harvestapp,
-						);
-					},
-				);
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"HarvestGlass.Harvest\";\n    CFBundleURLSchemes =     (\n        harvestapp\n    );\n}";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
@@ -450,14 +457,7 @@
 				DEVELOPMENT_TEAM = L3P46Q9398;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
-				INFOPLIST_KEY_CFBundleURLTypes = (
-					{
-						CFBundleURLName = "HarvestGlass.Harvest";
-						CFBundleURLSchemes = (
-							harvestapp,
-						);
-					},
-				);
+				INFOPLIST_KEY_CFBundleURLTypes = "{\n    CFBundleURLName = \"HarvestGlass.Harvest\";\n    CFBundleURLSchemes =     (\n        harvestapp\n    );\n}";
 				INFOPLIST_KEY_LSApplicationCategoryType = "public.app-category.lifestyle";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;

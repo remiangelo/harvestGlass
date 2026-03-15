@@ -36,11 +36,13 @@ struct ProfilePhotoGrid: View {
             } placeholder: {
                 Rectangle()
                     .fill(HarvestTheme.Colors.divider)
+                    .frame(minWidth: 0, maxWidth: .infinity)
                     .overlay {
                         ProgressView()
                     }
             }
-            .frame(height: 150)
+            .frame(minWidth: 0, maxWidth: .infinity, minHeight: 150, maxHeight: 150)
+            .clipped()
             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
 
             if onRemove != nil {
