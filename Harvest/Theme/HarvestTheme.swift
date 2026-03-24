@@ -4,74 +4,132 @@ enum HarvestTheme {
     // MARK: - Colors
 
     enum Colors {
-        // Primary - Rose Pink Red
-        static let primary = Color(hex: "EB1E66")
-        static let primaryDark = Color(hex: "C91854")
-        static let primaryLight = Color(hex: "F04D85")
-        static let primarySoft = Color(hex: "EB1E66").opacity(0.15)
+        // MARK: Core Brand Palette
+        // Brand guide palette
+        static let deepPlum = Color(hex: "#3A1020")
+        static let iconRed = Color(hex: "CB0419")
+        static let appleRed = Color(hex: "C9413B")
+        static let heartGlow = Color(hex: "DB2637")
+        static let harvestGold = Color(hex: "D18A4A")
+        static let harvestCream = Color(hex: "F0D5C8")
+        static let black = Color(hex: "000000")
 
-        // Accent - Bright Green
-        static let accent = Color(hex: "27CF8A")
-        static let accentLight = Color(hex: "4EDBA0")
-        static let accentDark = Color(hex: "1FB076")
-        static let accentSoft = Color(hex: "27CF8A").opacity(0.15)
+        // MARK: Existing Tokens (kept for compatibility)
+        // Primary
+        static let primary = iconRed
+        static let primaryDark = deepPlum
+        static let primaryLight = appleRed
+        static let primarySoft = iconRed.opacity(0.15)
+
+        // Accent
+        static let accent = harvestGold
+        static let accentLight = harvestGold.opacity(0.75)
+        static let accentDark = Color(hex: "B06D35")
+        static let accentSoft = harvestGold.opacity(0.15)
 
         // Backgrounds
-        static let background = Color.white
-        static let surface = Color.white
-        static let secondary = Color(hex: "F5E6D3")
+        // Kept token names the same so old views still compile.
+        // These values now reflect the dark-first brand direction.
+        static let background = deepPlum
+        static let surface = Color(hex: "4A1B18")
+        static let secondary = harvestCream
 
         // Text
-        static let textPrimary = Color.black
-        static let textSecondary = Color(hex: "666666")
-        static let textTertiary = Color(hex: "999999")
-        static let textInverse = Color.white
+        static let textPrimary = harvestCream
+        static let textSecondary = harvestCream.opacity(0.78)
+        static let textTertiary = harvestCream.opacity(0.55)
+        static let textInverse = black
 
         // Semantic
         static let error = Color(hex: "DC2626")
-        static let success = Color(hex: "27CF8A")
+        static let success = harvestGold
         static let warning = Color(hex: "F59E0B")
-        static let info = Color(hex: "3B82F6")
+        static let info = appleRed
 
         // UI
-        static let border = Color(hex: "E5E5E5")
-        static let divider = Color(hex: "F0F0F0")
+        static let border = harvestCream.opacity(0.18)
+        static let divider = harvestCream.opacity(0.10)
 
         // Swipe actions
-        static let like = Color(hex: "27CF8A")
-        static let nope = Color(hex: "DC2626")
-        static let superLike = Color(hex: "EB1E66")
+        static let like = harvestGold
+        static let nope = iconRed
+        static let superLike = heartGlow
 
         // Gradients
+        // Keep the old names so dependent views still work.
         static let primaryGradient = LinearGradient(
-            colors: [Color(hex: "EB1E66"), Color(hex: "F04D85")],
+            colors: [iconRed, appleRed],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
+
         static let overlayGradient = LinearGradient(
-            colors: [.clear, .black.opacity(0.6)],
+            colors: [.clear, black.opacity(0.6)],
             startPoint: .top,
             endPoint: .bottom
         )
+
+        // MARK: Extra Brand Gradients
+        static let splashGradient = LinearGradient(
+            colors: [
+                Color(hex: "7B1E2B"),
+                heartGlow,
+                appleRed,
+                harvestGold.opacity(0.75)
+            ],
+            startPoint: .topLeading,
+            endPoint: .bottomTrailing
+        )
+
+        static let iconGradient = LinearGradient(
+            colors: [iconRed, appleRed],
+            startPoint: .top,
+            endPoint: .bottom
+        )
+
+        static let glowGradient = RadialGradient(
+            colors: [heartGlow.opacity(0.9), heartGlow.opacity(0.18), .clear],
+            center: .center,
+            startRadius: 0,
+            endRadius: 120
+        )
+
+        // Helpful utility surfaces for future screens
+        static let cardBackground = surface
+        static let elevatedSurface = Color(hex: "5A221D")
     }
 
     // MARK: - Typography
 
     enum Typography {
-        static let displayFont = "Georgia"
+        // Keep old names for compatibility
+        static let displayFont = "Orange Squash"
         static let bodyFont = Font.Design.default
 
+        // Add explicit font-name tokens for future use
+        static let displayFontName = "Orange Squash"
+        static let headingFontName = "DM Serif Display"
+        static let bodyFontName = "SF Pro Display" // or "DM Sans" if bundled
+
+        // Existing token names preserved
+        // Uses system fallbacks so nothing breaks if custom fonts are not yet installed.
         static let h1 = Font.system(size: 28, weight: .bold, design: .serif)
         static let h2 = Font.system(size: 24, weight: .bold, design: .serif)
-        static let h3 = Font.system(size: 20, weight: .bold, design: .serif)
-        static let h4 = Font.system(size: 18, weight: .semibold, design: .serif)
+        static let h3 = Font.system(size: 20, weight: .bold, design: .default)
+        static let h4 = Font.system(size: 18, weight: .semibold, design: .default)
 
         static let bodyLarge = Font.system(size: 18, weight: .regular)
         static let bodyRegular = Font.system(size: 16, weight: .regular)
         static let bodySmall = Font.system(size: 14, weight: .regular)
-        static let caption = Font.system(size: 12, weight: .regular)
+        static let caption = Font.system(size: 12, weight: .medium)
 
         static let buttonText = Font.system(size: 16, weight: .semibold)
+
+        // Future-ready optional brand styles
+        static let display = Font.system(size: 48, weight: .regular, design: .serif)
+        static let sectionTitle = Font.system(size: 36, weight: .bold, design: .serif)
+        static let subsection = Font.system(size: 22, weight: .bold, design: .default)
+        static let cardTitle = Font.system(size: 16, weight: .semibold, design: .default)
     }
 
     // MARK: - Spacing
@@ -115,6 +173,7 @@ extension Color {
         var int: UInt64 = 0
         Scanner(string: hex).scanHexInt64(&int)
         let a, r, g, b: UInt64
+
         switch hex.count {
         case 6:
             (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
@@ -123,6 +182,7 @@ extension Color {
         default:
             (a, r, g, b) = (255, 0, 0, 0)
         }
+
         self.init(
             .sRGB,
             red: Double(r) / 255,
