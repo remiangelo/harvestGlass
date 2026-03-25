@@ -38,7 +38,9 @@
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				CLAUDE.md,
+				Services/CLAUDE.md,
 				ViewModels/CLAUDE.md,
+				Views/Onboarding/CLAUDE.md,
 			);
 			target = C6B0EB6A2F5657810082DD1D /* Harvest */;
 		};
