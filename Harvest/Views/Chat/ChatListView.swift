@@ -28,6 +28,7 @@ struct ChatListView: View {
                     )
                         .font(HarvestTheme.Typography.bodyRegular)
                         .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                        .tint(HarvestTheme.Colors.textOnBlack)
                 }
                 .padding(HarvestTheme.Spacing.sm)
                 .background {
