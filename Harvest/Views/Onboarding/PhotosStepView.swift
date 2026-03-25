@@ -41,10 +41,11 @@ struct PhotosStepView: View {
             if let error = viewModel.error {
                 Text(error)
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.error)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
 
             Spacer(minLength: HarvestTheme.Spacing.lg)
         }
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
     }
 }

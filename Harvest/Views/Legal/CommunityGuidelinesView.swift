@@ -61,6 +61,9 @@ struct CommunityGuidelinesView: View {
         }
         .navigationTitle("Community Guidelines")
         .navigationBarTitleDisplayMode(.inline)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func section(title: String, body: String) -> some View {

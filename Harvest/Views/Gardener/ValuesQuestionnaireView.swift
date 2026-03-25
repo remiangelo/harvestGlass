@@ -69,19 +69,22 @@ struct ValuesQuestionnaireView: View {
         }
         .navigationTitle("My Values")
         .navigationBarTitleDisplayMode(.inline)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
                     Task { await save() }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 .disabled(isSaving)
             }
         }
         .task {
             await loadValues()
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func toggleValue(_ valueId: String) {

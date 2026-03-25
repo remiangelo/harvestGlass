@@ -70,6 +70,9 @@ struct TermsOfServiceView: View {
         }
         .navigationTitle("Terms of Service")
         .navigationBarTitleDisplayMode(.inline)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func section(title: String, body: String) -> some View {

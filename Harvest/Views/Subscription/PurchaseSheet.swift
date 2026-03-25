@@ -41,7 +41,7 @@ struct PurchaseSheet: View {
                         VStack(spacing: HarvestTheme.Spacing.sm) {
                             Text(product.displayPrice)
                                 .font(.system(size: 48, weight: .bold))
-                                .foregroundStyle(HarvestTheme.Colors.accent)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                             Text(billingPeriod == .monthly ? "per month" : "per year")
                                 .font(HarvestTheme.Typography.bodyRegular)

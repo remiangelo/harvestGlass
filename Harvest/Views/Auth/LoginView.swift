@@ -39,12 +39,12 @@ struct LoginView: View {
                                 .frame(width: 80, height: 80)
                             Image(systemName: "heart.fill")
                                 .font(.system(size: 36))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
                         }
 
                         Text("Harvest")
                             .font(HarvestTheme.Typography.h1)
-                            .foregroundStyle(HarvestTheme.Colors.primary)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                         Text("Grow meaningful connections")
                             .font(HarvestTheme.Typography.bodyRegular)
@@ -63,8 +63,13 @@ struct LoginView: View {
                                     .keyboardType(.emailAddress)
                                     .autocorrectionDisabled()
                                     .textInputAutocapitalization(.never)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                     .padding()
-                                    .background(HarvestTheme.Colors.divider)
+                                    .background(HarvestTheme.Colors.fieldFill)
+                                    .overlay {
+                                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                    }
                                     .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
 
                                 HStack {
@@ -82,15 +87,20 @@ struct LoginView: View {
                                     }
                                 }
                                 .textContentType(isSignUp ? .newPassword : .password)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 .padding()
-                                .background(HarvestTheme.Colors.divider)
+                                .background(HarvestTheme.Colors.fieldFill)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                }
                                 .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
                             }
 
                             if let error = authViewModel.error {
                                 Text(error)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.error)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                     .multilineTextAlignment(.center)
                             }
 
@@ -130,7 +140,7 @@ struct LoginView: View {
                                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
                             Text(isSignUp ? "Sign In" : "Sign Up")
                                 .fontWeight(.semibold)
-                                .foregroundStyle(HarvestTheme.Colors.primary)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         }
                         .font(HarvestTheme.Typography.bodySmall)
                     }

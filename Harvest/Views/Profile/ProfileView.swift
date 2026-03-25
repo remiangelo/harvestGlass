@@ -120,13 +120,16 @@ struct ProfileView: View {
                             Text("Edit Profile")
                         }
                         .font(HarvestTheme.Typography.buttonText)
-                        .foregroundStyle(HarvestTheme.Colors.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                         .frame(maxWidth: .infinity)
                         .padding(.vertical, 14)
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(.thinMaterial)
-                                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: HarvestTheme.Radius.md))
+                                .fill(HarvestTheme.Colors.blackSurface)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                }
                         }
                     }
                     .padding(.horizontal)

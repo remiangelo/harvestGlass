@@ -40,11 +40,16 @@ struct ReportUserView: View {
             }
             .navigationTitle("Report User")
             .navigationBarTitleDisplayMode(.inline)
+            .scrollContentBackground(.hidden)
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     Button("Cancel") { dismiss() }
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

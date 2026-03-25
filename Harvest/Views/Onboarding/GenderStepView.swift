@@ -41,8 +41,11 @@ struct GenderStepView: View {
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(.ultraThinMaterial)
-                                .glassEffect(.regular.interactive(), in: .rect(cornerRadius: HarvestTheme.Radius.md))
+                                .fill(HarvestTheme.Colors.glassFill)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                }
                         }
                     }
                 }
@@ -51,5 +54,6 @@ struct GenderStepView: View {
 
             Spacer()
         }
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
     }
 }

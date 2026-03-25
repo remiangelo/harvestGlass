@@ -118,7 +118,7 @@ struct GardenerChatView: View {
                     } label: {
                         Text("Upgrade")
                             .font(HarvestTheme.Typography.buttonText)
-                            .foregroundStyle(HarvestTheme.Colors.primary)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     }
                 }
                 .padding(.horizontal)
@@ -127,13 +127,17 @@ struct GardenerChatView: View {
                 HStack(spacing: HarvestTheme.Spacing.sm) {
                     TextField("Ask The Gardener...", text: $viewModel.messageText, axis: .vertical)
                         .font(HarvestTheme.Typography.bodyRegular)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         .lineLimit(1...4)
                         .padding(.horizontal, HarvestTheme.Spacing.md)
                         .padding(.vertical, HarvestTheme.Spacing.sm)
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                                .fill(.ultraThinMaterial)
-                                .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.xl))
+                                .fill(HarvestTheme.Colors.glassFill)
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                }
                         }
 
                     VStack(spacing: 2) {
@@ -168,17 +172,20 @@ struct GardenerChatView: View {
 
             Text(message.content)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(isUser ? .white : HarvestTheme.Colors.textPrimary)
+                .foregroundStyle(isUser ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                 .padding(.horizontal, HarvestTheme.Spacing.md)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
                 .background {
                     if isUser {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                            .fill(HarvestTheme.Colors.primary)
+                            .fill(HarvestTheme.Colors.redSurface)
                     } else {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.lg))
+                            .fill(HarvestTheme.Colors.glassFill)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
                 }
 

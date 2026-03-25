@@ -41,16 +41,17 @@ struct AgeStepView: View {
             if viewModel.age > 0 {
                 Text("Age: \(viewModel.age)")
                     .font(HarvestTheme.Typography.h3)
-                    .foregroundStyle(HarvestTheme.Colors.primary)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
 
             if !viewModel.isAgeValid && viewModel.age > 0 {
                 Text("You must be 18 or older to use Harvest")
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.error)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
 
             Spacer()
         }
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
     }
 }

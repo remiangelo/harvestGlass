@@ -205,7 +205,7 @@ private struct SafetyDetailSheet: View {
                             } else {
                                 Text("Multiple concerns detected. Consider reporting or blocking this user if you feel unsafe.")
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.error)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                             }
                         }
                     }

@@ -70,6 +70,9 @@ struct ProfileEditView: View {
         }
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
@@ -81,12 +84,14 @@ struct ProfileEditView: View {
                     }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
         }
         .onAppear {
             viewModel.startEditing()
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 

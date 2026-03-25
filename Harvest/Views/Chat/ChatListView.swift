@@ -20,15 +20,19 @@ struct ChatListView: View {
                 // Search bar
                 HStack {
                     Image(systemName: "magnifyingglass")
-                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                     TextField("Search conversations", text: $searchText)
                         .font(HarvestTheme.Typography.bodyRegular)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                 }
                 .padding(HarvestTheme.Spacing.sm)
                 .background {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                        .fill(.ultraThinMaterial)
-                        .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.md))
+                        .fill(HarvestTheme.Colors.blackSurface)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                        }
                 }
                 .padding(.horizontal)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
@@ -63,6 +67,7 @@ struct ChatListView: View {
                 }
             }
             .navigationTitle("Messages")
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .refreshable {
                 if let userId = authViewModel.currentUserId {
                     await viewModel.loadConversations(userId: userId)
@@ -73,6 +78,8 @@ struct ChatListView: View {
                     await viewModel.loadConversations(userId: userId)
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 

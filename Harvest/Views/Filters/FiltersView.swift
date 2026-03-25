@@ -160,6 +160,9 @@ struct FiltersView: View {
         }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
@@ -171,7 +174,7 @@ struct FiltersView: View {
                     }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
         }
         .task {
@@ -179,6 +182,8 @@ struct FiltersView: View {
                 await viewModel.loadFilters(userId: userId)
             }
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func toggleShowMe(_ option: String) {

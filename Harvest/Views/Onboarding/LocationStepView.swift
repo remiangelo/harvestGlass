@@ -34,11 +34,12 @@ struct LocationStepView: View {
             } else if let resolved = viewModel.resolvedLocation {
                 Text(resolved)
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.accent)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
 
             Spacer()
         }
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .onChange(of: viewModel.location) {
             viewModel.resolvedLocation = nil
             validationTask?.cancel()

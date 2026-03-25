@@ -21,7 +21,6 @@ struct GlassCard<Content: View>: View {
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius)
                     .fill(HarvestTheme.Colors.glassFill)
-                    .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
                     .overlay {
                         RoundedRectangle(cornerRadius: cornerRadius)
                             .stroke(HarvestTheme.Colors.border, lineWidth: 1)

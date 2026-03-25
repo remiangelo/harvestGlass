@@ -135,11 +135,11 @@ struct SwipeCardView: View {
 
                 Spacer()
             }
-            .foregroundStyle(.white)
+            .foregroundStyle(HarvestTheme.Colors.textOnBlack)
             .padding(HarvestTheme.Spacing.md)
             .background {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                    .fill(.black.opacity(0.4))
+                    .fill(HarvestTheme.Colors.blackSurface.opacity(0.92))
             }
         }
     }

@@ -99,7 +99,7 @@ struct SubscriptionView: View {
                         if tier.priceMonthly == 0 {
                             Text("Free")
                                 .font(HarvestTheme.Typography.h3)
-                                .foregroundStyle(HarvestTheme.Colors.accent)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         } else {
                             Text("$\(String(format: "%.2f", tier.priceMonthly))")
                                 .font(HarvestTheme.Typography.h3)
@@ -132,7 +132,7 @@ struct SubscriptionView: View {
                             Text("Current Plan")
                         }
                         .font(HarvestTheme.Typography.buttonText)
-                        .foregroundStyle(HarvestTheme.Colors.accent)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         Spacer()
                     }
                     .padding(.vertical, 14)

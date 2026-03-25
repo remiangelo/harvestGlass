@@ -111,6 +111,7 @@ struct ProfileDetailView: View {
                     Color.clear.frame(height: 100)
                 }
             }
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
 
             // Close button
             HStack {
@@ -120,9 +121,9 @@ struct ProfileDetailView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 16, weight: .bold))
-                        .foregroundStyle(.white)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                         .frame(width: 32, height: 32)
-                        .background(.black.opacity(0.5))
+                        .background(HarvestTheme.Colors.blackSurface)
                         .clipShape(Circle())
                         .shadow(radius: 4)
                 }
@@ -151,8 +152,11 @@ struct ProfileDetailView: View {
                     .frame(width: 60, height: 60)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular.interactive(), in: .circle)
+                            .fill(HarvestTheme.Colors.blackSurface)
+                            .overlay {
+                                Circle()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
             }
 
@@ -166,8 +170,11 @@ struct ProfileDetailView: View {
                     .frame(width: 48, height: 48)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular.interactive(), in: .circle)
+                            .fill(HarvestTheme.Colors.blackSurface)
+                            .overlay {
+                                Circle()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
             }
 
@@ -181,8 +188,11 @@ struct ProfileDetailView: View {
                     .frame(width: 60, height: 60)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular.interactive(), in: .circle)
+                            .fill(HarvestTheme.Colors.blackSurface)
+                            .overlay {
+                                Circle()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
             }
         }
