@@ -23,6 +23,7 @@ struct GardenerChatView: View {
                     TipsView()
                 }
             }
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("The Gardener")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

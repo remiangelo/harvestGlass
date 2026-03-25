@@ -12,6 +12,7 @@ struct SafetyDashboardView: View {
                     ProgressView()
                     Spacer()
                 }
+                .listRowBackground(HarvestTheme.Colors.background)
             } else if viewModel.analyses.isEmpty {
                 VStack(spacing: HarvestTheme.Spacing.md) {
                     Image(systemName: "checkmark.shield.fill")
@@ -29,6 +30,7 @@ struct SafetyDashboardView: View {
                 .frame(maxWidth: .infinity)
                 .padding(.vertical, HarvestTheme.Spacing.xxl)
                 .listRowSeparator(.hidden)
+                .listRowBackground(HarvestTheme.Colors.background)
             } else {
                 ForEach(viewModel.analyses) { analysis in
                     Button {
@@ -82,11 +84,15 @@ struct SafetyDashboardView: View {
                         }
                     }
                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .listRowBackground(HarvestTheme.Colors.glassFillStrong)
                 }
             }
         }
         .navigationTitle("Safety Dashboard")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.hidden)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .listStyle(.plain)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button {
@@ -109,6 +115,8 @@ struct SafetyDashboardView: View {
         .sheet(item: $viewModel.selectedAnalysis) { analysis in
             SafetyDetailSheet(analysis: analysis, redFlags: viewModel.redFlags)
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 
@@ -205,6 +213,7 @@ private struct SafetyDetailSheet: View {
                 }
                 .padding(.vertical)
             }
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Safety Details")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -212,6 +221,8 @@ private struct SafetyDetailSheet: View {
                     Button("Done") { dismiss() }
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 

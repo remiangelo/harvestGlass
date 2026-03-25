@@ -133,6 +133,7 @@ struct ProfileView: View {
                 }
                 .padding(.vertical)
             }
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Profile")
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -149,6 +150,8 @@ struct ProfileView: View {
                     await viewModel.loadProfile(userId: userId)
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

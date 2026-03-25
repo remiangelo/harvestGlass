@@ -155,11 +155,14 @@ struct HelpCenterView: View {
         }
         .navigationTitle("Help Center")
         .navigationBarTitleDisplayMode(.inline)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .alert("Ticket Submitted", isPresented: $viewModel.showSuccess) {
             Button("OK", role: .cancel) { }
         } message: {
             Text("We've received your support request and will get back to you soon.")
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func resourceRow(_ title: String, icon: String) -> some View {

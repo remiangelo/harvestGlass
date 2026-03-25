@@ -43,6 +43,7 @@ struct ReadyToMoveGateView: View {
             .padding(.horizontal)
         }
         .padding()
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
     }
 
     private func checklistItem(_ text: String, isComplete: Bool) -> some View {

@@ -82,5 +82,6 @@ struct TipsView: View {
             }
             .padding(.vertical)
         }
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
     }
 }

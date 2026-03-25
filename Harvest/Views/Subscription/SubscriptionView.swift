@@ -27,6 +27,7 @@ struct SubscriptionView: View {
         }
         .navigationTitle("Subscription")
         .navigationBarTitleDisplayMode(.inline)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Restore") {
@@ -63,6 +64,8 @@ struct SubscriptionView: View {
                 Text(error)
             }
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func tierCard(_ tier: SubscriptionTier) -> some View {
@@ -182,7 +185,7 @@ struct SubscriptionView: View {
 
     private func tierColor(_ name: TierName) -> Color {
         switch name {
-        case .seed: return HarvestTheme.Colors.textSecondary
+        case .seed: return HarvestTheme.Colors.textPrimary
         case .green: return HarvestTheme.Colors.accent
         case .gold: return Color(hex: "F59E0B")
         }

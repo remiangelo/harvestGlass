@@ -67,8 +67,11 @@ struct MindfulWarningView: View {
                 }
                 .padding()
             }
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Message Review")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

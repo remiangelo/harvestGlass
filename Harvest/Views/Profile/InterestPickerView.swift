@@ -79,6 +79,9 @@ struct InterestPickerView: View {
         }
         .navigationTitle("Interests")
         .navigationBarTitleDisplayMode(.inline)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func toggleInterest(_ interest: String) {

@@ -20,8 +20,12 @@ struct ChipView: View {
                         Capsule().fill(HarvestTheme.Colors.primary)
                     } else {
                         Capsule()
-                            .fill(.thinMaterial)
+                            .fill(HarvestTheme.Colors.glassFillStrong)
                             .glassEffect(.regular.interactive(), in: .capsule)
+                            .overlay {
+                                Capsule()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
                 }
         }

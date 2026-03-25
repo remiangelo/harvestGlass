@@ -128,6 +128,7 @@ struct PurchaseSheet: View {
             }
             .navigationTitle("Subscribe")
             .navigationBarTitleDisplayMode(.inline)
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
                     Button("Cancel") {
@@ -135,6 +136,8 @@ struct PurchaseSheet: View {
                     }
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 
@@ -148,7 +151,7 @@ struct PurchaseSheet: View {
 
     private var tierColor: Color {
         switch tier.name {
-        case .seed: return HarvestTheme.Colors.textSecondary
+        case .seed: return HarvestTheme.Colors.textPrimary
         case .green: return HarvestTheme.Colors.accent
         case .gold: return Color(hex: "F59E0B")
         }

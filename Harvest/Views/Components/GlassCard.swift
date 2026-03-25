@@ -20,8 +20,12 @@ struct GlassCard<Content: View>: View {
             .padding(padding)
             .background {
                 RoundedRectangle(cornerRadius: cornerRadius)
-                    .fill(.thinMaterial)
+                    .fill(HarvestTheme.Colors.glassFill)
                     .glassEffect(.regular.interactive(), in: .rect(cornerRadius: cornerRadius))
+                    .overlay {
+                        RoundedRectangle(cornerRadius: cornerRadius)
+                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                    }
             }
     }
 }

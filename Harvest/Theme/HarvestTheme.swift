@@ -36,8 +36,8 @@ enum HarvestTheme {
 
         // Text
         static let textPrimary = harvestCream
-        static let textSecondary = harvestCream.opacity(0.78)
-        static let textTertiary = harvestCream.opacity(0.55)
+        static let textSecondary = harvestCream.opacity(0.88)
+        static let textTertiary = harvestCream.opacity(0.72)
         static let textInverse = black
 
         // Semantic
@@ -49,6 +49,8 @@ enum HarvestTheme {
         // UI
         static let border = harvestCream.opacity(0.18)
         static let divider = harvestCream.opacity(0.10)
+        static let glassFill = deepPlum.opacity(0.72)
+        static let glassFillStrong = deepPlum.opacity(0.86)
 
         // Swipe actions
         static let like = harvestGold
