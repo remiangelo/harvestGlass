@@ -65,6 +65,7 @@ struct OnboardingContainerView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 }

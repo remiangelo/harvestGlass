@@ -64,6 +64,7 @@ struct CommunityGuidelinesView: View {
         .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func section(title: String, body: String) -> some View {

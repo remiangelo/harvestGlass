@@ -89,20 +89,30 @@ struct HelpCenterView: View {
                             // Subject
                             TextField("Subject", text: $viewModel.ticketSubject)
                                 .font(HarvestTheme.Typography.bodyRegular)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 .padding(HarvestTheme.Spacing.sm)
                                 .background {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
-                                        .fill(HarvestTheme.Colors.divider)
+                                        .fill(HarvestTheme.Colors.glassFillStrong)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
+                                                .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                        }
                                 }
 
                             // Message
                             TextEditor(text: $viewModel.ticketMessage)
                                 .font(HarvestTheme.Typography.bodyRegular)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 .frame(minHeight: 100)
                                 .padding(HarvestTheme.Spacing.xs)
                                 .background {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
-                                        .fill(HarvestTheme.Colors.divider)
+                                        .fill(HarvestTheme.Colors.glassFillStrong)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
+                                                .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                        }
                                 }
 
                             GlassButton(title: "Submit", icon: "paperplane", style: .primary) {
@@ -163,6 +173,7 @@ struct HelpCenterView: View {
         }
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func resourceRow(_ title: String, icon: String) -> some View {

@@ -160,9 +160,8 @@ struct FiltersView: View {
         }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
-        .scrollContentBackground(.hidden)
-        .background(HarvestTheme.Colors.background.ignoresSafeArea())
-        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .scrollContentBackground(.visible)
+        .background(Color.white.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
@@ -174,7 +173,7 @@ struct FiltersView: View {
                     }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                .foregroundStyle(HarvestTheme.Colors.primary)
             }
         }
         .task {
@@ -182,7 +181,7 @@ struct FiltersView: View {
                 await viewModel.loadFilters(userId: userId)
             }
         }
-        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(Color.white, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
     }
 

@@ -138,6 +138,7 @@ struct PurchaseSheet: View {
             }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 

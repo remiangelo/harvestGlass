@@ -21,7 +21,11 @@ struct ChatListView: View {
                 HStack {
                     Image(systemName: "magnifyingglass")
                         .foregroundStyle(HarvestTheme.Colors.textOnBlack)
-                    TextField("Search conversations", text: $searchText)
+                    TextField(
+                        "",
+                        text: $searchText,
+                        prompt: Text("Search conversations").foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    )
                         .font(HarvestTheme.Typography.bodyRegular)
                         .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                 }
@@ -45,6 +49,7 @@ struct ChatListView: View {
                             .foregroundStyle(HarvestTheme.Colors.textTertiary)
                         Text("No messages yet")
                             .font(HarvestTheme.Typography.h3)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         Text("Start swiping to find your match")
                             .font(HarvestTheme.Typography.bodyRegular)
                             .foregroundStyle(HarvestTheme.Colors.textSecondary)
@@ -62,10 +67,14 @@ struct ChatListView: View {
                             chatRow(convoWithProfile)
                         }
                         .listRowSeparator(.hidden)
+                        .listRowBackground(HarvestTheme.Colors.glassFillStrong)
                     }
+                    .scrollContentBackground(.hidden)
+                    .background(HarvestTheme.Colors.background)
                     .listStyle(.plain)
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .navigationTitle("Messages")
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .refreshable {
@@ -80,6 +89,7 @@ struct ChatListView: View {
             }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
@@ -98,6 +108,7 @@ struct ChatListView: View {
                     Text(convoWithProfile.profile.displayName)
                         .font(HarvestTheme.Typography.bodyRegular)
                         .fontWeight(.semibold)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                     Spacer()
 

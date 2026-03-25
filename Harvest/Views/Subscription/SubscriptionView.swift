@@ -66,6 +66,7 @@ struct SubscriptionView: View {
         }
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func tierCard(_ tier: SubscriptionTier) -> some View {

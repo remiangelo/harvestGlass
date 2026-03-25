@@ -21,6 +21,7 @@ struct NicknameStepView: View {
             GlassCard {
                 TextField("Your nickname", text: Bindable(viewModel).nickname)
                     .font(HarvestTheme.Typography.bodyLarge)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     .textInputAutocapitalization(.words)
                     .multilineTextAlignment(.center)
             }

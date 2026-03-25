@@ -46,6 +46,9 @@ struct GardenerChatView: View {
                     .presentationDetents([.medium, .large])
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 

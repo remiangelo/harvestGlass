@@ -23,6 +23,7 @@ struct LocationStepView: View {
             GlassCard {
                 TextField("City name", text: Bindable(viewModel).location)
                     .font(HarvestTheme.Typography.bodyLarge)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     .textInputAutocapitalization(.words)
                     .multilineTextAlignment(.center)
             }
