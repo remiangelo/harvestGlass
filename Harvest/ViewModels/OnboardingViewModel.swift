@@ -1,4 +1,5 @@
 import Foundation
+import UIKit
 import Observation
 import Supabase
 import MapKit
@@ -73,12 +74,19 @@ final class OnboardingViewModel {
 
     func uploadPhoto(userId: String, imageData: Data) async {
         isLoading = true
+        self.error = nil
         defer { isLoading = false }
+
+        guard let uiImage = UIImage(data: imageData),
+              let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
+            self.error = "Could not process the selected image"
+            return
+        }
 
         do {
             let url = try await profileService.uploadPhoto(
                 userId: userId,
-                imageData: imageData,
+                imageData: jpegData,
                 photoIndex: photoUrls.count
             )
             photoUrls.append(url)

@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Supabase
+import UIKit
 
 @Observable
 final class ProfileViewModel {
@@ -109,13 +110,20 @@ final class ProfileViewModel {
 
     func uploadPhoto(userId: String, imageData: Data) async {
         isLoading = true
+        self.error = nil
         defer { isLoading = false }
+
+        guard let uiImage = UIImage(data: imageData),
+              let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
+            self.error = "Could not process the selected image"
+            return
+        }
 
         do {
             let currentCount = profile?.photos?.count ?? 0
             let url = try await profileService.uploadPhoto(
                 userId: userId,
-                imageData: imageData,
+                imageData: jpegData,
                 photoIndex: currentCount
             )
 

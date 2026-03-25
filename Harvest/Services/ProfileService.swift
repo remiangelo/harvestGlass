@@ -72,7 +72,7 @@ struct ProfileService {
     func uploadPhoto(userId: String, imageData: Data, photoIndex: Int) async throws -> String {
         let fileName = "\(userId)/photo_\(photoIndex)_\(Int(Date().timeIntervalSince1970 * 1000)).jpg"
 
-        try await client.storage
+        let response = try await client.storage
             .from(Config.storageBucket)
             .upload(
                 fileName,
@@ -80,11 +80,7 @@ struct ProfileService {
                 options: FileOptions(contentType: "image/jpeg", upsert: true)
             )
 
-        let publicURL = try client.storage
-            .from(Config.storageBucket)
-            .getPublicURL(path: fileName)
-
-        return publicURL.absoluteString
+        return "\(Config.supabaseURL)/storage/v1/object/public/\(response.fullPath)"
     }
 
     func deletePhoto(photoUrl: String) async throws {
