@@ -153,7 +153,11 @@ final class OnboardingViewModel {
         ]
 
         do {
-            return try await profileService.updateProfile(userId: userId, updates: updates)
+            let result = try await profileService.updateProfile(userId: userId, updates: updates)
+            if result == nil {
+                self.error = "Profile update returned empty response. Please try again."
+            }
+            return result
         } catch {
             self.error = "Failed to save profile: \(error.localizedDescription)"
             return nil

@@ -43,6 +43,12 @@ struct CompleteView: View {
                     if let userId = authViewModel.currentUserId {
                         if let updatedProfile = await viewModel.completeOnboarding(userId: userId) {
                             authViewModel.profile = updatedProfile
+                        } else if viewModel.error == nil {
+                            // Update returned nil without error — reload profile from database as fallback
+                            await authViewModel.loadProfile()
+                            if authViewModel.needsOnboarding {
+                                viewModel.error = "Failed to save profile. Please try again."
+                            }
                         }
                     }
                 }
