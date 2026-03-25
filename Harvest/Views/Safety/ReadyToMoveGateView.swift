@@ -42,6 +42,7 @@ struct ReadyToMoveGateView: View {
             }
             .padding(.horizontal)
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .padding()
         .background(HarvestTheme.Colors.background.ignoresSafeArea())
     }

@@ -163,6 +163,7 @@ struct HelpCenterView: View {
             }
             .padding(.vertical)
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Help Center")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())

@@ -23,6 +23,7 @@ struct GardenerChatView: View {
                     TipsView()
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("The Gardener")
             .navigationBarTitleDisplayMode(.inline)
@@ -165,6 +166,7 @@ struct GardenerChatView: View {
                 .padding(.vertical, HarvestTheme.Spacing.sm)
             }
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
     }
 
     private func gardenerBubble(_ message: GardenerMessage) -> some View {

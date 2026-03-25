@@ -67,6 +67,7 @@ struct ValuesQuestionnaireView: View {
                 }
             }
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("My Values")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())
@@ -85,6 +86,7 @@ struct ValuesQuestionnaireView: View {
         }
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func toggleValue(_ valueId: String) {

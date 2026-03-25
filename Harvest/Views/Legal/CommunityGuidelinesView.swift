@@ -59,6 +59,7 @@ struct CommunityGuidelinesView: View {
             }
             .padding()
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Community Guidelines")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())

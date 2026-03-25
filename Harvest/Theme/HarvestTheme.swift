@@ -35,12 +35,14 @@ enum HarvestTheme {
         static let background = deepPlum
         static let surface = deepPlum
         static let secondary = harvestCream
+        static let creamSurface = harvestCream
 
         // Text
         static let textPrimary = harvestCream
         static let textSecondary = harvestCream
         static let textTertiary = harvestCream
         static let textInverse = black
+        static let textOnCream = deepPlum
         static let textOnRedPrimary = deepPlum
         static let textOnRedAccent = harvestGold
         static let textOnBlack = harvestGold

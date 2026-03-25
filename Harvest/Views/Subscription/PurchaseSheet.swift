@@ -126,6 +126,7 @@ struct PurchaseSheet: View {
                     .padding(.bottom)
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .navigationTitle("Subscribe")
             .navigationBarTitleDisplayMode(.inline)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
@@ -180,6 +181,7 @@ struct PurchaseSheet: View {
             Text(value)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(.semibold)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
         }
     }
 
@@ -189,6 +191,7 @@ struct PurchaseSheet: View {
                 .foregroundStyle(HarvestTheme.Colors.accent)
             Text(label)
                 .font(HarvestTheme.Typography.bodySmall)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
             Spacer()
         }
     }

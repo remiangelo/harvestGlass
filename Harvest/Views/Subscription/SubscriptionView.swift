@@ -25,6 +25,7 @@ struct SubscriptionView: View {
             }
             .padding()
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Subscription")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())
@@ -162,6 +163,7 @@ struct SubscriptionView: View {
             Text(value)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(.semibold)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
         }
     }
 

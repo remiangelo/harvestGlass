@@ -77,6 +77,7 @@ struct InterestPickerView: View {
             }
             .padding(.vertical)
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Interests")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())

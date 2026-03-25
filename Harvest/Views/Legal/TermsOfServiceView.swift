@@ -68,6 +68,7 @@ struct TermsOfServiceView: View {
             }
             .padding()
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Terms of Service")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())

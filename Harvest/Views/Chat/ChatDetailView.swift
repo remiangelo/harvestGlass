@@ -91,6 +91,7 @@ struct ChatDetailView: View {
             .padding(.horizontal)
             .padding(.vertical, HarvestTheme.Spacing.sm)
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .navigationTitle(viewModel.partnerProfile?.displayName ?? "Chat")
         .navigationBarTitleDisplayMode(.inline)

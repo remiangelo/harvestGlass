@@ -93,6 +93,7 @@ struct DailyQuizPopup: View {
                 }
                 .padding(.vertical)
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -106,6 +107,7 @@ struct DailyQuizPopup: View {
             }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 }

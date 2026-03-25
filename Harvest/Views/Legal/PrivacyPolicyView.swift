@@ -58,6 +58,7 @@ struct PrivacyPolicyView: View {
             }
             .padding()
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Privacy Policy")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())

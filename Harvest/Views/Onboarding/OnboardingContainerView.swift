@@ -60,6 +60,7 @@ struct OnboardingContainerView: View {
                     .padding(.bottom, HarvestTheme.Spacing.lg)
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Set Up Profile")
             .navigationBarTitleDisplayMode(.inline)

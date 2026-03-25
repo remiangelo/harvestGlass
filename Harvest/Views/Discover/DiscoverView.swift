@@ -26,6 +26,7 @@ struct DiscoverView: View {
                     }
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

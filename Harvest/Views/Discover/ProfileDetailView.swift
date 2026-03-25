@@ -111,6 +111,7 @@ struct ProfileDetailView: View {
                     Color.clear.frame(height: 100)
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
 
             // Close button

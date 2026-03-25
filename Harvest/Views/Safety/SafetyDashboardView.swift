@@ -88,6 +88,7 @@ struct SafetyDashboardView: View {
                 }
             }
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .navigationTitle("Safety Dashboard")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
@@ -214,6 +215,7 @@ private struct SafetyDetailSheet: View {
                 }
                 .padding(.vertical)
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Safety Details")
             .navigationBarTitleDisplayMode(.inline)
