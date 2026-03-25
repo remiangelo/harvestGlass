@@ -36,6 +36,20 @@ struct ProfileService {
         return response.first
     }
 
+    func upsertProfile(userId: String, updates: [String: AnyJSON]) async throws -> UserProfile? {
+        var mutableUpdates = updates
+        mutableUpdates["id"] = .string(userId)
+        mutableUpdates["updated_at"] = .string(ISO8601DateFormatter().string(from: Date()))
+
+        let response: [UserProfile] = try await client
+            .from("users")
+            .upsert(mutableUpdates, onConflict: "id")
+            .select()
+            .execute()
+            .value
+        return response.first
+    }
+
     func updateProfile(userId: String, updates: [String: AnyJSON]) async throws -> UserProfile? {
         var mutableUpdates = updates
         mutableUpdates["updated_at"] = AnyJSON.string(ISO8601DateFormatter().string(from: Date()))

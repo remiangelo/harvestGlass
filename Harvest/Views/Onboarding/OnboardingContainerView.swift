@@ -62,6 +62,14 @@ struct OnboardingContainerView: View {
             }
             .navigationTitle("Set Up Profile")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Sign Out") {
+                        Task { await authViewModel.logout() }
+                    }
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                }
+            }
         }
     }
 }

@@ -153,11 +153,16 @@ final class OnboardingViewModel {
         ]
 
         do {
-            let result = try await profileService.updateProfile(userId: userId, updates: updates)
-            if result == nil {
-                self.error = "Profile update returned empty response. Please try again."
+            // Try update first
+            if let result = try await profileService.updateProfile(userId: userId, updates: updates) {
+                return result
             }
-            return result
+            // Profile row doesn't exist — create it via upsert
+            if let result = try await profileService.upsertProfile(userId: userId, updates: updates) {
+                return result
+            }
+            self.error = "Failed to save profile. Please try again."
+            return nil
         } catch {
             self.error = "Failed to save profile: \(error.localizedDescription)"
             return nil
