@@ -135,10 +135,45 @@ struct MatchService {
 
             guard let otherUserId else { continue }
             if let profile = try await profileService.getProfile(userId: otherUserId) {
-                conversationsWithProfiles.append(ConversationWithProfile(conversation: conversation, profile: profile))
+                let hydratedConversation = try await hydrateConversationPreviewIfNeeded(conversation)
+                guard hydratedConversation.lastMessagePreview != nil else { continue }
+                conversationsWithProfiles.append(ConversationWithProfile(conversation: hydratedConversation, profile: profile))
             }
         }
 
         return conversationsWithProfiles
+    }
+
+    private func hydrateConversationPreviewIfNeeded(_ conversation: Conversation) async throws -> Conversation {
+        if conversation.lastMessagePreview != nil {
+            return conversation
+        }
+
+        let latestMessages: [Message] = try await client
+            .from("messages")
+            .select("content, created_at, id, conversation_id, sender_id, message_type, media_url, is_read, read_at")
+            .eq("conversation_id", value: conversation.id)
+            .order("created_at", ascending: false)
+            .limit(1)
+            .execute()
+            .value
+
+        guard let latestMessage = latestMessages.first, let content = latestMessage.content, !content.isEmpty else {
+            return conversation
+        }
+
+        try await client
+            .from("conversations")
+            .update([
+                "last_message_at": AnyJSON.string(latestMessage.createdAt ?? ISO8601DateFormatter().string(from: Date())),
+                "last_message_preview": AnyJSON.string(String(content.prefix(100)))
+            ])
+            .eq("id", value: conversation.id)
+            .execute()
+
+        var hydratedConversation = conversation
+        hydratedConversation.lastMessageAt = latestMessage.createdAt
+        hydratedConversation.lastMessagePreview = String(content.prefix(100))
+        return hydratedConversation
     }
 }

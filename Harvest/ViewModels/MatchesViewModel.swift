@@ -18,8 +18,12 @@ final class MatchesViewModel {
             async let matchesTask = matchService.getMatches(userId: userId)
             async let conversationsTask = matchService.getConversations(userId: userId)
 
-            recentMatches = try await matchesTask
-            conversations = try await conversationsTask
+            let loadedMatches = try await matchesTask
+            let loadedConversations = try await conversationsTask
+
+            let matchedConversationIds = Set(loadedConversations.compactMap(\.conversation.matchId))
+            recentMatches = loadedMatches.filter { !matchedConversationIds.contains($0.match.id) }
+            conversations = loadedConversations
         } catch {
             self.error = error.localizedDescription
         }
