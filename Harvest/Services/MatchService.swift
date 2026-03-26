@@ -30,7 +30,10 @@ struct MatchService {
     func unmatchUser(matchId: String) async throws {
         try await client
             .from("matches")
-            .update(["is_active": false])
+            .update([
+                "is_active": false,
+                "unmatched_at": ISO8601DateFormatter().string(from: Date())
+            ])
             .eq("id", value: matchId)
             .execute()
     }
@@ -39,19 +42,19 @@ struct MatchService {
         try await client
             .from("user_blocks")
             .insert([
-                "user_id": userId,
-                "blocked_user_id": blockedUserId
+                "blocker_id": userId,
+                "blocked_id": blockedUserId
             ])
             .execute()
     }
 
     func reportUser(reporterId: String, reportedUserId: String, category: String, description: String) async throws {
         try await client
-            .from("reports")
+            .from("user_reports")
             .insert([
                 "reporter_id": reporterId,
-                "reported_user_id": reportedUserId,
-                "category": category,
+                "reported_id": reportedUserId,
+                "reason": category,
                 "description": description
             ])
             .execute()
