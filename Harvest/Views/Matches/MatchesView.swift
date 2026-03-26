@@ -3,12 +3,12 @@ import SwiftUI
 struct MatchesView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = MatchesViewModel()
+    @State private var activeChatRoute: ChatRoute?
 
     var body: some View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
-                    // Recent matches
                     if !viewModel.recentMatches.isEmpty {
                         VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                             Text("New Matches")
@@ -18,7 +18,12 @@ struct MatchesView: View {
                             ScrollView(.horizontal, showsIndicators: false) {
                                 HStack(spacing: HarvestTheme.Spacing.md) {
                                     ForEach(viewModel.recentMatches) { matchWithProfile in
-                                        matchAvatar(matchWithProfile.profile)
+                                        Button {
+                                            openMatch(matchWithProfile)
+                                        } label: {
+                                            matchAvatar(matchWithProfile.profile)
+                                        }
+                                        .buttonStyle(.plain)
                                     }
                                 }
                                 .padding(.horizontal)
@@ -26,7 +31,6 @@ struct MatchesView: View {
                         }
                     }
 
-                    // Conversations
                     VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                         Text("Conversations")
                             .font(HarvestTheme.Typography.h4)
@@ -37,15 +41,16 @@ struct MatchesView: View {
                         } else {
                             LazyVStack(spacing: HarvestTheme.Spacing.sm) {
                                 ForEach(viewModel.conversations) { convoWithProfile in
-                                    NavigationLink {
-                                        ChatDetailView(
-                                            authViewModel: authViewModel,
+                                    Button {
+                                        activeChatRoute = ChatRoute(
                                             conversationId: convoWithProfile.conversation.id,
-                                            partnerUserId: convoWithProfile.profile.id
+                                            partnerUserId: convoWithProfile.profile.id,
+                                            matchId: convoWithProfile.conversation.matchId
                                         )
                                     } label: {
                                         conversationRow(convoWithProfile)
                                     }
+                                    .buttonStyle(.plain)
                                 }
                             }
                             .padding(.horizontal)
@@ -57,6 +62,14 @@ struct MatchesView: View {
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Matches")
+            .navigationDestination(item: $activeChatRoute) { route in
+                ChatDetailView(
+                    authViewModel: authViewModel,
+                    conversationId: route.conversationId,
+                    partnerUserId: route.partnerUserId,
+                    matchId: route.matchId
+                )
+            }
             .refreshable {
                 if let userId = authViewModel.currentUserId {
                     await viewModel.loadMatches(userId: userId)
@@ -76,6 +89,25 @@ struct MatchesView: View {
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+        }
+    }
+
+    private func openMatch(_ matchWithProfile: MatchWithProfile) {
+        guard let currentUserId = authViewModel.currentUserId else { return }
+
+        Task {
+            if let conversationId = await viewModel.startConversation(
+                matchWithProfile: matchWithProfile,
+                currentUserId: currentUserId
+            ) {
+                await MainActor.run {
+                    activeChatRoute = ChatRoute(
+                        conversationId: conversationId,
+                        partnerUserId: matchWithProfile.profile.id,
+                        matchId: matchWithProfile.match.id
+                    )
+                }
+            }
         }
     }
 
@@ -162,4 +194,12 @@ struct MatchesView: View {
         relativeFormatter.unitsStyle = .abbreviated
         return relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
+}
+
+private struct ChatRoute: Identifiable, Hashable {
+    let conversationId: String
+    let partnerUserId: String
+    let matchId: String?
+
+    var id: String { conversationId }
 }

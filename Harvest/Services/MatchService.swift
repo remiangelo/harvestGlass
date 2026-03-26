@@ -3,6 +3,7 @@ import Supabase
 
 struct MatchService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
+    private let chatService = ChatService()
 
     func getMatches(userId: String) async throws -> [MatchWithProfile] {
         let matches: [Match] = try await client
@@ -15,10 +16,12 @@ struct MatchService {
             .value
 
         var matchesWithProfiles: [MatchWithProfile] = []
+        var seenOtherUserIds = Set<String>()
         let profileService = ProfileService()
 
         for match in matches {
             let otherUserId = match.otherUserId(currentUserId: userId)
+            guard seenOtherUserIds.insert(otherUserId).inserted else { continue }
             if let profile = try await profileService.getProfile(userId: otherUserId) {
                 matchesWithProfiles.append(MatchWithProfile(match: match, profile: profile))
             }
@@ -58,6 +61,14 @@ struct MatchService {
                 "description": description
             ])
             .execute()
+    }
+
+    func ensureConversation(match: Match, currentUserId: String) async throws -> String? {
+        try await chatService.ensureConversation(
+            matchId: match.id,
+            user1Id: match.user1Id,
+            user2Id: match.user2Id
+        )
     }
 
     func getConversations(userId: String) async throws -> [ConversationWithProfile] {

@@ -3,6 +3,8 @@ import SwiftUI
 struct DiscoverView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = DiscoverViewModel()
+    @State private var activeChatRoute: DiscoverChatRoute?
+    private let matchService = MatchService()
 
     var body: some View {
         NavigationStack {
@@ -55,13 +57,21 @@ struct DiscoverView: View {
                         matchedProfile: matchedProfile,
                         currentProfile: authViewModel.profile,
                         onSendMessage: {
-                            viewModel.dismissMatchModal()
+                            openMatchedChat(with: matchedProfile)
                         },
                         onContinue: {
                             viewModel.dismissMatchModal()
                         }
                     )
                 }
+            }
+            .navigationDestination(item: $activeChatRoute) { route in
+                ChatDetailView(
+                    authViewModel: authViewModel,
+                    conversationId: route.conversationId,
+                    partnerUserId: route.partnerUserId,
+                    matchId: route.matchId
+                )
             }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
@@ -182,4 +192,58 @@ struct DiscoverView: View {
             .frame(width: 160)
         }
     }
+
+    private func openMatchedChat(with matchedProfile: UserProfile) {
+        guard
+            let currentUserId = authViewModel.currentUserId,
+            let matchId = viewModel.matchId
+        else {
+            viewModel.dismissMatchModal()
+            return
+        }
+
+        Task {
+            let match = Match(
+                id: matchId,
+                user1Id: currentUserId,
+                user2Id: matchedProfile.id,
+                isActive: true,
+                matchedAt: nil,
+                unmatchedAt: nil
+            )
+
+            do {
+                if let conversationId = try await matchService.ensureConversation(
+                    match: match,
+                    currentUserId: currentUserId
+                ) {
+                    await MainActor.run {
+                        viewModel.dismissMatchModal()
+                        activeChatRoute = DiscoverChatRoute(
+                            conversationId: conversationId,
+                            partnerUserId: matchedProfile.id,
+                            matchId: matchId
+                        )
+                    }
+                } else {
+                    await MainActor.run {
+                        viewModel.dismissMatchModal()
+                    }
+                }
+            } catch {
+                await MainActor.run {
+                    viewModel.error = error.localizedDescription
+                    viewModel.dismissMatchModal()
+                }
+            }
+        }
+    }
+}
+
+private struct DiscoverChatRoute: Identifiable, Hashable {
+    let conversationId: String
+    let partnerUserId: String
+    let matchId: String?
+
+    var id: String { conversationId }
 }

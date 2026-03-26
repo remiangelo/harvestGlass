@@ -32,4 +32,16 @@ final class MatchesViewModel {
             self.error = error.localizedDescription
         }
     }
+
+    func startConversation(matchWithProfile: MatchWithProfile, currentUserId: String) async -> String? {
+        do {
+            return try await matchService.ensureConversation(
+                match: matchWithProfile.match,
+                currentUserId: currentUserId
+            )
+        } catch {
+            self.error = error.localizedDescription
+            return nil
+        }
+    }
 }
