@@ -27,7 +27,7 @@ final class AuthViewModel {
 
         do {
             if let session = try await authService.getCurrentSession() {
-                currentUserId = session.user.id.uuidString
+                currentUserId = session.user.id.uuidString.lowercased()
                 isAuthenticated = true
                 await loadProfile()
             }
@@ -42,7 +42,7 @@ final class AuthViewModel {
 
         do {
             let session = try await authService.signIn(email: email, password: password)
-            currentUserId = session.user.id.uuidString
+            currentUserId = session.user.id.uuidString.lowercased()
             isAuthenticated = true
             await loadProfile()
         } catch {
@@ -58,13 +58,14 @@ final class AuthViewModel {
 
         do {
             let user = try await authService.signUp(email: email, password: password)
-            currentUserId = user.id.uuidString
+            let normalizedUserId = user.id.uuidString.lowercased()
+            currentUserId = normalizedUserId
 
             // Create profile
-            _ = try await profileService.createProfile(userId: user.id.uuidString, email: email)
+            _ = try await profileService.createProfile(userId: normalizedUserId, email: email)
 
             // Initialize subscription
-            try? await subscriptionService.initializeUserSubscription(userId: user.id.uuidString)
+            try? await subscriptionService.initializeUserSubscription(userId: normalizedUserId)
 
             isAuthenticated = true
             await loadProfile()
@@ -101,7 +102,7 @@ final class AuthViewModel {
                 switch event {
                 case .signedIn:
                     if let user = session?.user {
-                        currentUserId = user.id.uuidString
+                        currentUserId = user.id.uuidString.lowercased()
                         isAuthenticated = true
                         await loadProfile()
                     }

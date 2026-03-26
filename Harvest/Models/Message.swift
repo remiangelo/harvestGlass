@@ -23,6 +23,6 @@ struct Message: Codable, Identifiable, Sendable {
     }
 
     func isSentBy(_ userId: String) -> Bool {
-        senderId == userId
+        senderId.lowercased() == userId.lowercased()
     }
 }

@@ -20,8 +20,9 @@ struct Conversation: Codable, Identifiable, Sendable {
     }
 
     func otherUserId(currentUserId: String) -> String? {
-        if user1Id == currentUserId { return user2Id }
-        if user2Id == currentUserId { return user1Id }
+        let normalizedCurrentUserId = currentUserId.lowercased()
+        if user1Id?.lowercased() == normalizedCurrentUserId { return user2Id }
+        if user2Id?.lowercased() == normalizedCurrentUserId { return user1Id }
         return nil
     }
 }
