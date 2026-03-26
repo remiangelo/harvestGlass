@@ -21,9 +21,11 @@ struct FiltersView: View {
             }
 
             Section("Distance") {
-                VStack(alignment: .leading) {
+                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                     Text("Maximum distance: \(viewModel.filters.distanceMax) \(viewModel.filters.distanceUnit)")
                         .font(HarvestTheme.Typography.bodyRegular)
+                        .foregroundStyle(HarvestTheme.Colors.textOnCream)
+
                     Slider(
                         value: Binding(
                             get: { Double(viewModel.filters.distanceMax) },
@@ -73,7 +75,6 @@ struct FiltersView: View {
                     .tint(HarvestTheme.Colors.primary)
             }
 
-            // Premium filters (Green+)
             Section("Advanced Filters") {
                 if viewModel.canAccessAdvanced {
                     Picker("Looking For", selection: Binding(
@@ -84,17 +85,23 @@ struct FiltersView: View {
                         ForEach(lookingForOptions, id: \.self) { Text($0).tag($0) }
                     }
 
-                    Stepper("Min Height: \(viewModel.filters.heightMin ?? 0) cm",
-                            value: Binding(
-                                get: { viewModel.filters.heightMin ?? 150 },
-                                set: { viewModel.filters.heightMin = $0 }
-                            ), in: 120...220)
+                    Stepper(
+                        "Min Height: \(viewModel.filters.heightMin ?? 0) cm",
+                        value: Binding(
+                            get: { viewModel.filters.heightMin ?? 150 },
+                            set: { viewModel.filters.heightMin = $0 }
+                        ),
+                        in: 120...220
+                    )
 
-                    Stepper("Max Height: \(viewModel.filters.heightMax ?? 0) cm",
-                            value: Binding(
-                                get: { viewModel.filters.heightMax ?? 200 },
-                                set: { viewModel.filters.heightMax = $0 }
-                            ), in: 120...220)
+                    Stepper(
+                        "Max Height: \(viewModel.filters.heightMax ?? 0) cm",
+                        value: Binding(
+                            get: { viewModel.filters.heightMax ?? 200 },
+                            set: { viewModel.filters.heightMax = $0 }
+                        ),
+                        in: 120...220
+                    )
 
                     Picker("Smoking", selection: Binding(
                         get: { viewModel.filters.smoking ?? "" },
@@ -130,7 +137,6 @@ struct FiltersView: View {
                 }
             }
 
-            // Gold-only filters
             Section("Premium Filters") {
                 if viewModel.canAccessFull {
                     Picker("Spiritual/Faith", selection: Binding(
@@ -157,6 +163,12 @@ struct FiltersView: View {
                     .frame(height: 200)
                     .listRowInsets(EdgeInsets())
                 }
+            }
+
+            Section {
+                Text("Only age range and maximum distance are currently saved because those are the only filter columns in the database schema.")
+                    .font(HarvestTheme.Typography.caption)
+                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.75))
             }
 
             Section {
