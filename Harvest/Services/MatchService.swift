@@ -84,7 +84,7 @@ struct MatchService {
     }
 
     func getConversations(userId: String) async throws -> [ConversationWithProfile] {
-        let conversations: [Conversation] = try await client
+        let directConversations: [Conversation] = try await client
             .from("conversations")
             .select()
             .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
@@ -92,11 +92,48 @@ struct MatchService {
             .execute()
             .value
 
+        let matches: [Match] = try await client
+            .from("matches")
+            .select()
+            .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+            .eq("is_active", value: true)
+            .execute()
+            .value
+
+        let matchIds = matches.map(\.id)
+        var conversationsById = Dictionary(uniqueKeysWithValues: directConversations.map { ($0.id, $0) })
+
+        if !matchIds.isEmpty {
+            let matchLinkedConversations: [Conversation] = try await client
+                .from("conversations")
+                .select()
+                .in("match_id", values: matchIds)
+                .order("last_message_at", ascending: false)
+                .execute()
+                .value
+
+            for conversation in matchLinkedConversations {
+                conversationsById[conversation.id] = conversation
+            }
+        }
+
+        let matchesById = Dictionary(uniqueKeysWithValues: matches.map { ($0.id, $0) })
+        let conversations = conversationsById.values.sorted { lhs, rhs in
+            (lhs.lastMessageAt ?? lhs.createdAt ?? "") > (rhs.lastMessageAt ?? rhs.createdAt ?? "")
+        }
+
         var conversationsWithProfiles: [ConversationWithProfile] = []
+        var seenConversationIds = Set<String>()
         let profileService = ProfileService()
 
         for conversation in conversations {
-            guard let otherUserId = conversation.otherUserId(currentUserId: userId) else { continue }
+            guard seenConversationIds.insert(conversation.id).inserted else { continue }
+
+            let otherUserId =
+                conversation.otherUserId(currentUserId: userId) ??
+                conversation.matchId.flatMap { matchesById[$0]?.otherUserId(currentUserId: userId) }
+
+            guard let otherUserId else { continue }
             if let profile = try await profileService.getProfile(userId: otherUserId) {
                 conversationsWithProfiles.append(ConversationWithProfile(conversation: conversation, profile: profile))
             }

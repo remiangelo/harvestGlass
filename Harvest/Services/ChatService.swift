@@ -49,13 +49,30 @@ struct ChatService {
         // Check existing
         let existing: [Conversation] = try await client
             .from("conversations")
-            .select("id")
+            .select("id, user1_id, user2_id")
             .eq("match_id", value: matchId)
             .execute()
             .value
 
-        if let existingId = existing.first?.id {
-            return existingId
+        if let existingConversation = existing.first {
+            let normalizedUser1Id = user1Id.lowercased()
+            let normalizedUser2Id = user2Id.lowercased()
+            let needsRepair =
+                existingConversation.user1Id?.lowercased() != normalizedUser1Id ||
+                existingConversation.user2Id?.lowercased() != normalizedUser2Id
+
+            if needsRepair {
+                try await client
+                    .from("conversations")
+                    .update([
+                        "user1_id": AnyJSON.string(user1Id),
+                        "user2_id": AnyJSON.string(user2Id)
+                    ])
+                    .eq("id", value: existingConversation.id)
+                    .execute()
+            }
+
+            return existingConversation.id
         }
 
         // Create new
