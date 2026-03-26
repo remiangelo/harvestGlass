@@ -173,6 +173,21 @@ struct MatchesView: View {
                 }
             }
         }
+        .overlay {
+            RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                .stroke(
+                    convoWithProfile.hasReplyHighlight
+                    ? HarvestTheme.Colors.primary.opacity(0.9)
+                    : Color.clear,
+                    lineWidth: 1.5
+                )
+        }
+        .shadow(
+            color: convoWithProfile.hasReplyHighlight
+            ? HarvestTheme.Colors.primary.opacity(0.2)
+            : .clear,
+            radius: 10
+        )
     }
 
     private var emptyConversations: some View {

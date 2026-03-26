@@ -137,7 +137,17 @@ struct MatchService {
             if let profile = try await profileService.getProfile(userId: otherUserId) {
                 let hydratedConversation = try await hydrateConversationPreviewIfNeeded(conversation)
                 guard hydratedConversation.lastMessagePreview != nil else { continue }
-                conversationsWithProfiles.append(ConversationWithProfile(conversation: hydratedConversation, profile: profile))
+                let hasReplyHighlight = try await shouldHighlightConversation(
+                    hydratedConversation,
+                    currentUserId: userId
+                )
+                conversationsWithProfiles.append(
+                    ConversationWithProfile(
+                        conversation: hydratedConversation,
+                        profile: profile,
+                        hasReplyHighlight: hasReplyHighlight
+                    )
+                )
             }
         }
 
@@ -175,5 +185,19 @@ struct MatchService {
         hydratedConversation.lastMessageAt = latestMessage.createdAt
         hydratedConversation.lastMessagePreview = String(content.prefix(100))
         return hydratedConversation
+    }
+
+    private func shouldHighlightConversation(_ conversation: Conversation, currentUserId: String) async throws -> Bool {
+        let latestMessages: [Message] = try await client
+            .from("messages")
+            .select("content, created_at, id, conversation_id, sender_id, message_type, media_url, is_read, read_at")
+            .eq("conversation_id", value: conversation.id)
+            .order("created_at", ascending: false)
+            .limit(1)
+            .execute()
+            .value
+
+        guard let latestMessage = latestMessages.first else { return false }
+        return !latestMessage.isSentBy(currentUserId)
     }
 }

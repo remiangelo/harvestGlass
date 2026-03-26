@@ -30,6 +30,7 @@ struct Conversation: Codable, Identifiable, Sendable {
 struct ConversationWithProfile: Identifiable, Sendable {
     let conversation: Conversation
     let profile: UserProfile
+    let hasReplyHighlight: Bool
 
     var id: String { conversation.id }
 }

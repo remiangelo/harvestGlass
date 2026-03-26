@@ -68,7 +68,11 @@ struct ChatListView: View {
                             chatRow(convoWithProfile)
                         }
                         .listRowSeparator(.hidden)
-                        .listRowBackground(HarvestTheme.Colors.glassFillStrong)
+                        .listRowBackground(
+                            convoWithProfile.hasReplyHighlight
+                            ? HarvestTheme.Colors.primary.opacity(0.12)
+                            : HarvestTheme.Colors.glassFillStrong
+                        )
                     }
                     .scrollContentBackground(.hidden)
                     .background(HarvestTheme.Colors.background)
@@ -134,6 +138,13 @@ struct ChatListView: View {
             }
         }
         .padding(.vertical, 4)
+        .overlay(alignment: .leading) {
+            if convoWithProfile.hasReplyHighlight {
+                Capsule()
+                    .fill(HarvestTheme.Colors.primary)
+                    .frame(width: 3, height: 44)
+            }
+        }
     }
 
     private func formatTime(_ isoString: String) -> String {
