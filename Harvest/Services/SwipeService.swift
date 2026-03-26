@@ -87,8 +87,9 @@ struct SwipeService {
                 .gte("age", value: filters.ageMin)
                 .lte("age", value: filters.ageMax)
 
-            if !filters.showMe.isEmpty && !filters.showMe.contains("Everyone") {
-                query = query.in("gender", values: filters.showMe)
+            let normalizedShowMe = normalizedGenderFilters(filters.showMe)
+            if !normalizedShowMe.isEmpty && !normalizedShowMe.contains("everyone") {
+                query = query.in("gender", values: normalizedShowMe)
             }
         }
 
@@ -149,5 +150,14 @@ struct SwipeService {
             otherUserValuesBrought: otherUserValuesBrought,
             otherUserValuesSought: otherUserValuesSought
         )
+    }
+
+    private func normalizedGenderFilters(_ values: [String]) -> [String] {
+        values.map {
+            $0
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+                .lowercased()
+                .replacingOccurrences(of: " ", with: "-")
+        }
     }
 }

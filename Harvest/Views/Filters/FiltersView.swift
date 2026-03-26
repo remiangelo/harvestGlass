@@ -5,7 +5,12 @@ struct FiltersView: View {
     @State private var viewModel = FiltersViewModel()
     @Environment(\.dismiss) private var dismiss
 
-    private let genderOptions = ["Male", "Female", "Non-binary", "Everyone"]
+    private let genderOptions: [(label: String, value: String)] = [
+        ("Male", "male"),
+        ("Female", "female"),
+        ("Non-binary", "non-binary"),
+        ("Everyone", "everyone")
+    ]
     private let lookingForOptions = ["Relationship", "Casual", "Friendship", "Not sure"]
     private let smokingOptions = ["Never", "Sometimes", "Often", "Prefer not to say"]
     private let drinkingOptions = ["Never", "Socially", "Often", "Prefer not to say"]
@@ -44,19 +49,19 @@ struct FiltersView: View {
             }
 
             Section {
-                ForEach(genderOptions, id: \.self) { option in
+                ForEach(genderOptions, id: \.value) { option in
                     Button {
-                        toggleShowMe(option)
+                        toggleShowMe(option.value)
                     } label: {
                         HStack {
-                            Text(option)
+                            Text(option.label)
                                 .foregroundStyle(
-                                    viewModel.filters.showMe.contains(option)
+                                    viewModel.filters.showMe.contains(option.value)
                                     ? HarvestTheme.Colors.textOnCream
                                     : HarvestTheme.Colors.textOnCream.opacity(0.7)
                                 )
                             Spacer()
-                            if viewModel.filters.showMe.contains(option) {
+                            if viewModel.filters.showMe.contains(option.value) {
                                 Image(systemName: "checkmark")
                                     .foregroundStyle(HarvestTheme.Colors.primary)
                             }
@@ -163,12 +168,6 @@ struct FiltersView: View {
                     .frame(height: 200)
                     .listRowInsets(EdgeInsets())
                 }
-            }
-
-            Section {
-                Text("Only age range and maximum distance are currently saved because those are the only filter columns in the database schema.")
-                    .font(HarvestTheme.Typography.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.75))
             }
 
             Section {
