@@ -129,15 +129,21 @@ struct GardenerChatView: View {
                 .padding(.vertical, HarvestTheme.Spacing.sm)
             } else {
                 HStack(spacing: HarvestTheme.Spacing.sm) {
-                    TextField("Ask The Gardener...", text: $viewModel.messageText, axis: .vertical)
+                    TextField(
+                        "",
+                        text: $viewModel.messageText,
+                        prompt: Text("Ask The Gardener...").foregroundStyle(HarvestTheme.Colors.textTertiary),
+                        axis: .vertical
+                    )
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                        .tint(HarvestTheme.Colors.textOnBlack)
                         .lineLimit(1...4)
                         .padding(.horizontal, HarvestTheme.Spacing.md)
                         .padding(.vertical, HarvestTheme.Spacing.sm)
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                                .fill(HarvestTheme.Colors.glassFill)
+                                .fill(HarvestTheme.Colors.blackSurface)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
                                         .stroke(HarvestTheme.Colors.border, lineWidth: 1)

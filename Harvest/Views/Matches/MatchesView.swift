@@ -54,6 +54,8 @@ struct MatchesView: View {
                 }
                 .padding(.vertical)
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Matches")
             .refreshable {
                 if let userId = authViewModel.currentUserId {
@@ -71,6 +73,9 @@ struct MatchesView: View {
                     await viewModel.loadMatches(userId: userId)
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
