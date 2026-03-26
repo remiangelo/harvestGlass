@@ -41,7 +41,7 @@ struct OnboardingContainerView: View {
                 if viewModel.currentStep != .complete {
                     HStack(spacing: HarvestTheme.Spacing.md) {
                         if viewModel.currentStep != .age {
-                            GlassButton(title: "Back", icon: "chevron.left", style: .secondary) {
+                            GlassButton(title: "Back", icon: "chevron.left", style: .primary) {
                                 withAnimation { viewModel.previousStep() }
                             }
                         }
@@ -60,6 +60,7 @@ struct OnboardingContainerView: View {
                     .padding(.bottom, HarvestTheme.Spacing.lg)
                 }
             }
+            .background(Color.white.ignoresSafeArea())
             .navigationTitle("Set Up Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -67,9 +68,11 @@ struct OnboardingContainerView: View {
                     Button("Sign Out") {
                         Task { await authViewModel.logout() }
                     }
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.4))
                 }
             }
+            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

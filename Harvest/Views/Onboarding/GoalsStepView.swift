@@ -24,20 +24,35 @@ struct GoalsStepView: View {
 
             Text("Select all that apply")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
 
             FlowLayout(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(goals, id: \.self) { goal in
-                    ChipView(
-                        title: goal,
-                        isSelected: viewModel.selectedGoals.contains(goal)
-                    ) {
+                    let isSelected = viewModel.selectedGoals.contains(goal)
+
+                    Button {
                         if viewModel.selectedGoals.contains(goal) {
                             viewModel.selectedGoals.remove(goal)
                         } else {
                             viewModel.selectedGoals.insert(goal)
                         }
+                    } label: {
+                        Text(goal)
+                            .font(HarvestTheme.Typography.bodySmall)
+                            .fontWeight(isSelected ? .semibold : .regular)
+                            .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnCream)
+                            .padding(.horizontal, HarvestTheme.Spacing.md)
+                            .padding(.vertical, HarvestTheme.Spacing.sm)
+                            .background {
+                                Capsule()
+                                    .fill(isSelected ? HarvestTheme.Colors.redSurface : Color.white)
+                                    .overlay {
+                                        Capsule()
+                                            .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                                    }
+                            }
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, HarvestTheme.Spacing.lg)

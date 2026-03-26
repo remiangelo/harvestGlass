@@ -18,15 +18,21 @@ struct LocationStepView: View {
 
             Text("Enter your city name")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
 
-            GlassCard {
-                TextField("City name", text: Bindable(viewModel).location)
-                    .font(HarvestTheme.Typography.bodyLarge)
-                    .textInputAutocapitalization(.words)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, HarvestTheme.Spacing.xl)
+            TextField("City name", text: Bindable(viewModel).location)
+                .font(HarvestTheme.Typography.bodyLarge)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                .textInputAutocapitalization(.words)
+                .multilineTextAlignment(.center)
+                .padding()
+                .background(Color.white)
+                .overlay {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
+                .padding(.horizontal, HarvestTheme.Spacing.xl)
 
             if viewModel.isValidatingLocation {
                 ProgressView()
@@ -34,7 +40,7 @@ struct LocationStepView: View {
             } else if let resolved = viewModel.resolvedLocation {
                 Text(resolved)
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.accent)
+                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.7))
             }
 
             Spacer()

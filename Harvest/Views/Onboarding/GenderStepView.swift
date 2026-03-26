@@ -23,8 +23,11 @@ struct GenderStepView: View {
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(genders, id: \.0) { gender, icon in
+                    let value = gender.lowercased().replacingOccurrences(of: " ", with: "-")
+                    let isSelected = viewModel.gender == value
+
                     Button {
-                        viewModel.gender = gender.lowercased().replacingOccurrences(of: " ", with: "-")
+                        viewModel.gender = value
                     } label: {
                         HStack {
                             Image(systemName: icon)
@@ -32,19 +35,19 @@ struct GenderStepView: View {
                             Text(gender)
                                 .font(HarvestTheme.Typography.bodyRegular)
                             Spacer()
-                            if viewModel.gender == gender.lowercased().replacingOccurrences(of: " ", with: "-") {
+                            if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(HarvestTheme.Colors.primary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
                             }
                         }
-                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnCream)
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(HarvestTheme.Colors.glassFill)
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color.white)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
                                 }
                         }
                     }

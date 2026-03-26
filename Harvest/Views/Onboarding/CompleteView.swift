@@ -31,7 +31,7 @@ struct CompleteView: View {
 
             Text("Time to start discovering amazing people")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.55))
                 .multilineTextAlignment(.center)
                 .opacity(showConfetti ? 1 : 0)
                 .animation(.easeIn.delay(0.6), value: showConfetti)

@@ -16,15 +16,21 @@ struct NicknameStepView: View {
 
             Text("This is how other users will see you")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
 
-            GlassCard {
-                TextField("Your nickname", text: Bindable(viewModel).nickname)
-                    .font(HarvestTheme.Typography.bodyLarge)
-                    .textInputAutocapitalization(.words)
-                    .multilineTextAlignment(.center)
-            }
-            .padding(.horizontal, HarvestTheme.Spacing.xl)
+            TextField("Your nickname", text: Bindable(viewModel).nickname)
+                .font(HarvestTheme.Typography.bodyLarge)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                .textInputAutocapitalization(.words)
+                .multilineTextAlignment(.center)
+                .padding()
+                .background(Color.white)
+                .overlay {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                }
+                .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
+                .padding(.horizontal, HarvestTheme.Spacing.xl)
 
             Spacer()
         }

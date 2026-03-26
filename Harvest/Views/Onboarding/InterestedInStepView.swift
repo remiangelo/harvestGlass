@@ -18,7 +18,7 @@ struct InterestedInStepView: View {
 
             Text("Select all that apply")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(options, id: \.self) { option in
@@ -47,20 +47,20 @@ struct InterestedInStepView: View {
                             Spacer()
                             if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(HarvestTheme.Colors.primary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
                             } else {
                                 Image(systemName: "circle")
-                                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.35))
                             }
                         }
-                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnCream)
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(HarvestTheme.Colors.glassFill)
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color.white)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
                                 }
                         }
                     }

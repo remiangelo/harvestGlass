@@ -24,9 +24,16 @@ struct AgeStepView: View {
 
             Text("You must be at least 18 years old")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
 
-            GlassCard {
+            ZStack {
+                RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                    .fill(Color.white)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                            .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                    }
+
                 DatePicker(
                     "Birthday",
                     selection: Bindable(viewModel).birthDate,
@@ -35,6 +42,7 @@ struct AgeStepView: View {
                 )
                 .datePickerStyle(.wheel)
                 .labelsHidden()
+                .padding()
             }
             .padding(.horizontal, HarvestTheme.Spacing.lg)
 
