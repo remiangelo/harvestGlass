@@ -1,9 +1,16 @@
 import Foundation
 import Observation
 
+struct MatchThread: Identifiable {
+    let match: MatchWithProfile
+    let conversation: ConversationWithProfile?
+
+    var id: String { match.id }
+}
+
 @Observable
 final class MatchesViewModel {
-    var recentMatches: [MatchWithProfile] = []
+    var matchThreads: [MatchThread] = []
     var conversations: [ConversationWithProfile] = []
     var isLoading = false
     var error: String?
@@ -21,8 +28,20 @@ final class MatchesViewModel {
             let loadedMatches = try await matchesTask
             let loadedConversations = try await conversationsTask
 
-            let matchedConversationIds = Set(loadedConversations.compactMap(\.conversation.matchId))
-            recentMatches = loadedMatches.filter { !matchedConversationIds.contains($0.match.id) }
+            let conversationsByMatchId = Dictionary(
+                uniqueKeysWithValues: loadedConversations.compactMap { conversation in
+                    guard let matchId = conversation.conversation.matchId else { return nil }
+                    return (matchId, conversation)
+                }
+            )
+
+            matchThreads = loadedMatches.map { match in
+                MatchThread(
+                    match: match,
+                    conversation: conversationsByMatchId[match.match.id]
+                )
+            }
+
             conversations = loadedConversations
         } catch {
             self.error = error.localizedDescription

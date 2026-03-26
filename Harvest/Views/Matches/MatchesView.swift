@@ -8,53 +8,25 @@ struct MatchesView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
-                    if !viewModel.recentMatches.isEmpty {
-                        VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                            Text("New Matches")
-                                .font(HarvestTheme.Typography.h4)
-                                .padding(.horizontal)
+                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                    Text("Conversations")
+                        .font(HarvestTheme.Typography.h4)
+                        .padding(.horizontal)
 
-                            ScrollView(.horizontal, showsIndicators: false) {
-                                HStack(spacing: HarvestTheme.Spacing.md) {
-                                    ForEach(viewModel.recentMatches) { matchWithProfile in
-                                        Button {
-                                            openMatch(matchWithProfile)
-                                        } label: {
-                                            matchAvatar(matchWithProfile.profile)
-                                        }
-                                        .buttonStyle(.plain)
-                                    }
+                    if viewModel.matchThreads.isEmpty {
+                        emptyConversations
+                    } else {
+                        LazyVStack(spacing: HarvestTheme.Spacing.sm) {
+                            ForEach(viewModel.matchThreads) { thread in
+                                Button {
+                                    openMatch(thread.match)
+                                } label: {
+                                    threadRow(thread)
                                 }
-                                .padding(.horizontal)
+                                .buttonStyle(.plain)
                             }
                         }
-                    }
-
-                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                        Text("Conversations")
-                            .font(HarvestTheme.Typography.h4)
-                            .padding(.horizontal)
-
-                        if viewModel.conversations.isEmpty {
-                            emptyConversations
-                        } else {
-                            LazyVStack(spacing: HarvestTheme.Spacing.sm) {
-                                ForEach(viewModel.conversations) { convoWithProfile in
-                                    Button {
-                                        activeChatRoute = ChatRoute(
-                                            conversationId: convoWithProfile.conversation.id,
-                                            partnerUserId: convoWithProfile.profile.id,
-                                            matchId: convoWithProfile.conversation.matchId
-                                        )
-                                    } label: {
-                                        conversationRow(convoWithProfile)
-                                    }
-                                    .buttonStyle(.plain)
-                                }
-                            }
-                            .padding(.horizontal)
-                        }
+                        .padding(.horizontal)
                     }
                 }
                 .padding(.vertical)
@@ -76,7 +48,7 @@ struct MatchesView: View {
                 }
             }
             .overlay {
-                if viewModel.isLoading && viewModel.recentMatches.isEmpty {
+                if viewModel.isLoading && viewModel.matchThreads.isEmpty {
                     ProgressView()
                         .tint(HarvestTheme.Colors.primary)
                 }
@@ -118,33 +90,10 @@ struct MatchesView: View {
         }
     }
 
-    private func matchAvatar(_ profile: UserProfile) -> some View {
-        VStack(spacing: 4) {
-            AsyncImage(url: URL(string: profile.primaryPhoto ?? "")) { image in
-                image.resizable().scaledToFill()
-            } placeholder: {
-                Circle()
-                    .fill(HarvestTheme.Colors.divider)
-                    .overlay {
-                        Image(systemName: "person.fill")
-                            .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                    }
-            }
-            .frame(width: 70, height: 70)
-            .clipShape(Circle())
-            .overlay(Circle().stroke(HarvestTheme.Colors.primary, lineWidth: 2))
-
-            Text(profile.displayName)
-                .font(HarvestTheme.Typography.caption)
-                .lineLimit(1)
-                .frame(width: 70)
-        }
-    }
-
-    private func conversationRow(_ convoWithProfile: ConversationWithProfile) -> some View {
+    private func threadRow(_ thread: MatchThread) -> some View {
         GlassCard(padding: HarvestTheme.Spacing.sm) {
             HStack(spacing: HarvestTheme.Spacing.sm) {
-                AsyncImage(url: URL(string: convoWithProfile.profile.primaryPhoto ?? "")) { image in
+                AsyncImage(url: URL(string: thread.match.profile.primaryPhoto ?? "")) { image in
                     image.resizable().scaledToFill()
                 } placeholder: {
                     Circle().fill(HarvestTheme.Colors.divider)
@@ -153,41 +102,20 @@ struct MatchesView: View {
                 .clipShape(Circle())
 
                 VStack(alignment: .leading, spacing: 2) {
-                    Text(convoWithProfile.profile.displayName)
+                    Text(thread.match.profile.displayName)
                         .font(HarvestTheme.Typography.bodyRegular)
                         .fontWeight(.semibold)
                         .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
-                    Text(convoWithProfile.conversation.lastMessagePreview ?? "Start a conversation")
+                    Text(thread.conversation?.conversation.lastMessagePreview ?? "Start the conversation")
                         .font(HarvestTheme.Typography.bodySmall)
                         .foregroundStyle(HarvestTheme.Colors.textSecondary)
                         .lineLimit(1)
                 }
 
                 Spacer()
-
-                if let time = convoWithProfile.conversation.lastMessageAt {
-                    Text(formatTime(time))
-                        .font(HarvestTheme.Typography.caption)
-                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                }
             }
         }
-        .overlay {
-            RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                .stroke(
-                    convoWithProfile.hasReplyHighlight
-                    ? HarvestTheme.Colors.primary.opacity(0.9)
-                    : Color.clear,
-                    lineWidth: 1.5
-                )
-        }
-        .shadow(
-            color: convoWithProfile.hasReplyHighlight
-            ? HarvestTheme.Colors.primary.opacity(0.2)
-            : .clear,
-            radius: 10
-        )
     }
 
     private var emptyConversations: some View {
@@ -196,7 +124,7 @@ struct MatchesView: View {
                 .font(.system(size: 40))
                 .foregroundStyle(HarvestTheme.Colors.textTertiary)
 
-            Text("No conversations yet")
+            Text("No matches yet")
                 .font(HarvestTheme.Typography.bodyRegular)
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
 
@@ -206,15 +134,6 @@ struct MatchesView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, HarvestTheme.Spacing.xxl)
-    }
-
-    private func formatTime(_ isoString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: isoString) else { return "" }
-
-        let relativeFormatter = RelativeDateTimeFormatter()
-        relativeFormatter.unitsStyle = .abbreviated
-        return relativeFormatter.localizedString(for: date, relativeTo: Date())
     }
 }
 
