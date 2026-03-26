@@ -41,7 +41,7 @@ final class MatchesViewModel {
                 )
             }
 
-            conversations = loadedConversations
+            conversations = sortConversationsByRecentActivity(loadedConversations)
         } catch {
             self.error = error.localizedDescription
         }
@@ -49,7 +49,8 @@ final class MatchesViewModel {
 
     func loadConversations(userId: String) async {
         do {
-            conversations = try await matchService.getConversations(userId: userId)
+            let loadedConversations = try await matchService.getConversations(userId: userId)
+            conversations = sortConversationsByRecentActivity(loadedConversations)
         } catch {
             self.error = error.localizedDescription
         }
@@ -65,5 +66,25 @@ final class MatchesViewModel {
             self.error = error.localizedDescription
             return nil
         }
+    }
+
+    private func sortConversationsByRecentActivity(_ conversations: [ConversationWithProfile]) -> [ConversationWithProfile] {
+        conversations.sorted { lhs, rhs in
+            conversationSortDate(lhs.conversation) > conversationSortDate(rhs.conversation)
+        }
+    }
+
+    private func conversationSortDate(_ conversation: Conversation) -> Date {
+        let formatter = ISO8601DateFormatter()
+
+        if let lastMessageAt = conversation.lastMessageAt, let date = formatter.date(from: lastMessageAt) {
+            return date
+        }
+
+        if let createdAt = conversation.createdAt, let date = formatter.date(from: createdAt) {
+            return date
+        }
+
+        return .distantPast
     }
 }
