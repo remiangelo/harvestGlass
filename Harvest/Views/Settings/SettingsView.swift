@@ -8,8 +8,10 @@ struct SettingsView: View {
     @State private var messageNotifications = true
     @State private var showLogoutAlert = false
     @State private var showDeleteAlert = false
+    @State private var showDeleteErrorAlert = false
     @State private var subscriptionViewModel = SubscriptionViewModel()
     @State private var mindfulMessagingEnabled = MindfulMessagingService().isEnabled
+    @State private var deleteErrorMessage = ""
 
     // Privacy toggles
     @State private var showLocation = UserDefaults.standard.object(forKey: "showLocation") as? Bool ?? true
@@ -162,13 +164,23 @@ struct SettingsView: View {
                 Task {
                     if let userId = authViewModel.currentUserId {
                         let authService = AuthService()
-                        try? await authService.deleteAccount(userId: userId)
-                        await authViewModel.logout()
+                        do {
+                            try await authService.deleteAccount(userId: userId)
+                            await authViewModel.logout()
+                        } catch {
+                            deleteErrorMessage = error.localizedDescription
+                            showDeleteErrorAlert = true
+                        }
                     }
                 }
             }
         } message: {
             Text("This will permanently delete your account, profile, matches, and all messages. This action cannot be undone.")
+        }
+        .alert("Account Deletion Failed", isPresented: $showDeleteErrorAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(deleteErrorMessage)
         }
         .toolbarBackground(Color.white, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)

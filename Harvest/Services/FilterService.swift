@@ -75,7 +75,7 @@ struct FilterService {
             .upsert([
                 "user_id": AnyJSON.string(userId),
                 "preferences": anyJSON(from: jsonObject)
-            ])
+            ], onConflict: "user_id")
             .execute()
     }
 

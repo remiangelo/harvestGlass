@@ -28,6 +28,10 @@ struct AuthService {
     }
 
     func deleteAccount(userId: String) async throws {
+        // Note: this only removes application data plus the public profile.
+        // Deleting the Supabase Auth user itself requires a privileged backend path
+        // such as an Edge Function or server using the service role key.
+
         // Delete user data from tables in order (respecting foreign keys)
         let tablesToClean = [
             "gardener_chats", "daily_quizzes", "safety_analyses",
@@ -77,6 +81,30 @@ struct AuthService {
             deletionErrors["swipes"] = error
         }
 
+        // Delete matches involving user
+        do {
+            try await client
+                .from("matches")
+                .delete()
+                .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+                .execute()
+        } catch {
+            print("Warning: Failed to delete matches: \(error)")
+            deletionErrors["matches"] = error
+        }
+
+        // Delete conversations involving user
+        do {
+            try await client
+                .from("conversations")
+                .delete()
+                .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+                .execute()
+        } catch {
+            print("Warning: Failed to delete conversations: \(error)")
+            deletionErrors["conversations"] = error
+        }
+
         // Delete user profile (critical - throw if this fails)
         do {
             try await client
@@ -94,8 +122,16 @@ struct AuthService {
             print("Account deletion completed with \(deletionErrors.count) non-critical errors")
         }
 
-        // Sign out
+        // Sign out the local session after application data deletion.
         try await client.auth.signOut()
+
+        throw NSError(
+            domain: "AuthService",
+            code: 1001,
+            userInfo: [
+                NSLocalizedDescriptionKey: "Your app data was deleted and you were signed out, but the login account itself still exists. Supabase Auth user deletion requires a secure backend or Edge Function."
+            ]
+        )
     }
 
     func getCurrentSession() async throws -> Auth.Session? {
