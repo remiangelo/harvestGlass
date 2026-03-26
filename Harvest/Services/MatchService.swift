@@ -31,8 +31,8 @@ struct MatchService {
         try await client
             .from("matches")
             .update([
-                "is_active": false,
-                "unmatched_at": ISO8601DateFormatter().string(from: Date())
+                "is_active": AnyJSON.bool(false),
+                "unmatched_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
             ])
             .eq("id", value: matchId)
             .execute()
