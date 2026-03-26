@@ -37,12 +37,14 @@ final class FiltersViewModel {
         }
     }
 
-    func saveFilters(userId: String) async {
+    func saveFilters(userId: String) async -> Bool {
         do {
             try await filterService.saveFilters(userId: userId, filters: filters)
             isSaved = true
+            return true
         } catch {
             self.error = error.localizedDescription
+            return false
         }
     }
 

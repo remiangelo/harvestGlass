@@ -8,8 +8,11 @@ struct PremiumGateView: View {
     var body: some View {
         ZStack {
             Rectangle()
-                .fill(.ultraThinMaterial)
-                .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.lg))
+                .fill(HarvestTheme.Colors.blackSurface)
+                .overlay {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                }
 
             VStack(spacing: HarvestTheme.Spacing.md) {
                 Image(systemName: "lock.fill")
@@ -32,12 +35,11 @@ struct PremiumGateView: View {
                         Text("Upgrade")
                     }
                     .font(HarvestTheme.Typography.buttonText)
-                    .foregroundStyle(.white)
+                    .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
                     .padding(.horizontal, HarvestTheme.Spacing.lg)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
-                    .background {
-                        Capsule().fill(HarvestTheme.Colors.primary)
-                    }
+                    .background(HarvestTheme.Colors.redSurface)
+                    .clipShape(Capsule())
                 }
             }
             .padding()

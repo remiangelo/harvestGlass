@@ -14,17 +14,17 @@ struct GlassButton: View {
 
     private var foregroundColor: Color {
         switch style {
-        case .primary: return .white
-        case .secondary: return HarvestTheme.Colors.textPrimary
-        case .destructive: return .white
+        case .primary: return HarvestTheme.Colors.textOnRedPrimary
+        case .secondary: return HarvestTheme.Colors.textOnBlack
+        case .destructive: return HarvestTheme.Colors.textOnRedAccent
         }
     }
 
     private var backgroundColor: Color {
         switch style {
-        case .primary: return HarvestTheme.Colors.primary
-        case .secondary: return .clear
-        case .destructive: return HarvestTheme.Colors.error
+        case .primary: return HarvestTheme.Colors.redSurface
+        case .secondary: return HarvestTheme.Colors.blackSurface
+        case .destructive: return HarvestTheme.Colors.redSurface
         }
     }
 
@@ -41,14 +41,12 @@ struct GlassButton: View {
             .frame(maxWidth: .infinity)
             .padding(.vertical, 14)
             .background {
-                if style == .secondary {
-                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                        .fill(.ultraThinMaterial)
-                        .glassEffect(.regular.interactive(), in: .rect(cornerRadius: HarvestTheme.Radius.md))
-                } else {
-                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                        .fill(backgroundColor)
-                }
+                RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                    .fill(backgroundColor)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                            .stroke(HarvestTheme.Colors.border, lineWidth: style == .secondary ? 1 : 0)
+                    }
             }
         }
     }

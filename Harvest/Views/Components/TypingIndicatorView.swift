@@ -17,8 +17,11 @@ struct TypingIndicatorView: View {
             .padding(.vertical, HarvestTheme.Spacing.sm + 4)
             .background {
                 BubbleShape(isSent: false)
-                    .fill(.thinMaterial)
-                    .glassEffect(.regular, in: BubbleShape(isSent: false))
+                    .fill(HarvestTheme.Colors.glassFill)
+                    .overlay {
+                        BubbleShape(isSent: false)
+                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                    }
             }
 
             Spacer(minLength: 60)

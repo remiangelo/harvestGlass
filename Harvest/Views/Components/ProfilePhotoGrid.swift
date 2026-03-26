@@ -51,7 +51,7 @@ struct ProfilePhotoGrid: View {
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title3)
-                        .foregroundStyle(.white)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                         .shadow(radius: 2)
                 }
                 .padding(4)
@@ -62,8 +62,12 @@ struct ProfilePhotoGrid: View {
     private var addPhotoCell: some View {
         PhotosPicker(selection: $selectedItem, matching: .images) {
             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                .fill(HarvestTheme.Colors.divider)
+                .fill(Color.white)
                 .frame(height: 150)
+                .overlay {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                }
                 .overlay {
                     VStack(spacing: 4) {
                         Image(systemName: "plus.circle.fill")
@@ -71,7 +75,7 @@ struct ProfilePhotoGrid: View {
                             .foregroundStyle(HarvestTheme.Colors.primary)
                         Text("Add")
                             .font(HarvestTheme.Typography.caption)
-                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            .foregroundStyle(HarvestTheme.Colors.textOnCream)
                     }
                 }
         }

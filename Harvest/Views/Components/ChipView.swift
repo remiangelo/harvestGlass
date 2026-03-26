@@ -12,16 +12,19 @@ struct ChipView: View {
             Text(title)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundStyle(isSelected ? .white : HarvestTheme.Colors.textPrimary)
+                .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                 .padding(.horizontal, HarvestTheme.Spacing.md)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
                 .background {
                     if isSelected {
-                        Capsule().fill(HarvestTheme.Colors.primary)
+                        Capsule().fill(HarvestTheme.Colors.redSurface)
                     } else {
                         Capsule()
-                            .fill(.thinMaterial)
-                            .glassEffect(.regular.interactive(), in: .capsule)
+                            .fill(HarvestTheme.Colors.glassFillStrong)
+                            .overlay {
+                                Capsule()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
                 }
         }

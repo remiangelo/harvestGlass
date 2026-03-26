@@ -26,6 +26,7 @@ struct DiscoverView: View {
                     }
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .navigationTitle("Discover")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -62,6 +63,9 @@ struct DiscoverView: View {
                     )
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
@@ -106,8 +110,11 @@ struct DiscoverView: View {
                     .frame(width: 60, height: 60)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular.interactive(), in: .circle)
+                            .fill(HarvestTheme.Colors.blackSurface)
+                            .overlay {
+                                Circle()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
             }
 
@@ -123,8 +130,11 @@ struct DiscoverView: View {
                     .frame(width: 48, height: 48)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular.interactive(), in: .circle)
+                            .fill(HarvestTheme.Colors.blackSurface)
+                            .overlay {
+                                Circle()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
             }
 
@@ -140,8 +150,11 @@ struct DiscoverView: View {
                     .frame(width: 60, height: 60)
                     .background {
                         Circle()
-                            .fill(.ultraThinMaterial)
-                            .glassEffect(.regular.interactive(), in: .circle)
+                            .fill(HarvestTheme.Colors.blackSurface)
+                            .overlay {
+                                Circle()
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
             }
         }

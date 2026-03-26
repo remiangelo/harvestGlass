@@ -25,6 +25,8 @@ struct SubscriptionView: View {
             }
             .padding()
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .navigationTitle("Subscription")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -63,6 +65,9 @@ struct SubscriptionView: View {
                 Text(error)
             }
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func tierCard(_ tier: SubscriptionTier) -> some View {
@@ -96,7 +101,7 @@ struct SubscriptionView: View {
                         if tier.priceMonthly == 0 {
                             Text("Free")
                                 .font(HarvestTheme.Typography.h3)
-                                .foregroundStyle(HarvestTheme.Colors.accent)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         } else {
                             Text("$\(String(format: "%.2f", tier.priceMonthly))")
                                 .font(HarvestTheme.Typography.h3)
@@ -129,7 +134,7 @@ struct SubscriptionView: View {
                             Text("Current Plan")
                         }
                         .font(HarvestTheme.Typography.buttonText)
-                        .foregroundStyle(HarvestTheme.Colors.accent)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         Spacer()
                     }
                     .padding(.vertical, 14)
@@ -158,6 +163,7 @@ struct SubscriptionView: View {
             Text(value)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(.semibold)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
         }
     }
 
@@ -182,7 +188,7 @@ struct SubscriptionView: View {
 
     private func tierColor(_ name: TierName) -> Color {
         switch name {
-        case .seed: return HarvestTheme.Colors.textSecondary
+        case .seed: return HarvestTheme.Colors.textPrimary
         case .green: return HarvestTheme.Colors.accent
         case .gold: return Color(hex: "F59E0B")
         }

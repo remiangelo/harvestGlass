@@ -23,7 +23,7 @@ struct SettingsView: View {
                     Text("Email")
                     Spacer()
                     Text(authViewModel.profile?.email ?? "")
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.6))
                 }
 
                 NavigationLink {
@@ -107,7 +107,7 @@ struct SettingsView: View {
                     Text("Version")
                     Spacer()
                     Text("1.0.0")
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.6))
                 }
             }
 
@@ -139,6 +139,8 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.visible)
+        .background(Color.white.ignoresSafeArea())
         .task {
             if let userId = authViewModel.currentUserId {
                 await subscriptionViewModel.loadSubscriptionData(userId: userId)
@@ -168,5 +170,7 @@ struct SettingsView: View {
         } message: {
             Text("This will permanently delete your account, profile, matches, and all messages. This action cannot be undone.")
         }
+        .toolbarBackground(Color.white, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }

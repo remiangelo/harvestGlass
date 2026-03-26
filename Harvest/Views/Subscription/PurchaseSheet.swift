@@ -41,7 +41,7 @@ struct PurchaseSheet: View {
                         VStack(spacing: HarvestTheme.Spacing.sm) {
                             Text(product.displayPrice)
                                 .font(.system(size: 48, weight: .bold))
-                                .foregroundStyle(HarvestTheme.Colors.accent)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                             Text(billingPeriod == .monthly ? "per month" : "per year")
                                 .font(HarvestTheme.Typography.bodyRegular)
@@ -126,6 +126,8 @@ struct PurchaseSheet: View {
                     .padding(.bottom)
                 }
             }
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Subscribe")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -135,6 +137,9 @@ struct PurchaseSheet: View {
                     }
                 }
             }
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
@@ -148,7 +153,7 @@ struct PurchaseSheet: View {
 
     private var tierColor: Color {
         switch tier.name {
-        case .seed: return HarvestTheme.Colors.textSecondary
+        case .seed: return HarvestTheme.Colors.textPrimary
         case .green: return HarvestTheme.Colors.accent
         case .gold: return Color(hex: "F59E0B")
         }
@@ -176,6 +181,7 @@ struct PurchaseSheet: View {
             Text(value)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(.semibold)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
         }
     }
 
@@ -185,6 +191,7 @@ struct PurchaseSheet: View {
                 .foregroundStyle(HarvestTheme.Colors.accent)
             Text(label)
                 .font(HarvestTheme.Typography.bodySmall)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
             Spacer()
         }
     }

@@ -13,7 +13,7 @@ struct MatchModalView: View {
             // Blurred background
             Color.black.opacity(0.6)
                 .ignoresSafeArea()
-                .background(.ultraThinMaterial)
+                .background(HarvestTheme.Colors.blackSurface)
 
             VStack(spacing: HarvestTheme.Spacing.xl) {
                 Spacer()
@@ -34,11 +34,11 @@ struct MatchModalView: View {
                 VStack(spacing: HarvestTheme.Spacing.sm) {
                     Text("It's a Match!")
                         .font(.system(size: 36, weight: .bold, design: .serif))
-                        .foregroundStyle(HarvestTheme.Colors.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
 
                     Text("You and \(matchedProfile.displayName) liked each other")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(.white.opacity(0.8))
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                 }
                 .scaleEffect(showContent ? 1 : 0.5)
                 .opacity(showContent ? 1 : 0)

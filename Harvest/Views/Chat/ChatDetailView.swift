@@ -15,15 +15,15 @@ struct ChatDetailView: View {
             if let warning = viewModel.safetyWarning {
                 HStack(spacing: HarvestTheme.Spacing.sm) {
                     Image(systemName: "exclamationmark.shield.fill")
-                        .foregroundStyle(HarvestTheme.Colors.warning)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                     Text(warning)
                         .font(HarvestTheme.Typography.caption)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                     Spacer()
                 }
                 .padding(.horizontal)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
-                .background(HarvestTheme.Colors.warning.opacity(0.1))
+                .background(HarvestTheme.Colors.blackSurface)
             }
 
             // Messages
@@ -60,13 +60,17 @@ struct ChatDetailView: View {
             HStack(spacing: HarvestTheme.Spacing.sm) {
                 TextField("Type a message...", text: $viewModel.messageText, axis: .vertical)
                     .font(HarvestTheme.Typography.bodyRegular)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     .lineLimit(1...4)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .background {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                            .fill(.thinMaterial)
-                            .glassEffect(.regular, in: .rect(cornerRadius: HarvestTheme.Radius.xl))
+                            .fill(HarvestTheme.Colors.glassFill)
+                            .overlay {
+                                RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            }
                     }
 
                 Button {
@@ -87,6 +91,8 @@ struct ChatDetailView: View {
             .padding(.horizontal)
             .padding(.vertical, HarvestTheme.Spacing.sm)
         }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .background(HarvestTheme.Colors.background.ignoresSafeArea())
         .navigationTitle(viewModel.partnerProfile?.displayName ?? "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -192,5 +198,8 @@ struct ChatDetailView: View {
         } message: {
             Text("Are you sure you want to unmatch? This conversation will be removed.")
         }
+        .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 }

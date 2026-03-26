@@ -41,14 +41,18 @@ struct FiltersView: View {
                 }
             }
 
-            Section("Show Me") {
+            Section {
                 ForEach(genderOptions, id: \.self) { option in
                     Button {
                         toggleShowMe(option)
                     } label: {
                         HStack {
                             Text(option)
-                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                .foregroundStyle(
+                                    viewModel.filters.showMe.contains(option)
+                                    ? HarvestTheme.Colors.textOnCream
+                                    : HarvestTheme.Colors.textOnCream.opacity(0.7)
+                                )
                             Spacer()
                             if viewModel.filters.showMe.contains(option) {
                                 Image(systemName: "checkmark")
@@ -57,6 +61,11 @@ struct FiltersView: View {
                         }
                     }
                 }
+            } header: {
+                Text("Show Me")
+                    .textCase(nil)
+                    .font(HarvestTheme.Typography.h4)
+                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.75))
             }
 
             Section {
@@ -160,13 +169,16 @@ struct FiltersView: View {
         }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
+        .scrollContentBackground(.visible)
+        .background(Color.white.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
                     if let userId = authViewModel.currentUserId {
                         Task {
-                            await viewModel.saveFilters(userId: userId)
-                            dismiss()
+                            if await viewModel.saveFilters(userId: userId) {
+                                dismiss()
+                            }
                         }
                     }
                 }
@@ -179,6 +191,8 @@ struct FiltersView: View {
                 await viewModel.loadFilters(userId: userId)
             }
         }
+        .toolbarBackground(Color.white, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func toggleShowMe(_ option: String) {

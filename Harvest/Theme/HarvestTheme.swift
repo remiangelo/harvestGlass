@@ -20,6 +20,8 @@ enum HarvestTheme {
         static let primaryDark = deepPlum
         static let primaryLight = appleRed
         static let primarySoft = iconRed.opacity(0.15)
+        static let blackSurface = black
+        static let redSurface = iconRed
 
         // Accent
         static let accent = harvestGold
@@ -31,14 +33,19 @@ enum HarvestTheme {
         // Kept token names the same so old views still compile.
         // These values now reflect the dark-first brand direction.
         static let background = deepPlum
-        static let surface = Color(hex: "4A1B18")
+        static let surface = deepPlum
         static let secondary = harvestCream
+        static let creamSurface = harvestCream
 
         // Text
         static let textPrimary = harvestCream
-        static let textSecondary = harvestCream.opacity(0.78)
-        static let textTertiary = harvestCream.opacity(0.55)
+        static let textSecondary = harvestCream
+        static let textTertiary = harvestCream
         static let textInverse = black
+        static let textOnCream = deepPlum
+        static let textOnRedPrimary = deepPlum
+        static let textOnRedAccent = harvestGold
+        static let textOnBlack = harvestGold
 
         // Semantic
         static let error = Color(hex: "DC2626")
@@ -49,6 +56,10 @@ enum HarvestTheme {
         // UI
         static let border = harvestCream.opacity(0.18)
         static let divider = harvestCream.opacity(0.10)
+        static let glassFill = deepPlum
+        static let glassFillStrong = deepPlum
+        static let fieldFill = deepPlum
+        static let blackFill = black
 
         // Swipe actions
         static let like = harvestGold
@@ -96,7 +107,7 @@ enum HarvestTheme {
 
         // Helpful utility surfaces for future screens
         static let cardBackground = surface
-        static let elevatedSurface = Color(hex: "5A221D")
+        static let elevatedSurface = deepPlum
     }
 
     // MARK: - Typography

@@ -11,17 +11,20 @@ struct MessageBubbleView: View {
             VStack(alignment: isSent ? .trailing : .leading, spacing: 2) {
                 Text(message.content ?? "")
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(isSent ? .white : HarvestTheme.Colors.textPrimary)
+                    .foregroundStyle(isSent ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .background {
                         if isSent {
                             BubbleShape(isSent: true)
-                                .fill(HarvestTheme.Colors.primary)
+                                .fill(HarvestTheme.Colors.redSurface)
                         } else {
                             BubbleShape(isSent: false)
-                                .fill(.thinMaterial)
-                                .glassEffect(.regular, in: BubbleShape(isSent: false))
+                                .fill(HarvestTheme.Colors.glassFill)
+                                .overlay {
+                                    BubbleShape(isSent: false)
+                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                }
                         }
                     }
 
