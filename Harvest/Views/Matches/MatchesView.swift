@@ -9,7 +9,7 @@ struct MatchesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                    Text("Conversations")
+                    Text("Matches")
                         .font(HarvestTheme.Typography.h4)
                         .padding(.horizontal)
 
@@ -29,7 +29,8 @@ struct MatchesView: View {
                         .padding(.horizontal)
                     }
                 }
-                .padding(.vertical)
+                .padding(.top, HarvestTheme.Spacing.sm)
+                .padding(.bottom, HarvestTheme.Spacing.lg)
             }
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
