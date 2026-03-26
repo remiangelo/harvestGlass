@@ -20,7 +20,7 @@ struct MatchService {
         let profileService = ProfileService()
 
         for match in matches {
-            let otherUserId = match.otherUserId(currentUserId: userId)
+            guard let otherUserId = match.otherUserId(currentUserId: userId) else { continue }
             guard seenOtherUserIds.insert(otherUserId).inserted else { continue }
             if let profile = try await profileService.getProfile(userId: otherUserId) {
                 matchesWithProfiles.append(MatchWithProfile(match: match, profile: profile))
@@ -69,6 +69,18 @@ struct MatchService {
             user1Id: match.user1Id,
             user2Id: match.user2Id
         )
+    }
+
+    func getMatch(matchId: String) async throws -> Match? {
+        let matches: [Match] = try await client
+            .from("matches")
+            .select()
+            .eq("id", value: matchId)
+            .limit(1)
+            .execute()
+            .value
+
+        return matches.first
     }
 
     func getConversations(userId: String) async throws -> [ConversationWithProfile] {

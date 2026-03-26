@@ -86,6 +86,13 @@ struct MatchesView: View {
                     await viewModel.loadMatches(userId: userId)
                 }
             }
+            .onAppear {
+                if let userId = authViewModel.currentUserId {
+                    Task {
+                        await viewModel.loadMatches(userId: userId)
+                    }
+                }
+            }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)

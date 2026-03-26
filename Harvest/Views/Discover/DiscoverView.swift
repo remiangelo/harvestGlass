@@ -203,16 +203,14 @@ struct DiscoverView: View {
         }
 
         Task {
-            let match = Match(
-                id: matchId,
-                user1Id: currentUserId,
-                user2Id: matchedProfile.id,
-                isActive: true,
-                matchedAt: nil,
-                unmatchedAt: nil
-            )
-
             do {
+                guard let match = try await matchService.getMatch(matchId: matchId) else {
+                    await MainActor.run {
+                        viewModel.dismissMatchModal()
+                    }
+                    return
+                }
+
                 if let conversationId = try await matchService.ensureConversation(
                     match: match,
                     currentUserId: currentUserId

@@ -17,8 +17,10 @@ struct Match: Codable, Identifiable, Sendable {
         case unmatchedAt = "unmatched_at"
     }
 
-    func otherUserId(currentUserId: String) -> String {
-        user1Id == currentUserId ? user2Id : user1Id
+    func otherUserId(currentUserId: String) -> String? {
+        if user1Id == currentUserId { return user2Id }
+        if user2Id == currentUserId { return user1Id }
+        return nil
     }
 }
 
