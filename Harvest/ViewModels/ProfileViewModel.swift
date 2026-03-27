@@ -41,19 +41,18 @@ final class ProfileViewModel {
             profile = try await profileService.getProfile(userId: userId)
             syncEditableFields()
 
-            // Load values
             do {
                 valuesBrought = try await valuesService.getUserValuesBrought(userId: userId)
             } catch {
                 print("Warning: Failed to load values brought: \(error)")
-                valuesBrought = [] // Default to empty array
+                valuesBrought = []
             }
 
             do {
                 valuesSought = try await valuesService.getUserValuesSought(userId: userId)
             } catch {
                 print("Warning: Failed to load values sought: \(error)")
-                valuesSought = [] // Default to empty array
+                valuesSought = []
             }
         } catch {
             self.error = error.localizedDescription
@@ -75,6 +74,7 @@ final class ProfileViewModel {
         defer { isLoading = false }
 
         var updates: [String: AnyJSON] = [:]
+        let photosChanged = editPhotoUrls != originalPhotoUrls
 
         if editNickname != profile?.nickname ?? "" {
             updates["nickname"] = .string(editNickname)
@@ -84,9 +84,6 @@ final class ProfileViewModel {
         }
         if editLocation != profile?.location ?? "" {
             updates["location"] = .string(editLocation)
-        }
-        if editPhotoUrls != originalPhotoUrls {
-            updates["photos"] = .array(editPhotoUrls.map { .string($0) })
         }
         if editHobbies != profile?.hobbies ?? [] {
             updates["hobbies"] = .array(editHobbies.map { .string($0) })
@@ -119,20 +116,29 @@ final class ProfileViewModel {
             updates["children_status"] = anyJSONStringOrNull(editChildrenStatus)
         }
 
-        guard !updates.isEmpty else {
+        guard photosChanged || !updates.isEmpty else {
             isEditing = false
             return true
         }
 
         do {
-            if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
-                profile = updated
-                originalPhotoUrls = updated.photos ?? []
-            } else {
-                // Server accepted but returned empty — patch local state
-                applyEditsLocally()
-                originalPhotoUrls = editPhotoUrls
+            if !updates.isEmpty {
+                if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
+                    profile = updated
+                } else {
+                    applyEditsLocally()
+                }
             }
+
+            if photosChanged {
+                if let updated = try await profileService.updatePhotos(userId: userId, photoUrls: editPhotoUrls) {
+                    profile = updated
+                } else {
+                    profile?.photos = editPhotoUrls
+                }
+            }
+
+            originalPhotoUrls = profile?.photos ?? editPhotoUrls
             isEditing = false
             return true
         } catch {
@@ -180,9 +186,9 @@ final class ProfileViewModel {
             )
 
             let updatedPhotos = existingPhotos + [url]
-            if let updated = try await profileService.updateProfile(
+            if let updated = try await profileService.updatePhotos(
                 userId: userId,
-                updates: ["photos": .array(updatedPhotos.map { .string($0) })]
+                photoUrls: updatedPhotos
             ) {
                 profile = updated
                 editPhotoUrls = updated.photos ?? updatedPhotos
@@ -206,9 +212,9 @@ final class ProfileViewModel {
             try await profileService.deletePhoto(photoUrl: url)
 
             currentPhotos.removeAll { $0 == url }
-            if let updated = try await profileService.updateProfile(
+            if let updated = try await profileService.updatePhotos(
                 userId: userId,
-                updates: ["photos": .array(currentPhotos.map { .string($0) })]
+                photoUrls: currentPhotos
             ) {
                 profile = updated
                 editPhotoUrls = updated.photos ?? currentPhotos
