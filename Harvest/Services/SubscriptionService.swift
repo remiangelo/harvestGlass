@@ -37,6 +37,9 @@ struct SubscriptionService {
             .from("user_subscriptions")
             .select()
             .eq("user_id", value: userId)
+            .eq("status", value: "active")
+            .order("updated_at", ascending: false)
+            .limit(1)
             .execute()
             .value
         return subs.first
@@ -207,8 +210,9 @@ struct SubscriptionService {
                     "tier_id": AnyJSON.string(tierId),
                     "status": AnyJSON.string("active"),
                     "started_at": AnyJSON.string(now),
-                    "cancelled_at": AnyJSON.null
-                ])
+                    "cancelled_at": AnyJSON.null,
+                    "updated_at": AnyJSON.string(now)
+                ], onConflict: "user_id")
                 .execute()
         } catch {
             print("Error: Failed to update subscription in database: \(error)")

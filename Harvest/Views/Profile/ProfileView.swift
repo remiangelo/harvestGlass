@@ -154,6 +154,13 @@ struct ProfileView: View {
                     await viewModel.loadProfile(userId: userId)
                 }
             }
+            .onAppear {
+                if let userId = authViewModel.currentUserId {
+                    Task {
+                        await viewModel.loadProfile(userId: userId)
+                    }
+                }
+            }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)

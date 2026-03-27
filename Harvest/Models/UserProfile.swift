@@ -14,6 +14,13 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var photos: [String]?
     var distancePreference: Int?
     var interestedIn: [String]?
+    var lookingFor: String?
+    var heightCm: Int?
+    var smoking: String?
+    var drinking: String?
+    var cannabis: String?
+    var spiritualOrientation: String?
+    var childrenStatus: String?
     var onboardingCompleted: Bool?
     var createdAt: String?
     var updatedAt: String?
@@ -22,6 +29,13 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case id, email, nickname, age, bio, location, gender, preferences, goals, hobbies, photos
         case distancePreference = "distance_preference"
         case interestedIn = "interested_in"
+        case lookingFor = "looking_for"
+        case heightCm = "height_cm"
+        case smoking
+        case drinking
+        case cannabis
+        case spiritualOrientation = "spiritual_orientation"
+        case childrenStatus = "children_status"
         case onboardingCompleted = "onboarding_completed"
         case createdAt = "created_at"
         case updatedAt = "updated_at"

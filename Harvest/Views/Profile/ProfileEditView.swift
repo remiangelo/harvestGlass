@@ -5,6 +5,51 @@ struct ProfileEditView: View {
     @Bindable var viewModel: ProfileViewModel
     @Environment(\.dismiss) private var dismiss
 
+    private let lookingForOptions = [
+        ("Dating", "dating"),
+        ("Relationship", "relationship"),
+        ("Marriage", "marriage")
+    ]
+    private let smokingOptions = [
+        ("Never", "never"),
+        ("Sometimes", "sometimes"),
+        ("Regularly", "regularly"),
+        ("Prefer not to say", "prefer_not_to_say")
+    ]
+    private let drinkingOptions = [
+        ("Never", "never"),
+        ("Socially", "socially"),
+        ("Regularly", "regularly"),
+        ("Prefer not to say", "prefer_not_to_say")
+    ]
+    private let cannabisOptions = [
+        ("Never", "never"),
+        ("Sometimes", "sometimes"),
+        ("Regularly", "regularly"),
+        ("Prefer not to say", "prefer_not_to_say")
+    ]
+    private let spiritualOptions = [
+        ("Spiritual, not religious", "spiritual_not_religious"),
+        ("Christian", "christian"),
+        ("Catholic", "catholic"),
+        ("Jewish", "jewish"),
+        ("Muslim", "muslim"),
+        ("Hindu", "hindu"),
+        ("Buddhist", "buddhist"),
+        ("Atheist", "atheist"),
+        ("Agnostic", "agnostic"),
+        ("Other", "other"),
+        ("Prefer not to say", "prefer_not_to_say")
+    ]
+    private let childrenOptions = [
+        ("Have and want more", "have_and_want_more"),
+        ("Have and don't want more", "have_and_dont_want_more"),
+        ("Want kids", "want_kids"),
+        ("Open to kids", "open_to_kids"),
+        ("Don't want kids", "dont_want_kids"),
+        ("Prefer not to say", "prefer_not_to_say")
+    ]
+
     var body: some View {
         Form {
             // Photos
@@ -61,10 +106,62 @@ struct ProfileEditView: View {
                     InterestPickerView(selectedInterests: $viewModel.editHobbies)
                 }
             }
+
+            Section("Preferences") {
+                NavigationLink("Edit Interested In (\(viewModel.editInterestedIn.count) selected)") {
+                    InterestedInPickerView(selectedOptions: $viewModel.editInterestedIn)
+                }
+            }
             // Values
             Section("Values") {
                 NavigationLink("Edit My Values") {
                     ValuesQuestionnaireView(authViewModel: authViewModel)
+                }
+            }
+
+            Section("Lifestyle & Intentions") {
+                Picker("Looking For", selection: $viewModel.editLookingFor) {
+                    Text("Select").tag("")
+                    ForEach(lookingForOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
+                }
+
+                Stepper("Height \(viewModel.editHeightCm) cm", value: $viewModel.editHeightCm, in: 100...250)
+
+                Picker("Smoking", selection: $viewModel.editSmoking) {
+                    Text("Select").tag("")
+                    ForEach(smokingOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
+                }
+
+                Picker("Drinking", selection: $viewModel.editDrinking) {
+                    Text("Select").tag("")
+                    ForEach(drinkingOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
+                }
+
+                Picker("Cannabis", selection: $viewModel.editCannabis) {
+                    Text("Select").tag("")
+                    ForEach(cannabisOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
+                }
+
+                Picker("Spiritual Orientation", selection: $viewModel.editSpiritualOrientation) {
+                    Text("Select").tag("")
+                    ForEach(spiritualOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
+                }
+
+                Picker("Children", selection: $viewModel.editChildrenStatus) {
+                    Text("Select").tag("")
+                    ForEach(childrenOptions, id: \.1) { option in
+                        Text(option.0).tag(option.1)
+                    }
                 }
             }
         }
@@ -75,8 +172,9 @@ struct ProfileEditView: View {
                 Button("Save") {
                     if let userId = authViewModel.currentUserId {
                         Task {
-                            await viewModel.saveChanges(userId: userId)
-                            dismiss()
+                            if await viewModel.saveChanges(userId: userId) {
+                                dismiss()
+                            }
                         }
                     }
                 }
