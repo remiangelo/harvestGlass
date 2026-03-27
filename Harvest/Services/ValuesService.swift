@@ -10,7 +10,7 @@ struct ValuesService {
                 .from("values")
                 .select()
                 .order("category", ascending: true)
-                .order("display_order", ascending: true)
+                .order("name", ascending: true)
                 .execute()
                 .value
 

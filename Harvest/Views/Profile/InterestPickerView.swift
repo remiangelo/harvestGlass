@@ -3,6 +3,7 @@ import SwiftUI
 struct InterestPickerView: View {
     @Binding var selectedInterests: [String]
     @Environment(\.dismiss) private var dismiss
+    @State private var draftInterests: [String] = []
 
     private static let categorizedInterests: [(String, [String])] = [
         ("Sports & Fitness", [
@@ -49,7 +50,7 @@ struct InterestPickerView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
-                Text("Pick your interests (\(selectedInterests.count) selected)")
+                Text("Pick your interests (\(draftInterests.count) selected)")
                     .font(HarvestTheme.Typography.bodySmall)
                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
                     .padding(.horizontal)
@@ -65,7 +66,7 @@ struct InterestPickerView: View {
                             ForEach(interests, id: \.self) { interest in
                                 ChipView(
                                     title: interest,
-                                    isSelected: selectedInterests.contains(interest)
+                                    isSelected: draftInterests.contains(interest)
                                 ) {
                                     toggleInterest(interest)
                                 }
@@ -79,13 +80,26 @@ struct InterestPickerView: View {
         }
         .navigationTitle("Interests")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button("Save") {
+                    selectedInterests = draftInterests
+                    dismiss()
+                }
+                .fontWeight(.semibold)
+                .foregroundStyle(HarvestTheme.Colors.primary)
+            }
+        }
+        .onAppear {
+            draftInterests = selectedInterests
+        }
     }
 
     private func toggleInterest(_ interest: String) {
-        if let index = selectedInterests.firstIndex(of: interest) {
-            selectedInterests.remove(at: index)
+        if let index = draftInterests.firstIndex(of: interest) {
+            draftInterests.remove(at: index)
         } else {
-            selectedInterests.append(interest)
+            draftInterests.append(interest)
         }
     }
 }
