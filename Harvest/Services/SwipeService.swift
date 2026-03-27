@@ -87,9 +87,9 @@ struct SwipeService {
                 .gte("age", value: filters.ageMin)
                 .lte("age", value: filters.ageMax)
 
-            let normalizedShowMe = normalizedGenderFilters(filters.showMe)
-            if !normalizedShowMe.isEmpty && !normalizedShowMe.contains("everyone") {
-                query = query.in("gender", values: normalizedShowMe)
+            let genderFilterValues = expandedGenderFilterValues(filters.showMe)
+            if !genderFilterValues.isEmpty && !genderFilterValues.contains("everyone") {
+                query = query.in("gender", values: genderFilterValues)
             }
         }
 
@@ -152,12 +152,29 @@ struct SwipeService {
         )
     }
 
-    private func normalizedGenderFilters(_ values: [String]) -> [String] {
-        values.map {
-            $0
+    private func expandedGenderFilterValues(_ values: [String]) -> [String] {
+        var expanded = Set<String>()
+
+        for value in values {
+            let normalized = value
                 .trimmingCharacters(in: .whitespacesAndNewlines)
                 .lowercased()
                 .replacingOccurrences(of: " ", with: "-")
+
+            switch normalized {
+            case "male":
+                expanded.formUnion(["male", "Male", "man", "Man", "men", "Men"])
+            case "female":
+                expanded.formUnion(["female", "Female", "woman", "Woman", "women", "Women"])
+            case "non-binary":
+                expanded.formUnion(["non-binary", "Non-binary", "nonbinary", "Nonbinary"])
+            case "everyone":
+                expanded.insert("everyone")
+            default:
+                expanded.insert(normalized)
+            }
         }
+
+        return Array(expanded)
     }
 }

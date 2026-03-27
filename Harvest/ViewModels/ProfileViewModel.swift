@@ -162,14 +162,16 @@ final class ProfileViewModel {
         }
 
         do {
-            let currentCount = profile?.photos?.count ?? 0
+            let latestProfile = try await profileService.getProfile(userId: userId)
+            let existingPhotos = latestProfile?.photos ?? profile?.photos ?? []
+            let currentCount = existingPhotos.count
             let url = try await profileService.uploadPhoto(
                 userId: userId,
                 imageData: jpegData,
                 photoIndex: currentCount
             )
 
-            var currentPhotos = profile?.photos ?? []
+            var currentPhotos = existingPhotos
             currentPhotos.append(url)
 
             if let updated = try await profileService.updateProfile(
