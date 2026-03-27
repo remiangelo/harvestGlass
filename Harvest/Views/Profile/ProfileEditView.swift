@@ -4,6 +4,7 @@ struct ProfileEditView: View {
     let authViewModel: AuthViewModel
     @Bindable var viewModel: ProfileViewModel
     @Environment(\.dismiss) private var dismiss
+    @State private var didInitializeEditing = false
 
     private let lookingForOptions = [
         ("Dating", "dating"),
@@ -107,11 +108,6 @@ struct ProfileEditView: View {
                 }
             }
 
-            Section("Preferences") {
-                NavigationLink("Edit Interested In (\(viewModel.editInterestedIn.count) selected)") {
-                    InterestedInPickerView(selectedOptions: $viewModel.editInterestedIn)
-                }
-            }
             // Values
             Section("Values") {
                 NavigationLink("Edit My Values") {
@@ -183,7 +179,9 @@ struct ProfileEditView: View {
             }
         }
         .onAppear {
+            guard !didInitializeEditing else { return }
             viewModel.startEditing()
+            didInitializeEditing = true
         }
     }
 }
