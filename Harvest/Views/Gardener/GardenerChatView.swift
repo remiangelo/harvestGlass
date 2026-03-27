@@ -39,6 +39,13 @@ struct GardenerChatView: View {
                     await viewModel.checkDailyQuiz(userId: userId)
                 }
             }
+            .onAppear {
+                if let userId = authViewModel.currentUserId {
+                    Task {
+                        await viewModel.loadChat(userId: userId)
+                    }
+                }
+            }
             .sheet(isPresented: $viewModel.showDailyQuiz) {
                 if let quiz = viewModel.dailyQuiz {
                     DailyQuizPopup(quiz: quiz) { answer in
