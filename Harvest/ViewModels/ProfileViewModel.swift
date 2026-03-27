@@ -15,6 +15,7 @@ final class ProfileViewModel {
     var editBio = ""
     var editLocation = ""
     var editPhotoUrls: [String] = []
+    private var originalPhotoUrls: [String] = []
     var editHobbies: [String] = []
     var editAge: Int = 18
     var editLookingFor = ""
@@ -84,7 +85,7 @@ final class ProfileViewModel {
         if editLocation != profile?.location ?? "" {
             updates["location"] = .string(editLocation)
         }
-        if editPhotoUrls != profile?.photos ?? [] {
+        if editPhotoUrls != originalPhotoUrls {
             updates["photos"] = .array(editPhotoUrls.map { .string($0) })
         }
         if editHobbies != profile?.hobbies ?? [] {
@@ -126,9 +127,11 @@ final class ProfileViewModel {
         do {
             if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
                 profile = updated
+                originalPhotoUrls = updated.photos ?? []
             } else {
                 // Server accepted but returned empty — patch local state
                 applyEditsLocally()
+                originalPhotoUrls = editPhotoUrls
             }
             isEditing = false
             return true
@@ -174,7 +177,6 @@ final class ProfileViewModel {
                 photoIndex: currentCount
             )
             editPhotoUrls.append(url)
-            profile?.photos = editPhotoUrls
         } catch {
             self.error = "Failed to upload photo: \(error.localizedDescription)"
         }
@@ -187,7 +189,6 @@ final class ProfileViewModel {
         do {
             try await profileService.deletePhoto(photoUrl: url)
             editPhotoUrls.remove(at: index)
-            profile?.photos = editPhotoUrls
         } catch {
             self.error = "Failed to delete photo: \(error.localizedDescription)"
         }
@@ -198,6 +199,7 @@ final class ProfileViewModel {
         editBio = profile?.bio ?? ""
         editLocation = profile?.location ?? ""
         editPhotoUrls = profile?.photos ?? []
+        originalPhotoUrls = profile?.photos ?? []
         editHobbies = profile?.hobbies ?? []
         editAge = profile?.age ?? 18
         editInterestedIn = profile?.interestedIn ?? []
