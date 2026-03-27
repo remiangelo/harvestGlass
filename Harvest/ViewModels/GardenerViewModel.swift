@@ -10,7 +10,7 @@ final class GardenerViewModel {
     var dailyQuiz: DailyQuiz?
     var showDailyQuiz = false
     var todayCharUsage = 0
-    var characterLimit = 3000
+    var characterLimit = 1000
     var conversationsPerDay: Int? = 1
     var remainingConversations = 0
     var currentTier: SubscriptionTier?
@@ -33,10 +33,11 @@ final class GardenerViewModel {
         isLoading = true
         defer { isLoading = false }
 
+        await loadTierLimits(userId: userId)
+
         do {
             messages = try await gardenerService.getChatHistory(userId: userId)
             todayCharUsage = try await gardenerService.getTodayCharacterUsage(userId: userId)
-            await loadTierLimits(userId: userId)
         } catch {
             self.error = error.localizedDescription
         }
@@ -165,6 +166,7 @@ final class GardenerViewModel {
                         userTier: tier
                     )
                     remainingConversations = limitCheck.remainingConversations
+                    return
                 }
             } else {
                 // No subscription - load seed tier
@@ -173,11 +175,40 @@ final class GardenerViewModel {
                     currentTier = seedTier
                     characterLimit = seedTier.gardenerCharacterLimit
                     conversationsPerDay = seedTier.gardenerConversationsPerDay
+                    let limitCheck = try await rateLimitService.checkGardenerLimit(
+                        userId: userId,
+                        messageLength: 0,
+                        userTier: seedTier
+                    )
+                    remainingConversations = limitCheck.remainingConversations
+                    return
                 }
             }
         } catch {
             print("Warning: Failed to load tier limits: \(error)")
-            // Use defaults
         }
+
+        currentTier = SubscriptionTier(
+            id: "",
+            name: .seed,
+            displayName: "Seed",
+            description: "",
+            priceMonthly: 0,
+            priceYearly: 0,
+            matchesPerWeek: 10,
+            maxDistanceMiles: 25,
+            gardenerConversationsPerDay: 1,
+            gardenerCharacterLimit: 1000,
+            hasValuesMatching: false,
+            hasBasicFilters: true,
+            hasAdvancedFilters: false,
+            hasFullFilters: false,
+            canSeeLikes: false,
+            canDisableMindfulMessaging: false,
+            sortOrder: 0
+        )
+        characterLimit = 1000
+        conversationsPerDay = 1
+        remainingConversations = 1
     }
 }

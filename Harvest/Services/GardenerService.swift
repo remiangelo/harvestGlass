@@ -45,7 +45,8 @@ struct GardenerService {
         // Add last 10 history messages
         let recentHistory = history.suffix(10)
         for msg in recentHistory {
-            chatMessages.append(.init(role: msg.role, content: msg.content))
+            let role = msg.role == "assistant" ? "assistant" : "user"
+            chatMessages.append(.init(role: role, content: msg.content))
         }
         
         chatMessages.append(.init(role: "user", content: message))
@@ -67,46 +68,55 @@ struct GardenerService {
         // Persist user message
         do {
             try await client
-                .from("gardener_chats")
+                .from("gardener_chat_history")
                 .insert([
-                    "user_id": userId,
-                    "role": "user",
-                    "content": message,
-                    "created_at": now
+                    "user_id": AnyJSON.string(userId),
+                    "sender": AnyJSON.string("user"),
+                    "message": AnyJSON.string(message),
+                    "created_at": AnyJSON.string(now)
                 ])
                 .execute()
         } catch {
-            print("Warning: Failed to persist user message to gardener_chats: \(error)")
+            print("Warning: Failed to persist user message to gardener_chat_history: \(error)")
             // Non-critical - continue with response even if persistence fails
         }
         
         // Persist assistant response
         do {
             try await client
-                .from("gardener_chats")
+                .from("gardener_chat_history")
                 .insert([
-                    "user_id": userId,
-                    "role": "assistant",
-                    "content": response,
-                    "created_at": now
+                    "user_id": AnyJSON.string(userId),
+                    "sender": AnyJSON.string("gardener"),
+                    "message": AnyJSON.string(response),
+                    "created_at": AnyJSON.string(now)
                 ])
                 .execute()
         } catch {
-            print("Warning: Failed to persist assistant response to gardener_chats: \(error)")
+            print("Warning: Failed to persist assistant response to gardener_chat_history: \(error)")
         }
 
         return response
     }
 
     func getChatHistory(userId: String) async throws -> [GardenerMessage] {
-        let messages: [GardenerMessage] = try await client
-            .from("gardener_chats")
+        let rows: [GardenerChatHistoryRow] = try await client
+            .from("gardener_chat_history")
             .select()
             .eq("user_id", value: userId)
             .order("created_at", ascending: true)
             .execute()
             .value
-        return messages
+
+        return rows.map { row in
+            GardenerMessage(
+                id: row.id,
+                userId: row.userId,
+                role: row.sender == "gardener" ? "assistant" : "user",
+                content: row.message,
+                createdAt: row.createdAt
+            )
+        }
     }
 
     func generateDailyQuiz(userId: String) async throws -> DailyQuiz? {
@@ -204,16 +214,32 @@ struct GardenerService {
     func getTodayCharacterUsage(userId: String) async throws -> Int {
         let today = ISO8601DateFormatter().string(from: Calendar.current.startOfDay(for: Date()))
 
-        struct ChatContent: Decodable { let content: String }
+        struct ChatContent: Decodable { let message: String }
         let chats: [ChatContent] = try await client
-            .from("gardener_chats")
-            .select("content")
+            .from("gardener_chat_history")
+            .select("message")
             .eq("user_id", value: userId)
-            .eq("role", value: "user")
+            .eq("sender", value: "user")
             .gte("created_at", value: today)
             .execute()
             .value
 
-        return chats.reduce(0) { $0 + $1.content.count }
+        return chats.reduce(0) { $0 + $1.message.count }
+    }
+}
+
+private struct GardenerChatHistoryRow: Decodable {
+    let id: String
+    let userId: String
+    let message: String
+    let sender: String
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case userId = "user_id"
+        case message
+        case sender
+        case createdAt = "created_at"
     }
 }
