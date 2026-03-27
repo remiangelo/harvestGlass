@@ -103,7 +103,7 @@ final class GardenerViewModel {
             messages.append(assistantMsg)
 
             // Track conversation for rate limiting
-            try? await rateLimitService.trackGardenerConversation(userId: userId)
+            try? await rateLimitService.trackGardenerConversation(userId: userId, characterCount: text.count)
 
         } catch {
             self.error = error.localizedDescription
