@@ -170,13 +170,27 @@ final class ProfileViewModel {
         }
 
         do {
-            let currentCount = editPhotoUrls.count
+            let latestProfile = try await profileService.getProfile(userId: userId)
+            let existingPhotos = latestProfile?.photos ?? profile?.photos ?? editPhotoUrls
+            let currentCount = existingPhotos.count
             let url = try await profileService.uploadPhoto(
                 userId: userId,
                 imageData: jpegData,
                 photoIndex: currentCount
             )
-            editPhotoUrls.append(url)
+
+            let updatedPhotos = existingPhotos + [url]
+            if let updated = try await profileService.updateProfile(
+                userId: userId,
+                updates: ["photos": .array(updatedPhotos.map { .string($0) })]
+            ) {
+                profile = updated
+                editPhotoUrls = updated.photos ?? updatedPhotos
+            } else {
+                profile?.photos = updatedPhotos
+                editPhotoUrls = updatedPhotos
+            }
+            originalPhotoUrls = editPhotoUrls
         } catch {
             self.error = "Failed to upload photo: \(error.localizedDescription)"
         }
@@ -187,8 +201,22 @@ final class ProfileViewModel {
         let url = editPhotoUrls[index]
 
         do {
+            let latestProfile = try await profileService.getProfile(userId: userId)
+            var currentPhotos = latestProfile?.photos ?? profile?.photos ?? editPhotoUrls
             try await profileService.deletePhoto(photoUrl: url)
-            editPhotoUrls.remove(at: index)
+
+            currentPhotos.removeAll { $0 == url }
+            if let updated = try await profileService.updateProfile(
+                userId: userId,
+                updates: ["photos": .array(currentPhotos.map { .string($0) })]
+            ) {
+                profile = updated
+                editPhotoUrls = updated.photos ?? currentPhotos
+            } else {
+                profile?.photos = currentPhotos
+                editPhotoUrls = currentPhotos
+            }
+            originalPhotoUrls = editPhotoUrls
         } catch {
             self.error = "Failed to delete photo: \(error.localizedDescription)"
         }
