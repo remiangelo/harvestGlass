@@ -56,7 +56,7 @@ struct ProfileEditView: View {
             // Photos
             Section("Photos") {
                 ProfilePhotoGrid(
-                    photoUrls: viewModel.profile?.photos ?? [],
+                    photoUrls: viewModel.editPhotoUrls,
                     maxPhotos: 6,
                     onAdd: { data in
                         if let userId = authViewModel.currentUserId {

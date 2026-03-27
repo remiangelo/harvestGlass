@@ -14,6 +14,7 @@ final class ProfileViewModel {
     var editNickname = ""
     var editBio = ""
     var editLocation = ""
+    var editPhotoUrls: [String] = []
     var editHobbies: [String] = []
     var editAge: Int = 18
     var editLookingFor = ""
@@ -83,6 +84,9 @@ final class ProfileViewModel {
         if editLocation != profile?.location ?? "" {
             updates["location"] = .string(editLocation)
         }
+        if editPhotoUrls != profile?.photos ?? [] {
+            updates["photos"] = .array(editPhotoUrls.map { .string($0) })
+        }
         if editHobbies != profile?.hobbies ?? [] {
             updates["hobbies"] = .array(editHobbies.map { .string($0) })
         }
@@ -138,6 +142,7 @@ final class ProfileViewModel {
         profile?.nickname = editNickname
         profile?.bio = editBio
         profile?.location = editLocation
+        profile?.photos = editPhotoUrls
         profile?.hobbies = editHobbies
         profile?.age = editAge
         profile?.interestedIn = editInterestedIn
@@ -162,47 +167,27 @@ final class ProfileViewModel {
         }
 
         do {
-            let latestProfile = try await profileService.getProfile(userId: userId)
-            let existingPhotos = latestProfile?.photos ?? profile?.photos ?? []
-            let currentCount = existingPhotos.count
+            let currentCount = editPhotoUrls.count
             let url = try await profileService.uploadPhoto(
                 userId: userId,
                 imageData: jpegData,
                 photoIndex: currentCount
             )
-
-            var currentPhotos = existingPhotos
-            currentPhotos.append(url)
-
-            if let updated = try await profileService.updateProfile(
-                userId: userId,
-                updates: ["photos": .array(currentPhotos.map { .string($0) })]
-            ) {
-                profile = updated
-            } else {
-                profile?.photos = currentPhotos
-            }
+            editPhotoUrls.append(url)
+            profile?.photos = editPhotoUrls
         } catch {
             self.error = "Failed to upload photo: \(error.localizedDescription)"
         }
     }
 
     func deletePhoto(userId: String, at index: Int) async {
-        guard var photos = profile?.photos, index < photos.count else { return }
-        let url = photos[index]
+        guard index < editPhotoUrls.count else { return }
+        let url = editPhotoUrls[index]
 
         do {
             try await profileService.deletePhoto(photoUrl: url)
-            photos.remove(at: index)
-
-            if let updated = try await profileService.updateProfile(
-                userId: userId,
-                updates: ["photos": .array(photos.map { .string($0) })]
-            ) {
-                profile = updated
-            } else {
-                profile?.photos = photos
-            }
+            editPhotoUrls.remove(at: index)
+            profile?.photos = editPhotoUrls
         } catch {
             self.error = "Failed to delete photo: \(error.localizedDescription)"
         }
@@ -212,6 +197,7 @@ final class ProfileViewModel {
         editNickname = profile?.nickname ?? ""
         editBio = profile?.bio ?? ""
         editLocation = profile?.location ?? ""
+        editPhotoUrls = profile?.photos ?? []
         editHobbies = profile?.hobbies ?? []
         editAge = profile?.age ?? 18
         editInterestedIn = profile?.interestedIn ?? []
