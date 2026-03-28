@@ -22,110 +22,125 @@ struct SafetyAnalysisService {
                 "limited time offer", "subscribe to", "follow my"]
     ]
 
+    private struct ConversationLookup: Decodable {
+        let id: String
+        let user1_id: String?
+        let user2_id: String?
+    }
+
+    private struct MessageTimestampRow: Decodable {
+        let created_at: String?
+    }
+
+    private struct MatchLookup: Decodable {
+        let id: String
+        let user1_id: String?
+        let user2_id: String?
+    }
+
+    private struct AnalysisUpdatePayload: Encodable {
+        let safety_score: Int
+        let red_flags: [SafetyFlagSnapshot]
+        let recommendations: [String]
+        let allow_contact_sharing: Bool
+    }
+
+    private struct AnalysisInsertPayload: Encodable {
+        let conversation_id: String
+        let user_id: String
+        let match_id: String
+        let safety_score: Int
+        let red_flags: [SafetyFlagSnapshot]
+        let recommendations: [String]
+        let allow_contact_sharing: Bool
+    }
+
+    private struct RedFlagInsertPayload: Encodable {
+        let reporter_id: String?
+        let reported_user_id: String?
+        let conversation_id: String
+        let flag_type: String
+        let severity: String
+        let evidence: String
+        let ai_detected: Bool
+        let user_reported: Bool
+    }
+
     func getOrCreateAnalysis(matchId: String, userId: String, otherUserId: String) async throws -> SafetyAnalysis {
+        guard let conversation = try await fetchConversation(matchId: matchId) else {
+            throw NSError(domain: "SafetyAnalysisService", code: 404, userInfo: [
+                NSLocalizedDescriptionKey: "Conversation not found for match"
+            ])
+        }
+
         let existing: [SafetyAnalysis] = try await client
             .from("safety_analyses")
             .select()
-            .eq("match_id", value: matchId)
+            .eq("conversation_id", value: conversation.id)
             .eq("user_id", value: userId)
             .execute()
             .value
 
         if let analysis = existing.first {
-            return analysis
+            return try await hydrateAnalysis(
+                analysis,
+                userId: userId,
+                otherUserId: otherUserId,
+                conversationId: conversation.id
+            )
         }
 
-        let now = ISO8601DateFormatter().string(from: Date())
+        let payload = AnalysisInsertPayload(
+            conversation_id: conversation.id,
+            user_id: userId,
+            match_id: matchId,
+            safety_score: 100,
+            red_flags: [],
+            recommendations: [],
+            allow_contact_sharing: false
+        )
+
         let created: [SafetyAnalysis] = try await client
             .from("safety_analyses")
-            .insert([
-                "match_id": matchId,
-                "user_id": userId,
-                "other_user_id": otherUserId,
-                "safety_score": "100",
-                "total_messages": "0",
-                "red_flag_count": "0",
-                "first_message_at": now,
-                "last_analyzed_at": now
-            ])
+            .insert(payload)
             .select()
             .execute()
             .value
 
-        return created.first ?? SafetyAnalysis(
-            id: UUID().uuidString,
-            matchId: matchId,
+        guard let analysis = created.first else {
+            throw NSError(domain: "SafetyAnalysisService", code: 500, userInfo: [
+                NSLocalizedDescriptionKey: "Failed to create safety analysis"
+            ])
+        }
+
+        return try await hydrateAnalysis(
+            analysis,
             userId: userId,
             otherUserId: otherUserId,
-            safetyScore: 100,
-            totalMessages: 0,
-            firstMessageAt: now,
-            redFlagCount: 0,
-            lastAnalyzedAt: now
+            conversationId: conversation.id
         )
     }
 
     func analyzeMessage(_ message: String, analysisId: String) async throws -> [RedFlagReport] {
-        let lowered = message.lowercased()
-        var reports: [RedFlagReport] = []
+        guard var analysis = try await getAnalysisById(analysisId) else { return [] }
 
-        for (category, keywords) in Self.redFlagKeywords {
-            for keyword in keywords {
-                if lowered.contains(keyword) {
-                    let now = ISO8601DateFormatter().string(from: Date())
-                    let report = RedFlagReport(
-                        id: UUID().uuidString,
-                        analysisId: analysisId,
-                        category: category,
-                        severity: category.weight,
-                        detail: "Message contains: \(keyword)",
-                        messageId: nil,
-                        createdAt: now
-                    )
-                    reports.append(report)
+        let reports = detectFlags(in: message)
+        guard !reports.isEmpty else { return [] }
 
-                    // Persist red flag report
-                    do {
-                        try await client
-                            .from("red_flag_reports")
-                            .insert([
-                                "analysis_id": analysisId,
-                                "category": category.rawValue,
-                                "severity": "\(category.weight)",
-                                "detail": "Message contains: \(keyword)"
-                            ])
-                            .execute()
-                    } catch {
-                        print("Warning: Failed to persist red flag report: \(error)")
-                        // Continue analyzing other keywords
-                    }
-                    break // One flag per category per message
-                }
-            }
-        }
+        try await replaceAIDetectedFlags(
+            conversationId: analysis.conversationId,
+            reportedUserId: analysis.otherUserId,
+            reports: analysis.redFlags + reports
+        )
 
-        if !reports.isEmpty {
-            let totalWeight = reports.reduce(0) { $0 + $1.severity }
-            let scoreReduction = min(totalWeight, 30) // Cap reduction per message
+        analysis.redFlags += reports
+        analysis.safetyScore = computeSafetyScore(from: analysis.redFlags)
+        analysis.totalMessages = try await fetchMessageCount(conversationId: analysis.conversationId)
+        analysis.recommendations = recommendations(for: analysis.safetyScore, totalMessages: analysis.totalMessages)
+        analysis.allowContactSharing = canShareContact(analysis: analysis)
 
-            do {
-                try await client
-                    .from("safety_analyses")
-                    .update([
-                        "safety_score": AnyJSON.double(Double(max(0, 100 - scoreReduction))),
-                        "red_flag_count": AnyJSON.double(Double(reports.count)),
-                        "last_analyzed_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
-                    ])
-                    .eq("id", value: analysisId)
-                    .execute()
-            } catch {
-                print("Error: Failed to update safety score (critical): \(error)")
-                // This is critical - safety score should be updated
-                throw error
-            }
-        }
-
-        return reports
+        try await persistAnalysis(analysis)
+        return try await getRedFlags(analysisId: analysisId)
     }
 
     func getSafetyDashboard(userId: String) async throws -> [SafetyAnalysis] {
@@ -133,234 +148,145 @@ struct SafetyAnalysisService {
             .from("safety_analyses")
             .select()
             .eq("user_id", value: userId)
-            .order("last_analyzed_at", ascending: false)
-            .execute()
-            .value
-        return analyses
-    }
-
-    func getRedFlags(analysisId: String) async throws -> [RedFlagReport] {
-        let flags: [RedFlagReport] = try await client
-            .from("red_flag_reports")
-            .select()
-            .eq("analysis_id", value: analysisId)
             .order("created_at", ascending: false)
             .execute()
             .value
+
+        return try await withThrowingTaskGroup(of: SafetyAnalysis.self) { group in
+            for analysis in analyses {
+                group.addTask {
+                    let otherUserId = try await self.fetchOtherUserId(
+                        matchId: analysis.matchId,
+                        conversationId: analysis.conversationId,
+                        currentUserId: userId
+                    )
+                    return try await self.hydrateAnalysis(
+                        analysis,
+                        userId: userId,
+                        otherUserId: otherUserId ?? "",
+                        conversationId: analysis.conversationId
+                    )
+                }
+            }
+
+            var hydrated: [SafetyAnalysis] = []
+            for try await analysis in group {
+                hydrated.append(analysis)
+            }
+            return hydrated.sorted { ($0.createdAt ?? "") > ($1.createdAt ?? "") }
+        }
+    }
+
+    func getRedFlags(analysisId: String) async throws -> [RedFlagReport] {
+        guard let analysis = try await getAnalysisById(analysisId) else { return [] }
+
+        let flags: [RedFlagReport] = try await client
+            .from("red_flag_reports")
+            .select()
+            .eq("conversation_id", value: analysis.conversationId)
+            .eq("reported_user_id", value: analysis.otherUserId)
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+
         return flags
     }
 
     func isReadyToMove(analysisId: String) async throws -> (ready: Bool, reason: String?) {
-        let analyses: [SafetyAnalysis] = try await client
-            .from("safety_analyses")
-            .select()
-            .eq("id", value: analysisId)
-            .execute()
-            .value
-
-        guard let analysis = analyses.first else {
+        guard let analysis = try await getAnalysisById(analysisId) else {
             return (false, "Analysis not found")
         }
 
-        if analysis.safetyScore < 70 {
-            return (false, "Safety score is below the threshold")
+        if !analysis.has24HourHistory {
+            return (false, "At least 24 hours of conversation history are required")
         }
         if analysis.totalMessages < 20 {
             return (false, "Need at least 20 messages exchanged")
+        }
+        if analysis.safetyScore < 70 {
+            return (false, "Safety score is below the threshold")
         }
 
         return (true, nil)
     }
 
     func reportRedFlag(analysisId: String, category: RedFlagCategory, detail: String, messageId: String?) async throws {
+        guard let analysis = try await getAnalysisById(analysisId) else { return }
+
+        let evidence: String
+        if let messageId, !messageId.isEmpty {
+            evidence = "[\(messageId)] \(detail)"
+        } else {
+            evidence = detail
+        }
+
+        let payload = RedFlagInsertPayload(
+            reporter_id: analysis.userId,
+            reported_user_id: analysis.otherUserId.isEmpty ? nil : analysis.otherUserId,
+            conversation_id: analysis.conversationId,
+            flag_type: category.rawValue,
+            severity: category.severity.rawValue,
+            evidence: evidence,
+            ai_detected: false,
+            user_reported: true
+        )
+
         try await client
             .from("red_flag_reports")
-            .insert([
-                "analysis_id": analysisId,
-                "category": category.rawValue,
-                "severity": "\(category.weight)",
-                "detail": detail,
-                "message_id": messageId ?? ""
-            ])
+            .insert(payload)
             .execute()
     }
 
-    // MARK: - Retroactive Analysis
-
-    /// Analyze entire conversation history retroactively
-    /// This is useful for conversations that existed before safety analysis was implemented,
-    /// or to re-analyze conversations with updated red flag keywords
     func analyzeConversationHistory(conversationId: String, matchId: String, userId: String, otherUserId: String) async throws -> SafetyAnalysis {
-        print("Starting retroactive safety analysis for conversation: \(conversationId)")
+        var analysis = try await getOrCreateAnalysis(matchId: matchId, userId: userId, otherUserId: otherUserId)
 
-        // Get or create safety analysis
-        let analysis = try await getOrCreateAnalysis(matchId: matchId, userId: userId, otherUserId: otherUserId)
-
-        // Fetch all messages from this conversation sent by the other user
         let messages: [Message] = try await client
             .from("messages")
             .select()
             .eq("conversation_id", value: conversationId)
-            .eq("sender_id", value: otherUserId) // Only analyze messages from the other person
+            .eq("sender_id", value: otherUserId)
             .order("created_at", ascending: true)
             .execute()
             .value
 
-        guard !messages.isEmpty else {
-            print("No messages found to analyze")
-            return analysis
-        }
+        var snapshots: [SafetyFlagSnapshot] = []
 
-        print("Analyzing \(messages.count) messages from other user")
-
-        // Clear existing red flag reports for this analysis
-        do {
-            try await client
-                .from("red_flag_reports")
-                .delete()
-                .eq("analysis_id", value: analysis.id)
-                .execute()
-        } catch {
-            print("Warning: Failed to clear existing red flag reports: \(error)")
-        }
-
-        // Analyze each message and collect red flags
-        var allRedFlags: [RedFlagReport] = []
-        var totalWeight = 0
-
-        for (index, message) in messages.enumerated() {
+        for message in messages {
             guard let content = message.content, !content.isEmpty else { continue }
-
-            let lowered = content.lowercased()
-            var foundInMessage: Set<RedFlagCategory> = []
-
-            // Check for red flags (one per category per message)
-            for (category, keywords) in Self.redFlagKeywords {
-                guard !foundInMessage.contains(category) else { continue }
-
-                for keyword in keywords {
-                    if lowered.contains(keyword) {
-                        let now = ISO8601DateFormatter().string(from: Date())
-                        let report = RedFlagReport(
-                            id: UUID().uuidString,
-                            analysisId: analysis.id,
-                            category: category,
-                            severity: category.weight,
-                            detail: "Message contains: \(keyword)",
-                            messageId: message.id,
-                            createdAt: now
-                        )
-                        allRedFlags.append(report)
-                        foundInMessage.insert(category)
-                        totalWeight += category.weight
-
-                        // Persist red flag report
-                        do {
-                            try await client
-                                .from("red_flag_reports")
-                                .insert([
-                                    "analysis_id": AnyJSON.string(analysis.id),
-                                    "category": AnyJSON.string(category.rawValue),
-                                    "severity": AnyJSON.string("\(category.weight)"),
-                                    "detail": AnyJSON.string("Message contains: \(keyword)"),
-                                    "message_id": AnyJSON.string(message.id)
-                                ])
-                                .execute()
-                        } catch {
-                            print("Warning: Failed to persist red flag report: \(error)")
-                        }
-
-                        break // One flag per category per message
-                    }
-                }
-            }
-
-            // Log progress every 10 messages
-            if (index + 1) % 10 == 0 {
-                print("Analyzed \(index + 1)/\(messages.count) messages, found \(allRedFlags.count) red flags")
-            }
+            let detected = detectFlags(in: content, messageId: message.id)
+            snapshots.append(contentsOf: detected)
         }
 
-        // Calculate final safety score
-        // Start at 100, reduce by total weight, but cap individual message impact
-        let maxReductionPerMessage = 30
-        let messageCount = messages.count
-        let cappedWeight = min(totalWeight, maxReductionPerMessage * messageCount)
-        let finalScore = max(0, 100 - Int(Double(cappedWeight) / max(Double(messageCount), 1.0) * 2.0))
+        analysis.redFlags = snapshots
+        analysis.totalMessages = try await fetchMessageCount(conversationId: conversationId)
+        analysis.safetyScore = computeSafetyScore(from: snapshots)
+        analysis.recommendations = recommendations(for: analysis.safetyScore, totalMessages: analysis.totalMessages)
+        analysis.allowContactSharing = canShareContact(analysis: analysis)
 
-        print("Retroactive analysis complete: \(allRedFlags.count) red flags found, safety score: \(finalScore)")
-
-        // Update safety analysis with results
-        do {
-            try await client
-                .from("safety_analyses")
-                .update([
-                    "safety_score": AnyJSON.double(Double(finalScore)),
-                    "total_messages": AnyJSON.double(Double(messageCount)),
-                    "red_flag_count": AnyJSON.double(Double(allRedFlags.count)),
-                    "last_analyzed_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date()))
-                ])
-                .eq("id", value: analysis.id)
-                .execute()
-        } catch {
-            print("Error: Failed to update safety analysis: \(error)")
-            throw error
-        }
-
-        // Return updated analysis
-        return SafetyAnalysis(
-            id: analysis.id,
-            matchId: analysis.matchId,
-            userId: analysis.userId,
-            otherUserId: analysis.otherUserId,
-            safetyScore: finalScore,
-            totalMessages: messageCount,
-            firstMessageAt: analysis.firstMessageAt,
-            redFlagCount: allRedFlags.count,
-            lastAnalyzedAt: ISO8601DateFormatter().string(from: Date())
+        try await replaceAIDetectedFlags(
+            conversationId: conversationId,
+            reportedUserId: otherUserId,
+            reports: snapshots
         )
+        try await persistAnalysis(analysis)
+
+        return analysis
     }
 
-    /// Analyze all conversations for a user retroactively
-    /// Useful for bulk analysis of existing conversations
     func analyzeAllUserConversations(userId: String) async throws -> Int {
-        print("Starting bulk retroactive analysis for user: \(userId)")
-
-        // Get all matches for this user
-        struct MatchInfo: Decodable {
-            let id: String
-            let user1_id: String
-            let user2_id: String
-        }
-
-        let matches: [MatchInfo] = try await client
+        let matches: [MatchLookup] = try await client
             .from("matches")
             .select("id, user1_id, user2_id")
+            .eq("is_active", value: true)
             .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
             .execute()
             .value
 
-        print("Found \(matches.count) matches to analyze")
-
         var analyzedCount = 0
 
         for match in matches {
-            let otherUserId = match.user1_id == userId ? match.user2_id : match.user1_id
-
-            // Get conversation for this match
-            struct ConversationInfo: Decodable {
-                let id: String
-            }
-
-            let conversations: [ConversationInfo] = try await client
-                .from("conversations")
-                .select("id")
-                .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
-                .or("user1_id.eq.\(otherUserId),user2_id.eq.\(otherUserId)")
-                .execute()
-                .value
-
-            guard let conversation = conversations.first else { continue }
+            let otherUserId = normalized(match.user1_id) == normalized(userId) ? match.user2_id : match.user1_id
+            guard let otherUserId, let conversation = try await fetchConversation(matchId: match.id) else { continue }
 
             do {
                 _ = try await analyzeConversationHistory(
@@ -375,7 +301,224 @@ struct SafetyAnalysisService {
             }
         }
 
-        print("Bulk retroactive analysis complete: \(analyzedCount)/\(matches.count) conversations analyzed")
         return analyzedCount
+    }
+
+    private func getAnalysisById(_ analysisId: String) async throws -> SafetyAnalysis? {
+        let analyses: [SafetyAnalysis] = try await client
+            .from("safety_analyses")
+            .select()
+            .eq("id", value: analysisId)
+            .execute()
+            .value
+
+        guard let analysis = analyses.first else { return nil }
+        let otherUserId = try await fetchOtherUserId(
+            matchId: analysis.matchId,
+            conversationId: analysis.conversationId,
+            currentUserId: analysis.userId
+        ) ?? ""
+        return try await hydrateAnalysis(
+            analysis,
+            userId: analysis.userId,
+            otherUserId: otherUserId,
+            conversationId: analysis.conversationId
+        )
+    }
+
+    private func hydrateAnalysis(
+        _ analysis: SafetyAnalysis,
+        userId: String,
+        otherUserId: String,
+        conversationId: String
+    ) async throws -> SafetyAnalysis {
+        var hydrated = analysis
+        hydrated.otherUserId = otherUserId
+        hydrated.totalMessages = try await fetchMessageCount(conversationId: conversationId)
+        hydrated.firstMessageAt = try await fetchFirstMessageAt(conversationId: conversationId)
+        hydrated.recommendations = analysis.recommendations.isEmpty
+            ? recommendations(for: analysis.safetyScore, totalMessages: hydrated.totalMessages)
+            : analysis.recommendations
+        hydrated.allowContactSharing = analysis.allowContactSharing || canShareContact(analysis: hydrated)
+        return hydrated
+    }
+
+    private func fetchConversation(matchId: String) async throws -> ConversationLookup? {
+        let conversations: [ConversationLookup] = try await client
+            .from("conversations")
+            .select("id, user1_id, user2_id")
+            .eq("match_id", value: matchId)
+            .limit(1)
+            .execute()
+            .value
+
+        return conversations.first
+    }
+
+    private func fetchOtherUserId(matchId: String, conversationId: String, currentUserId: String) async throws -> String? {
+        let matches: [MatchLookup] = try await client
+            .from("matches")
+            .select("id, user1_id, user2_id")
+            .eq("id", value: matchId)
+            .limit(1)
+            .execute()
+            .value
+
+        if let match = matches.first {
+            if normalized(match.user1_id) == normalized(currentUserId) {
+                return match.user2_id
+            }
+            if normalized(match.user2_id) == normalized(currentUserId) {
+                return match.user1_id
+            }
+        }
+
+        let conversations: [ConversationLookup] = try await client
+            .from("conversations")
+            .select("id, user1_id, user2_id")
+            .eq("id", value: conversationId)
+            .limit(1)
+            .execute()
+            .value
+
+        guard let conversation = conversations.first else { return nil }
+        if normalized(conversation.user1_id) == normalized(currentUserId) {
+            return conversation.user2_id
+        }
+        if normalized(conversation.user2_id) == normalized(currentUserId) {
+            return conversation.user1_id
+        }
+        return nil
+    }
+
+    private func fetchMessageCount(conversationId: String) async throws -> Int {
+        let messages: [Message] = try await client
+            .from("messages")
+            .select("id, conversation_id, sender_id, content, message_type, media_url, is_read, read_at, created_at")
+            .eq("conversation_id", value: conversationId)
+            .execute()
+            .value
+        return messages.count
+    }
+
+    private func fetchFirstMessageAt(conversationId: String) async throws -> String? {
+        let rows: [MessageTimestampRow] = try await client
+            .from("messages")
+            .select("created_at")
+            .eq("conversation_id", value: conversationId)
+            .order("created_at", ascending: true)
+            .limit(1)
+            .execute()
+            .value
+
+        return rows.first?.created_at
+    }
+
+    private func detectFlags(in text: String, messageId: String? = nil) -> [SafetyFlagSnapshot] {
+        let lowered = text.lowercased()
+        var reports: [SafetyFlagSnapshot] = []
+
+        for (category, keywords) in Self.redFlagKeywords {
+            for keyword in keywords where lowered.contains(keyword) {
+                reports.append(
+                    SafetyFlagSnapshot(
+                        id: UUID().uuidString,
+                        category: category,
+                        severity: category.severity,
+                        evidence: "Message contains: \(keyword)",
+                        messageId: messageId,
+                        createdAt: isoNow()
+                    )
+                )
+                break
+            }
+        }
+
+        return reports
+    }
+
+    private func computeSafetyScore(from flags: [SafetyFlagSnapshot]) -> Int {
+        let totalWeight = flags.reduce(0) { $0 + $1.severity.weight }
+        return max(0, 100 - min(totalWeight, 90))
+    }
+
+    private func recommendations(for score: Int, totalMessages: Int) -> [String] {
+        var output: [String] = []
+
+        if totalMessages < 20 {
+            output.append("Keep chatting in-app before sharing contact details.")
+        }
+        if score < 70 {
+            output.append("Proceed cautiously and avoid moving off-platform yet.")
+        }
+        if score < 50 {
+            output.append("Consider reporting or blocking this user if the behavior continues.")
+        }
+        if output.isEmpty {
+            output.append("This conversation currently looks safe. Stay mindful and trust your instincts.")
+        }
+
+        return output
+    }
+
+    private func canShareContact(analysis: SafetyAnalysis) -> Bool {
+        analysis.safetyScore >= 70 && analysis.totalMessages >= 20 && analysis.has24HourHistory
+    }
+
+    private func replaceAIDetectedFlags(
+        conversationId: String,
+        reportedUserId: String,
+        reports: [SafetyFlagSnapshot]
+    ) async throws {
+        try await client
+            .from("red_flag_reports")
+            .delete()
+            .eq("conversation_id", value: conversationId)
+            .eq("reported_user_id", value: reportedUserId)
+            .eq("ai_detected", value: true)
+            .execute()
+
+        guard !reports.isEmpty else { return }
+
+        let payloads = reports.map {
+            RedFlagInsertPayload(
+                reporter_id: nil,
+                reported_user_id: reportedUserId,
+                conversation_id: conversationId,
+                flag_type: $0.category.rawValue,
+                severity: $0.severity.rawValue,
+                evidence: $0.evidence,
+                ai_detected: true,
+                user_reported: false
+            )
+        }
+
+        try await client
+            .from("red_flag_reports")
+            .insert(payloads)
+            .execute()
+    }
+
+    private func persistAnalysis(_ analysis: SafetyAnalysis) async throws {
+        let payload = AnalysisUpdatePayload(
+            safety_score: analysis.safetyScore,
+            red_flags: analysis.redFlags,
+            recommendations: analysis.recommendations,
+            allow_contact_sharing: analysis.allowContactSharing
+        )
+
+        try await client
+            .from("safety_analyses")
+            .update(payload)
+            .eq("id", value: analysis.id)
+            .execute()
+    }
+
+    private func isoNow() -> String {
+        ISO8601DateFormatter().string(from: Date())
+    }
+
+    private func normalized(_ value: String?) -> String? {
+        value?.lowercased()
     }
 }

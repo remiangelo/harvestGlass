@@ -26,7 +26,7 @@ struct ReadyToMoveGateView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     checklistItem(
                         "24 hours elapsed",
-                        isComplete: analysis.firstMessageAt != nil
+                        isComplete: analysis.has24HourHistory
                     )
 
                     checklistItem(

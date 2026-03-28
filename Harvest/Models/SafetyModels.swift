@@ -3,24 +3,46 @@ import SwiftUI
 
 struct SafetyAnalysis: Codable, Identifiable, Sendable {
     let id: String
-    let matchId: String
+    let conversationId: String
     let userId: String
-    let otherUserId: String
+    let matchId: String
     var safetyScore: Int
-    var totalMessages: Int
+    var redFlags: [SafetyFlagSnapshot]
+    var recommendations: [String]
+    var allowContactSharing: Bool
+    var createdAt: String?
+
+    // Derived app-side fields populated by the service.
+    var otherUserId: String = ""
+    var totalMessages: Int = 0
     var firstMessageAt: String?
-    var redFlagCount: Int
-    var lastAnalyzedAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, totalMessages = "total_messages"
-        case matchId = "match_id"
+        case id
+        case conversationId = "conversation_id"
         case userId = "user_id"
-        case otherUserId = "other_user_id"
+        case matchId = "match_id"
         case safetyScore = "safety_score"
-        case firstMessageAt = "first_message_at"
-        case redFlagCount = "red_flag_count"
-        case lastAnalyzedAt = "last_analyzed_at"
+        case redFlags = "red_flags"
+        case recommendations
+        case allowContactSharing = "allow_contact_sharing"
+        case createdAt = "created_at"
+    }
+
+    var redFlagCount: Int {
+        redFlags.count
+    }
+
+    var has24HourHistory: Bool {
+        let reference = firstMessageAt ?? createdAt
+        guard let reference,
+              let date = ISO8601DateFormatter().date(from: reference) ??
+                  ISO8601DateFormatter.fractionalSeconds.date(from: reference)
+        else {
+            return false
+        }
+
+        return Date().timeIntervalSince(date) >= 24 * 60 * 60
     }
 
     var safetyLevel: SafetyLevel {
@@ -29,6 +51,21 @@ struct SafetyAnalysis: Codable, Identifiable, Sendable {
         if safetyScore < 70 { return .caution }
         if safetyScore < 80 { return .safe }
         return .verified
+    }
+}
+
+struct SafetyFlagSnapshot: Codable, Identifiable, Sendable {
+    let id: String
+    let category: RedFlagCategory
+    let severity: RedFlagSeverity
+    let evidence: String
+    let messageId: String?
+    let createdAt: String?
+
+    enum CodingKeys: String, CodingKey {
+        case id, category, severity, evidence
+        case messageId = "message_id"
+        case createdAt = "created_at"
     }
 }
 
@@ -62,18 +99,43 @@ enum SafetyLevel: String, Sendable {
 
 struct RedFlagReport: Codable, Identifiable, Sendable {
     let id: String
-    let analysisId: String
-    let category: RedFlagCategory
-    let severity: Int
-    let detail: String
-    let messageId: String?
+    let reporterId: String?
+    let reportedUserId: String?
+    let conversationId: String?
+    let flagType: String
+    let severity: RedFlagSeverity?
+    let evidence: String?
+    let aiDetected: Bool
+    let userReported: Bool
+    let reviewed: Bool
+    let actionTaken: String?
+    let reviewedBy: String?
+    let reviewedAt: String?
     let createdAt: String?
 
     enum CodingKeys: String, CodingKey {
-        case id, category, severity, detail
-        case analysisId = "analysis_id"
-        case messageId = "message_id"
+        case id
+        case reporterId = "reporter_id"
+        case reportedUserId = "reported_user_id"
+        case conversationId = "conversation_id"
+        case flagType = "flag_type"
+        case severity
+        case evidence
+        case aiDetected = "ai_detected"
+        case userReported = "user_reported"
+        case reviewed
+        case actionTaken = "action_taken"
+        case reviewedBy = "reviewed_by"
+        case reviewedAt = "reviewed_at"
         case createdAt = "created_at"
+    }
+
+    var category: RedFlagCategory {
+        RedFlagCategory(rawValue: flagType) ?? .spam
+    }
+
+    var detail: String {
+        evidence ?? ""
     }
 }
 
@@ -87,14 +149,42 @@ enum RedFlagCategory: String, Codable, Sendable {
     case spam
 
     var weight: Int {
+        severity.weight
+    }
+
+    var severity: RedFlagSeverity {
         switch self {
-        case .financial: return 30
-        case .personalInfo: return 30
-        case .catfishing: return 25
-        case .manipulation: return 20
-        case .harassment: return 20
-        case .inappropriate: return 15
-        case .spam: return 10
+        case .financial: return .critical
+        case .personalInfo: return .critical
+        case .catfishing: return .high
+        case .manipulation: return .medium
+        case .harassment: return .high
+        case .inappropriate: return .medium
+        case .spam: return .low
         }
     }
+}
+
+enum RedFlagSeverity: String, Codable, Sendable {
+    case low
+    case medium
+    case high
+    case critical
+
+    var weight: Int {
+        switch self {
+        case .low: return 10
+        case .medium: return 20
+        case .high: return 25
+        case .critical: return 30
+        }
+    }
+}
+
+private extension ISO8601DateFormatter {
+    static let fractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
 }
