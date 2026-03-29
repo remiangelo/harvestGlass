@@ -4,6 +4,26 @@ import Supabase
 struct ProfileService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
+    private struct PhotoRecord: Codable {
+        let id: String?
+        let userId: String
+        let url: String
+        let orderIndex: Int
+
+        enum CodingKeys: String, CodingKey {
+            case id, url
+            case userId = "user_id"
+            case orderIndex = "order_index"
+        }
+    }
+
+    private struct PhotoInsertPayload: Encodable {
+        let user_id: String
+        let url: String
+        let order_index: Int
+        let is_primary: Bool
+    }
+
     func getProfile(userId: String) async throws -> UserProfile? {
         let response: [UserProfile] = try await client
             .from("users")
@@ -11,7 +31,22 @@ struct ProfileService {
             .eq("id", value: userId)
             .execute()
             .value
-        return response.first
+
+        guard var profile = response.first else { return nil }
+
+        let photoRows: [PhotoRecord] = (try? await client
+            .from("photos")
+            .select("id, user_id, url, order_index")
+            .eq("user_id", value: userId)
+            .order("order_index", ascending: true)
+            .execute()
+            .value) ?? []
+
+        if !photoRows.isEmpty {
+            profile.photos = photoRows.map(\.url)
+        }
+
+        return profile
     }
 
     func createProfile(userId: String, email: String) async throws -> UserProfile? {
@@ -65,20 +100,43 @@ struct ProfileService {
     }
 
     func updatePhotos(userId: String, photoUrls: [String]) async throws -> UserProfile? {
+        try await client
+            .from("photos")
+            .delete()
+            .eq("user_id", value: userId)
+            .execute()
+
+        if !photoUrls.isEmpty {
+            let photoRows = photoUrls.enumerated().map { index, url in
+                PhotoInsertPayload(
+                    user_id: userId,
+                    url: url,
+                    order_index: index,
+                    is_primary: index == 0
+                )
+            }
+
+            try await client
+                .from("photos")
+                .insert(photoRows)
+                .execute()
+        }
+
+        // Keep legacy array column in sync for screens that still read it directly.
         let payload: [String: AnyJSON] = [
             "photos": .array(photoUrls.map { .string($0) }),
             "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
         ]
 
-        let response: [UserProfile] = try await client
+        _ = try await client
             .from("users")
             .update(payload)
             .eq("id", value: userId)
             .select()
             .execute()
-            .value
+            .value as [UserProfile]
 
-        return response.first
+        return try await getProfile(userId: userId)
     }
 
     func checkOnboardingStatus(userId: String) async throws -> Bool {
@@ -114,7 +172,7 @@ struct ProfileService {
         return "\(Config.supabaseURL)/storage/v1/object/public/\(response.fullPath)"
     }
 
-    func deletePhoto(photoUrl: String) async throws {
+    func deletePhoto(userId: String, photoUrl: String) async throws {
         guard let url = URL(string: photoUrl),
               let pathComponent = url.path.components(separatedBy: "/storage/v1/object/public/\(Config.storageBucket)/").last
         else { return }
@@ -122,5 +180,12 @@ struct ProfileService {
         try await client.storage
             .from(Config.storageBucket)
             .remove(paths: [pathComponent])
+
+        try? await client
+            .from("photos")
+            .delete()
+            .eq("user_id", value: userId)
+            .eq("url", value: photoUrl)
+            .execute()
     }
 }

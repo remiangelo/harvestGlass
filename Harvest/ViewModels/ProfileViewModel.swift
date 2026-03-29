@@ -209,7 +209,7 @@ final class ProfileViewModel {
         do {
             let latestProfile = try await profileService.getProfile(userId: userId)
             var currentPhotos = latestProfile?.photos ?? profile?.photos ?? editPhotoUrls
-            try await profileService.deletePhoto(photoUrl: url)
+            try await profileService.deletePhoto(userId: userId, photoUrl: url)
 
             currentPhotos.removeAll { $0 == url }
             if let updated = try await profileService.updatePhotos(
