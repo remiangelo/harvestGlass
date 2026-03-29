@@ -248,7 +248,6 @@ struct SafetyAnalysisService {
             .from("messages")
             .select()
             .eq("conversation_id", value: conversationId)
-            .eq("sender_id", value: otherUserId)
             .order("created_at", ascending: true)
             .execute()
             .value
@@ -256,6 +255,7 @@ struct SafetyAnalysisService {
         var snapshots: [SafetyFlagSnapshot] = []
 
         for message in messages {
+            guard normalized(message.senderId) == normalized(otherUserId) else { continue }
             guard let content = message.content, !content.isEmpty else { continue }
             let detected = detectFlags(in: content, messageId: message.id)
             snapshots.append(contentsOf: detected)
