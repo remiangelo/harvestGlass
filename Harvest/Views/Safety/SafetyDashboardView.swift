@@ -96,9 +96,11 @@ struct SafetyDashboardView: View {
                         }
                     }
                 } label: {
-                    Label("Analyze All", systemImage: "arrow.clockwise")
+                    Text("Analyze")
                 }
+                .foregroundStyle(HarvestTheme.Colors.primary)
                 .disabled(viewModel.isLoading)
+                .accessibilityLabel("Analyze all conversations")
             }
         }
         .task {
