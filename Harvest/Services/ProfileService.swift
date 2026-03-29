@@ -148,6 +148,34 @@ struct ProfileService {
     }
 
     func appendPhoto(userId: String, photoUrl: String) async throws -> UserProfile? {
+        let currentProfile = try await getProfile(userId: userId)
+        let currentPhotoUrls = currentProfile?.photos ?? []
+
+        let existingPhotoRows: [PhotoRecord] = try await client
+            .from("photos")
+            .select("id, user_id, url, order_index")
+            .eq("user_id", value: userId)
+            .order("order_index", ascending: true)
+            .execute()
+            .value
+
+        if existingPhotoRows.count < currentPhotoUrls.count {
+            let existingURLs = Set(existingPhotoRows.map(\.url))
+            for (index, url) in currentPhotoUrls.enumerated() where !existingURLs.contains(url) {
+                let legacyRow = PhotoInsertPayload(
+                    user_id: userId,
+                    url: url,
+                    order_index: index,
+                    is_primary: index == 0
+                )
+
+                try await client
+                    .from("photos")
+                    .insert(legacyRow)
+                    .execute()
+            }
+        }
+
         let existingOrderRows: [PhotoOrderRow] = try await client
             .from("photos")
             .select("order_index")
@@ -170,7 +198,7 @@ struct ProfileService {
             .insert(photoRow)
             .execute()
 
-        let updatedPhotos = ((try await getProfile(userId: userId))?.photos ?? []) + [photoUrl]
+        let updatedPhotos = currentPhotoUrls + [photoUrl]
         let payload: [String: AnyJSON] = [
             "photos": .array(updatedPhotos.map { .string($0) }),
             "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
