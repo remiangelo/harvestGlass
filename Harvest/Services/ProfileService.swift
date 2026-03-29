@@ -17,6 +17,14 @@ struct ProfileService {
         }
     }
 
+    private struct PhotoOrderRow: Codable {
+        let orderIndex: Int
+
+        enum CodingKeys: String, CodingKey {
+            case orderIndex = "order_index"
+        }
+    }
+
     private struct PhotoInsertPayload: Encodable {
         let user_id: String
         let url: String
@@ -140,13 +148,21 @@ struct ProfileService {
     }
 
     func appendPhoto(userId: String, photoUrl: String) async throws -> UserProfile? {
-        let currentPhotos = (try await getProfile(userId: userId))?.photos ?? []
+        let existingOrderRows: [PhotoOrderRow] = try await client
+            .from("photos")
+            .select("order_index")
+            .eq("user_id", value: userId)
+            .order("order_index", ascending: true)
+            .execute()
+            .value
+
+        let nextOrderIndex = (existingOrderRows.map(\.orderIndex).max() ?? -1) + 1
 
         let photoRow = PhotoInsertPayload(
             user_id: userId,
             url: photoUrl,
-            order_index: currentPhotos.count,
-            is_primary: currentPhotos.isEmpty
+            order_index: nextOrderIndex,
+            is_primary: existingOrderRows.isEmpty
         )
 
         try await client
@@ -154,7 +170,7 @@ struct ProfileService {
             .insert(photoRow)
             .execute()
 
-        let updatedPhotos = currentPhotos + [photoUrl]
+        let updatedPhotos = ((try await getProfile(userId: userId))?.photos ?? []) + [photoUrl]
         let payload: [String: AnyJSON] = [
             "photos": .array(updatedPhotos.map { .string($0) }),
             "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
