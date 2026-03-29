@@ -28,7 +28,7 @@ struct PhotosStepView: View {
                     }
                 },
                 onRemove: { index in
-                    viewModel.removePhoto(at: index)
+                    viewModel.removePhoto(userId: userId, at: index)
                 }
             )
             .padding(.horizontal, HarvestTheme.Spacing.lg)
