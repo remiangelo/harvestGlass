@@ -1,21 +1,21 @@
 import Foundation
 
-struct DailyQuiz: Codable, Identifiable, Sendable {
+struct DailyQuiz: Identifiable, Sendable {
     let id: String
-    let userId: String
+    let trackingId: String
+    let questionId: String
     var question: String
-    var options: [String]
+    var options: [QuizOption]
     var category: QuizCategory
     var selectedAnswer: String?
     var insight: String?
-    let createdAt: String?
+    let shownAt: String?
+    var isAnswered: Bool
+}
 
-    enum CodingKeys: String, CodingKey {
-        case id, question, options, category, insight
-        case userId = "user_id"
-        case selectedAnswer = "selected_answer"
-        case createdAt = "created_at"
-    }
+struct QuizOption: Codable, Hashable, Sendable, Identifiable {
+    let id: String
+    let text: String
 }
 
 enum QuizCategory: String, Codable, Sendable, CaseIterable {

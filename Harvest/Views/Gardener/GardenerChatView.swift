@@ -49,7 +49,9 @@ struct GardenerChatView: View {
             .sheet(isPresented: $viewModel.showDailyQuiz) {
                 if let quiz = viewModel.dailyQuiz {
                     DailyQuizPopup(quiz: quiz) { answer in
-                        Task { await viewModel.submitQuizAnswer(answer: answer) }
+                        if let userId = authViewModel.currentUserId {
+                            Task { await viewModel.submitQuizAnswer(userId: userId, answer: answer) }
+                        }
                     }
                     .presentationDetents([.medium, .large])
                 }

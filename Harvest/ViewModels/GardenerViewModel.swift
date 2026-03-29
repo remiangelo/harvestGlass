@@ -119,7 +119,7 @@ final class GardenerViewModel {
 
         do {
             let quiz = try await gardenerService.generateDailyQuiz(userId: userId)
-            if let quiz {
+            if let quiz, !quiz.isAnswered {
                 dailyQuiz = quiz
                 showDailyQuiz = true
             }
@@ -128,7 +128,7 @@ final class GardenerViewModel {
         }
     }
 
-    func submitQuizAnswer(answer: String) async {
+    func submitQuizAnswer(userId: String, answer: String) async {
         guard let quiz = dailyQuiz else { return }
 
         // Generate insight via OpenAI
@@ -145,9 +145,10 @@ final class GardenerViewModel {
             insight = "Interesting choice! Self-awareness is the first step to meaningful connections."
         }
 
-        try? await gardenerService.saveQuizAnswer(quizId: quiz.id, answer: answer, insight: insight)
+        try? await gardenerService.saveQuizAnswer(userId: userId, quiz: quiz, answer: answer)
         dailyQuiz?.selectedAnswer = answer
         dailyQuiz?.insight = insight
+        dailyQuiz?.isAnswered = true
     }
 
     private func loadTierLimits(userId: String) async {

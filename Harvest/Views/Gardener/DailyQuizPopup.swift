@@ -26,22 +26,22 @@ struct DailyQuizPopup: View {
 
                     // Options
                     VStack(spacing: HarvestTheme.Spacing.sm) {
-                        ForEach(quiz.options, id: \.self) { option in
+                        ForEach(quiz.options) { option in
                             Button {
                                 if !isSubmitted {
-                                    selectedOption = option
+                                    selectedOption = option.text
                                 }
                             } label: {
                                 GlassCard(padding: HarvestTheme.Spacing.md) {
                                     HStack {
-                                        Text(option)
+                                        Text(option.text)
                                             .font(HarvestTheme.Typography.bodyRegular)
                                             .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                             .multilineTextAlignment(.leading)
 
                                         Spacer()
 
-                                        if selectedOption == option {
+                                        if selectedOption == option.text {
                                             Image(systemName: isSubmitted ? "checkmark.circle.fill" : "circle.fill")
                                                 .foregroundStyle(HarvestTheme.Colors.primary)
                                         } else {
