@@ -8,6 +8,14 @@ struct PurchaseSheet: View {
     @Binding var billingPeriod: BillingPeriod
     @Environment(\.dismiss) private var dismiss
 
+    private var selectedProduct: Product? {
+        viewModel.getProduct(for: tier, billingPeriod: billingPeriod)
+    }
+
+    private var hasAnyStoreKitProducts: Bool {
+        !viewModel.products.isEmpty
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -37,7 +45,7 @@ struct PurchaseSheet: View {
                     .padding(.horizontal)
 
                     // Price Display
-                    if let product = viewModel.getProduct(for: tier, billingPeriod: billingPeriod) {
+                    if let product = selectedProduct {
                         VStack(spacing: HarvestTheme.Spacing.sm) {
                             Text(product.displayPrice)
                                 .font(.system(size: 48, weight: .bold))
@@ -89,7 +97,7 @@ struct PurchaseSheet: View {
                     .padding(.horizontal)
 
                     // Purchase Button
-                    if let product = viewModel.getProduct(for: tier, billingPeriod: billingPeriod) {
+                    if let product = selectedProduct {
                         GlassButton(
                             title: viewModel.isPurchasing ? "Processing..." : "Subscribe Now",
                             style: .primary
@@ -105,9 +113,32 @@ struct PurchaseSheet: View {
                         }
                         .disabled(viewModel.isPurchasing)
                         .padding(.horizontal)
+                    } else if hasAnyStoreKitProducts {
+                        VStack(spacing: HarvestTheme.Spacing.sm) {
+                            Text("This subscription product is not available right now.")
+                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
+
+                            Button("Retry") {
+                                Task {
+                                    await viewModel.loadProducts()
+                                }
+                            }
+                            .font(HarvestTheme.Typography.bodySmall)
+                        }
+                        .padding(.horizontal)
                     } else {
-                        Text("Loading product information...")
-                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        VStack(spacing: HarvestTheme.Spacing.sm) {
+                            Text("Loading product information...")
+                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+
+                            Button("Retry") {
+                                Task {
+                                    await viewModel.loadProducts()
+                                }
+                            }
+                            .font(HarvestTheme.Typography.bodySmall)
+                        }
                     }
 
                     // Fine Print
@@ -140,6 +171,11 @@ struct PurchaseSheet: View {
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
+            .task {
+                if viewModel.products.isEmpty {
+                    await viewModel.loadProducts()
+                }
+            }
         }
     }
 

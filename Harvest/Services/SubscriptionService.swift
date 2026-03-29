@@ -143,12 +143,15 @@ struct SubscriptionService {
         }
 
         if !hasActiveSubscription {
+            try await syncToSeedTier(userId: userId)
             throw SubscriptionError.noPurchasesToRestore
         }
     }
 
     /// Check for active subscription status
     func checkSubscriptionStatus(userId: String) async throws {
+        var hasActiveSubscription = false
+
         for await result in Transaction.currentEntitlements {
             do {
                 let transaction = try checkVerified(result)
@@ -158,9 +161,14 @@ struct SubscriptionService {
                     userId: userId,
                     transaction: transaction
                 )
+                hasActiveSubscription = true
             } catch {
                 print("Warning: Transaction verification failed: \(error)")
             }
+        }
+
+        if !hasActiveSubscription {
+            try await syncToSeedTier(userId: userId)
         }
     }
 
@@ -187,15 +195,7 @@ struct SubscriptionService {
         let tierName = productID.tierName
 
         // Get tier ID from database
-        struct TierId: Decodable { let id: String }
-        let tiers: [TierId] = try await client
-            .from("subscription_tiers")
-            .select("id")
-            .eq("name", value: tierName.rawValue)
-            .execute()
-            .value
-
-        guard let tierId = tiers.first?.id else {
+        guard let tierId = try await getTierId(for: tierName) else {
             throw SubscriptionError.tierNotFound
         }
 
@@ -218,6 +218,39 @@ struct SubscriptionService {
             print("Error: Failed to update subscription in database: \(error)")
             throw error
         }
+    }
+
+    private func syncToSeedTier(userId: String) async throws {
+        guard let seedTierId = try await getTierId(for: .seed) else {
+            throw SubscriptionError.tierNotFound
+        }
+
+        let now = ISO8601DateFormatter().string(from: Date())
+
+        try await client
+            .from("user_subscriptions")
+            .upsert([
+                "user_id": AnyJSON.string(userId),
+                "tier_id": AnyJSON.string(seedTierId),
+                "status": AnyJSON.string("active"),
+                "cancelled_at": AnyJSON.string(now),
+                "updated_at": AnyJSON.string(now)
+            ], onConflict: "user_id")
+            .execute()
+    }
+
+    private func getTierId(for tierName: TierName) async throws -> String? {
+        struct TierId: Decodable { let id: String }
+
+        let tiers: [TierId] = try await client
+            .from("subscription_tiers")
+            .select("id")
+            .eq("name", value: tierName.rawValue)
+            .limit(1)
+            .execute()
+            .value
+
+        return tiers.first?.id
     }
 }
 
