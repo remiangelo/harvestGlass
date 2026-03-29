@@ -3,7 +3,6 @@ import SwiftUI
 struct SubscriptionView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = SubscriptionViewModel()
-    @State private var showPurchaseSheet = false
     @State private var selectedTier: SubscriptionTier?
     @State private var billingPeriod: BillingPeriod = .monthly
 
@@ -48,15 +47,13 @@ struct SubscriptionView: View {
                 await viewModel.checkSubscriptionStatus(userId: userId)
             }
         }
-        .sheet(isPresented: $showPurchaseSheet) {
-            if let tier = selectedTier {
-                PurchaseSheet(
-                    tier: tier,
-                    viewModel: viewModel,
-                    authViewModel: authViewModel,
-                    billingPeriod: $billingPeriod
-                )
-            }
+        .sheet(item: $selectedTier) { tier in
+            PurchaseSheet(
+                tier: tier,
+                viewModel: viewModel,
+                authViewModel: authViewModel,
+                billingPeriod: $billingPeriod
+            )
         }
         .alert("Error", isPresented: .constant(viewModel.error != nil)) {
             Button("OK") { viewModel.error = nil }
@@ -140,8 +137,8 @@ struct SubscriptionView: View {
                     .padding(.vertical, 14)
                 } else if tier.name != .seed {
                     GlassButton(title: "Upgrade to \(tier.displayName)", style: .primary) {
+                        billingPeriod = .monthly
                         selectedTier = tier
-                        showPurchaseSheet = true
                     }
                 }
             }
