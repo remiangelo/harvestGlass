@@ -23,6 +23,8 @@ final class ChatViewModel {
     private var typingDismissTask: Task<Void, Never>?
     private var activeConversationId = ""
     private var activeUserId = ""
+    private var activeMatchId = ""
+    private var activePartnerUserId = ""
 
     // Mindful messaging
     var mindfulAnalysis: MindfulMessagingService.MindfulAnalysis?
@@ -68,14 +70,30 @@ final class ChatViewModel {
 
     func loadSafetyAnalysis(matchId: String, userId: String, otherUserId: String) async {
         do {
+            activeMatchId = matchId
+            activeUserId = userId
+            activePartnerUserId = otherUserId
+
             safetyAnalysis = try await safetyService.getOrCreateAnalysis(
                 matchId: matchId,
                 userId: userId,
                 otherUserId: otherUserId
             )
-            if let score = safetyAnalysis?.safetyScore, score < 50 {
-                safetyWarning = "Safety concern detected. Be cautious in this conversation."
+
+            let hasPartnerHistory = messages.contains {
+                !$0.isSentBy(userId) && !($0.content?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty ?? true)
             }
+
+            if hasPartnerHistory, safetyAnalysis?.redFlagCount == 0, !activeConversationId.isEmpty {
+                safetyAnalysis = try await safetyService.analyzeConversationHistory(
+                    conversationId: activeConversationId,
+                    matchId: matchId,
+                    userId: userId,
+                    otherUserId: otherUserId
+                )
+            }
+
+            refreshSafetyWarning()
         } catch {
             // Non-critical
         }
@@ -143,6 +161,7 @@ final class ChatViewModel {
                 if !self.messages.contains(where: { $0.id == message.id }) {
                     self.messages.append(message)
                 }
+                await self.analyzeMessageForSafetyIfNeeded(message)
             }
         }
     }
@@ -203,6 +222,8 @@ final class ChatViewModel {
         typingChannel = nil
         typingDebounceTask?.cancel()
         typingDismissTask?.cancel()
+        activeMatchId = ""
+        activePartnerUserId = ""
     }
 
     func ensureConversation(matchId: String, user1Id: String, user2Id: String) async -> String? {
@@ -259,10 +280,47 @@ final class ChatViewModel {
                 userId: userId,
                 otherUserId: otherUserId
             )
+            safetyAnalysis = analysis
+            refreshSafetyWarning()
             print("Retroactive analysis complete. Safety score: \(analysis.safetyScore), Red flags: \(analysis.redFlagCount)")
         } catch {
             print("Error running retroactive safety analysis: \(error)")
             self.error = "Failed to analyze conversation history"
+        }
+    }
+
+    @MainActor
+    private func analyzeMessageForSafetyIfNeeded(_ message: Message) async {
+        guard
+            let analysis = safetyAnalysis,
+            !activeMatchId.isEmpty,
+            !activeUserId.isEmpty,
+            !activePartnerUserId.isEmpty,
+            !message.isSentBy(activeUserId),
+            let content = message.content?.trimmingCharacters(in: .whitespacesAndNewlines),
+            !content.isEmpty
+        else {
+            return
+        }
+
+        do {
+            _ = try await safetyService.analyzeMessage(content, analysisId: analysis.id)
+            safetyAnalysis = try await safetyService.getOrCreateAnalysis(
+                matchId: activeMatchId,
+                userId: activeUserId,
+                otherUserId: activePartnerUserId
+            )
+            refreshSafetyWarning()
+        } catch {
+            print("Warning: Failed to analyze message for safety: \(error)")
+        }
+    }
+
+    private func refreshSafetyWarning() {
+        if let score = safetyAnalysis?.safetyScore, score < 50 {
+            safetyWarning = "Safety concern detected. Be cautious in this conversation."
+        } else {
+            safetyWarning = nil
         }
     }
 }
