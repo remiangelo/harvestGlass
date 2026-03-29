@@ -119,6 +119,10 @@ private struct SafetyDetailSheet: View {
     let redFlags: [RedFlagReport]
     @Environment(\.dismiss) private var dismiss
 
+    private var fallbackFlags: [SafetyFlagSnapshot] {
+        analysis.redFlags
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -155,29 +159,26 @@ private struct SafetyDetailSheet: View {
                     .padding(.horizontal)
 
                     // Red flags
-                    if !redFlags.isEmpty {
+                    if !redFlags.isEmpty || !fallbackFlags.isEmpty {
                         VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                             Text("Red Flags")
                                 .font(HarvestTheme.Typography.h3)
                                 .padding(.horizontal)
 
-                            ForEach(redFlags) { flag in
-                                GlassCard {
-                                    HStack {
-                                        Image(systemName: "exclamationmark.triangle.fill")
-                                            .foregroundStyle(HarvestTheme.Colors.warning)
-                                        VStack(alignment: .leading, spacing: 2) {
-                                            Text(flag.category.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
-                                                .font(HarvestTheme.Typography.bodySmall)
-                                                .fontWeight(.semibold)
-                                            Text(flag.detail)
-                                                .font(HarvestTheme.Typography.caption)
-                                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                                        }
-                                        Spacer()
-                                    }
+                            if !redFlags.isEmpty {
+                                ForEach(redFlags) { flag in
+                                    flagRow(
+                                        title: flag.category.rawValue.replacingOccurrences(of: "_", with: " ").capitalized,
+                                        detail: flag.detail
+                                    )
                                 }
-                                .padding(.horizontal)
+                            } else {
+                                ForEach(fallbackFlags) { flag in
+                                    flagRow(
+                                        title: flag.category.rawValue.replacingOccurrences(of: "_", with: " ").capitalized,
+                                        detail: flag.evidence
+                                    )
+                                }
                             }
                         }
                     }
@@ -227,5 +228,24 @@ private struct SafetyDetailSheet: View {
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(.semibold)
         }
+    }
+
+    private func flagRow(title: String, detail: String) -> some View {
+        GlassCard {
+            HStack {
+                Image(systemName: "exclamationmark.triangle.fill")
+                    .foregroundStyle(HarvestTheme.Colors.warning)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .fontWeight(.semibold)
+                    Text(detail)
+                        .font(HarvestTheme.Typography.caption)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                }
+                Spacer()
+            }
+        }
+        .padding(.horizontal)
     }
 }

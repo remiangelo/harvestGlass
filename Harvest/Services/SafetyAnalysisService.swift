@@ -127,17 +127,21 @@ struct SafetyAnalysisService {
         let reports = detectFlags(in: message)
         guard !reports.isEmpty else { return [] }
 
-        try await replaceAIDetectedFlags(
-            conversationId: analysis.conversationId,
-            reportedUserId: analysis.otherUserId,
-            reports: analysis.redFlags + reports
-        )
-
         analysis.redFlags += reports
         analysis.safetyScore = computeSafetyScore(from: analysis.redFlags)
         analysis.totalMessages = try await fetchMessageCount(conversationId: analysis.conversationId)
         analysis.recommendations = recommendations(for: analysis.safetyScore, totalMessages: analysis.totalMessages)
         analysis.allowContactSharing = canShareContact(analysis: analysis)
+
+        do {
+            try await replaceAIDetectedFlags(
+                conversationId: analysis.conversationId,
+                reportedUserId: analysis.otherUserId,
+                reports: analysis.redFlags
+            )
+        } catch {
+            print("Warning: Failed to persist AI red flag reports: \(error)")
+        }
 
         try await persistAnalysis(analysis)
         return try await getRedFlags(analysisId: analysisId)
@@ -263,11 +267,15 @@ struct SafetyAnalysisService {
         analysis.recommendations = recommendations(for: analysis.safetyScore, totalMessages: analysis.totalMessages)
         analysis.allowContactSharing = canShareContact(analysis: analysis)
 
-        try await replaceAIDetectedFlags(
-            conversationId: conversationId,
-            reportedUserId: otherUserId,
-            reports: snapshots
-        )
+        do {
+            try await replaceAIDetectedFlags(
+                conversationId: conversationId,
+                reportedUserId: otherUserId,
+                reports: snapshots
+            )
+        } catch {
+            print("Warning: Failed to persist retroactive AI red flag reports: \(error)")
+        }
         try await persistAnalysis(analysis)
 
         return analysis
