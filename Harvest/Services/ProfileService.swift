@@ -25,6 +25,10 @@ struct ProfileService {
         }
     }
 
+    private struct UserPhotoArrayRow: Decodable {
+        let photos: [String]?
+    }
+
     private struct PhotoInsertPayload: Encodable {
         let user_id: String
         let url: String
@@ -148,8 +152,15 @@ struct ProfileService {
     }
 
     func appendPhoto(userId: String, photoUrl: String) async throws -> UserProfile? {
-        let currentProfile = try await getProfile(userId: userId)
-        let currentPhotoUrls = currentProfile?.photos ?? []
+        let userRows: [UserPhotoArrayRow] = try await client
+            .from("users")
+            .select("photos")
+            .eq("id", value: userId)
+            .limit(1)
+            .execute()
+            .value
+
+        let legacyPhotoUrls = userRows.first?.photos ?? []
 
         let existingPhotoRows: [PhotoRecord] = try await client
             .from("photos")
@@ -159,60 +170,18 @@ struct ProfileService {
             .execute()
             .value
 
-        if existingPhotoRows.count < currentPhotoUrls.count {
-            let existingURLs = Set(existingPhotoRows.map(\.url))
-            for (index, url) in currentPhotoUrls.enumerated() where !existingURLs.contains(url) {
-                let legacyRow = PhotoInsertPayload(
-                    user_id: userId,
-                    url: url,
-                    order_index: index,
-                    is_primary: index == 0
-                )
-
-                try await client
-                    .from("photos")
-                    .insert(legacyRow)
-                    .execute()
-            }
+        var reconciledPhotoUrls: [String] = []
+        for url in legacyPhotoUrls where !reconciledPhotoUrls.contains(url) {
+            reconciledPhotoUrls.append(url)
+        }
+        for url in existingPhotoRows.map(\.url) where !reconciledPhotoUrls.contains(url) {
+            reconciledPhotoUrls.append(url)
+        }
+        if !reconciledPhotoUrls.contains(photoUrl) {
+            reconciledPhotoUrls.append(photoUrl)
         }
 
-        let existingOrderRows: [PhotoOrderRow] = try await client
-            .from("photos")
-            .select("order_index")
-            .eq("user_id", value: userId)
-            .order("order_index", ascending: true)
-            .execute()
-            .value
-
-        let nextOrderIndex = (existingOrderRows.map(\.orderIndex).max() ?? -1) + 1
-
-        let photoRow = PhotoInsertPayload(
-            user_id: userId,
-            url: photoUrl,
-            order_index: nextOrderIndex,
-            is_primary: existingOrderRows.isEmpty
-        )
-
-        try await client
-            .from("photos")
-            .insert(photoRow)
-            .execute()
-
-        let updatedPhotos = currentPhotoUrls + [photoUrl]
-        let payload: [String: AnyJSON] = [
-            "photos": .array(updatedPhotos.map { .string($0) }),
-            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
-        ]
-
-        _ = try await client
-            .from("users")
-            .update(payload)
-            .eq("id", value: userId)
-            .select()
-            .execute()
-            .value as [UserProfile]
-
-        return try await getProfile(userId: userId)
+        return try await updatePhotos(userId: userId, photoUrls: reconciledPhotoUrls)
     }
 
     func checkOnboardingStatus(userId: String) async throws -> Bool {
