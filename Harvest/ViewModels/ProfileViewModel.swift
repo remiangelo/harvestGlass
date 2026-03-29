@@ -176,23 +176,20 @@ final class ProfileViewModel {
         }
 
         do {
-            let latestProfile = try await profileService.getProfile(userId: userId)
-            let existingPhotos = latestProfile?.photos ?? profile?.photos ?? editPhotoUrls
-            let currentCount = existingPhotos.count
             let url = try await profileService.uploadPhoto(
                 userId: userId,
                 imageData: jpegData,
-                photoIndex: currentCount
+                photoIndex: editPhotoUrls.count
             )
 
-            let updatedPhotos = existingPhotos + [url]
-            if let updated = try await profileService.updatePhotos(
+            if let updated = try await profileService.appendPhoto(
                 userId: userId,
-                photoUrls: updatedPhotos
+                photoUrl: url
             ) {
                 profile = updated
-                editPhotoUrls = updated.photos ?? updatedPhotos
+                editPhotoUrls = updated.photos ?? (editPhotoUrls + [url])
             } else {
+                let updatedPhotos = editPhotoUrls + [url]
                 profile?.photos = updatedPhotos
                 editPhotoUrls = updatedPhotos
             }

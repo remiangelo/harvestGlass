@@ -107,24 +107,56 @@ struct ProfileService {
             .execute()
 
         if !photoUrls.isEmpty {
-            let photoRows = photoUrls.enumerated().map { index, url in
-                PhotoInsertPayload(
+            for (index, url) in photoUrls.enumerated() {
+                let photoRow = PhotoInsertPayload(
                     user_id: userId,
                     url: url,
                     order_index: index,
                     is_primary: index == 0
                 )
-            }
 
-            try await client
-                .from("photos")
-                .insert(photoRows)
-                .execute()
+                try await client
+                    .from("photos")
+                    .insert(photoRow)
+                    .execute()
+            }
         }
 
         // Keep legacy array column in sync for screens that still read it directly.
         let payload: [String: AnyJSON] = [
             "photos": .array(photoUrls.map { .string($0) }),
+            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
+        ]
+
+        _ = try await client
+            .from("users")
+            .update(payload)
+            .eq("id", value: userId)
+            .select()
+            .execute()
+            .value as [UserProfile]
+
+        return try await getProfile(userId: userId)
+    }
+
+    func appendPhoto(userId: String, photoUrl: String) async throws -> UserProfile? {
+        let currentPhotos = (try await getProfile(userId: userId))?.photos ?? []
+
+        let photoRow = PhotoInsertPayload(
+            user_id: userId,
+            url: photoUrl,
+            order_index: currentPhotos.count,
+            is_primary: currentPhotos.isEmpty
+        )
+
+        try await client
+            .from("photos")
+            .insert(photoRow)
+            .execute()
+
+        let updatedPhotos = currentPhotos + [photoUrl]
+        let payload: [String: AnyJSON] = [
+            "photos": .array(updatedPhotos.map { .string($0) }),
             "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
         ]
 
