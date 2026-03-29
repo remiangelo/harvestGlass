@@ -124,7 +124,8 @@ final class GardenerViewModel {
                 showDailyQuiz = true
             }
         } catch {
-            // Non-critical
+            self.error = "Daily quiz failed to load: \(error.localizedDescription)"
+            print("Error loading daily quiz: \(error)")
         }
     }
 
