@@ -4,11 +4,6 @@ import Supabase
 struct ProfileService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
-    private struct PhotoUpdatePayload: Encodable {
-        let photos: [String]
-        let updated_at: String
-    }
-
     func getProfile(userId: String) async throws -> UserProfile? {
         let response: [UserProfile] = try await client
             .from("users")
@@ -70,10 +65,10 @@ struct ProfileService {
     }
 
     func updatePhotos(userId: String, photoUrls: [String]) async throws -> UserProfile? {
-        let payload = PhotoUpdatePayload(
-            photos: photoUrls,
-            updated_at: ISO8601DateFormatter().string(from: Date())
-        )
+        let payload: [String: AnyJSON] = [
+            "photos": .array(photoUrls.map { .string($0) }),
+            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
+        ]
 
         let response: [UserProfile] = try await client
             .from("users")
