@@ -39,7 +39,9 @@ final class ProfileViewModel {
 
         do {
             profile = try await profileService.getProfile(userId: userId)
-            syncEditableFields()
+            if !isEditing {
+                syncEditableFields()
+            }
 
             do {
                 valuesBrought = try await valuesService.getUserValuesBrought(userId: userId)
