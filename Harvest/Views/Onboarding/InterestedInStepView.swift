@@ -18,7 +18,7 @@ struct InterestedInStepView: View {
 
             Text("Select all that apply")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(options, id: \.self) { option in
@@ -50,17 +50,17 @@ struct InterestedInStepView: View {
                                     .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
                             } else {
                                 Image(systemName: "circle")
-                                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.35))
+                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
                             }
                         }
-                        .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnCream)
+                        .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnWhitePrimary)
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color.white)
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.whiteFormSurface)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                                        .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
                                 }
                         }
                     }

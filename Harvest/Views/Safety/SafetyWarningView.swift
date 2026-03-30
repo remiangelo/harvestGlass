@@ -12,7 +12,7 @@ struct SafetyWarningView: View {
 
             Text(message)
                 .font(HarvestTheme.Typography.caption)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
 
             Spacer()
 

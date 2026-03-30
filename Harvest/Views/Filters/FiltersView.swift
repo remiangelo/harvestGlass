@@ -29,7 +29,7 @@ struct FiltersView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                     Text("Maximum distance: \(viewModel.filters.distanceMax) \(viewModel.filters.distanceUnit)")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
 
                     Slider(
                         value: Binding(
@@ -57,8 +57,8 @@ struct FiltersView: View {
                             Text(option.label)
                                 .foregroundStyle(
                                     viewModel.filters.showMe.contains(option.value)
-                                    ? HarvestTheme.Colors.textOnCream
-                                    : HarvestTheme.Colors.textOnCream.opacity(0.7)
+                                    ? HarvestTheme.Colors.textOnWhitePrimary
+                                    : HarvestTheme.Colors.textOnWhiteSecondary
                                 )
                             Spacer()
                             if viewModel.filters.showMe.contains(option.value) {
@@ -72,7 +72,7 @@ struct FiltersView: View {
                 Text("Show Me")
                     .textCase(nil)
                     .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.75))
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
             }
 
             Section {
@@ -180,7 +180,7 @@ struct FiltersView: View {
         }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
-        .scrollContentBackground(.visible)
+        .scrollContentBackground(.hidden)
         .background(Color.white.ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -204,6 +204,8 @@ struct FiltersView: View {
         }
         .toolbarBackground(Color.white, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .listSectionSpacing(20)
+        .listStyle(.insetGrouped)
     }
 
     private func toggleShowMe(_ option: String) {

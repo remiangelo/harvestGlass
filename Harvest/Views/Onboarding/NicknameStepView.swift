@@ -16,18 +16,18 @@ struct NicknameStepView: View {
 
             Text("This is how other users will see you")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
 
             TextField("Your nickname", text: Bindable(viewModel).nickname)
                 .font(HarvestTheme.Typography.bodyLarge)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                 .textInputAutocapitalization(.words)
                 .multilineTextAlignment(.center)
                 .padding()
-                .background(Color.white)
+                .background(HarvestTheme.Colors.whiteFormSurface)
                 .overlay {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                        .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
                 .padding(.horizontal, HarvestTheme.Spacing.xl)

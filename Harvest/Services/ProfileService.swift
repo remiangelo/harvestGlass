@@ -112,6 +112,7 @@ struct ProfileService {
     }
 
     func updatePhotos(userId: String, photoUrls: [String]) async throws -> UserProfile? {
+        print("ProfileService.updatePhotos user=\(userId) count=\(photoUrls.count) urls=\(photoUrls)")
         try await client
             .from("photos")
             .delete()
@@ -180,6 +181,12 @@ struct ProfileService {
         if !reconciledPhotoUrls.contains(photoUrl) {
             reconciledPhotoUrls.append(photoUrl)
         }
+
+        print("ProfileService.appendPhoto user=\(userId)")
+        print("  legacyPhotoUrls=\(legacyPhotoUrls)")
+        print("  existingPhotoRowUrls=\(existingPhotoRows.map(\\.url))")
+        print("  newPhotoUrl=\(photoUrl)")
+        print("  reconciledPhotoUrls=\(reconciledPhotoUrls)")
 
         return try await updatePhotos(userId: userId, photoUrls: reconciledPhotoUrls)
     }

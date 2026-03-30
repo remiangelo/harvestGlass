@@ -18,18 +18,18 @@ struct LocationStepView: View {
 
             Text("Enter your city name")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
 
             TextField("City name", text: Bindable(viewModel).location)
                 .font(HarvestTheme.Typography.bodyLarge)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                 .textInputAutocapitalization(.words)
                 .multilineTextAlignment(.center)
                 .padding()
-                .background(Color.white)
+                .background(HarvestTheme.Colors.whiteFormSurface)
                 .overlay {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                        .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
                 .padding(.horizontal, HarvestTheme.Spacing.xl)
@@ -40,7 +40,7 @@ struct LocationStepView: View {
             } else if let resolved = viewModel.resolvedLocation {
                 Text(resolved)
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.7))
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
             }
 
             Spacer()

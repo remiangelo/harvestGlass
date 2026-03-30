@@ -24,14 +24,14 @@ struct AgeStepView: View {
 
             Text("You must be at least 18 years old")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
 
             ZStack {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                    .fill(Color.white)
+                    .fill(HarvestTheme.Colors.whiteFormSurface)
                     .overlay {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                            .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                            .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
                     }
 
                 DatePicker(

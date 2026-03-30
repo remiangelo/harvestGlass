@@ -176,6 +176,7 @@ final class ProfileViewModel {
         }
 
         do {
+            print("ProfileViewModel.uploadPhoto starting user=\(userId) currentEditPhotoUrls=\(editPhotoUrls)")
             let url = try await profileService.uploadPhoto(
                 userId: userId,
                 imageData: jpegData,

@@ -52,21 +52,22 @@ struct InterestPickerView: View {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
                 Text("Pick your interests (\(draftInterests.count) selected)")
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                     .padding(.horizontal)
 
                 ForEach(Self.categorizedInterests, id: \.0) { category, interests in
                     VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                         Text(category)
                             .font(HarvestTheme.Typography.h4)
-                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                             .padding(.horizontal)
 
                         FlowLayout(spacing: HarvestTheme.Spacing.xs) {
                             ForEach(interests, id: \.self) { interest in
                                 ChipView(
                                     title: interest,
-                                    isSelected: draftInterests.contains(interest)
+                                    isSelected: draftInterests.contains(interest),
+                                    lightStyle: true
                                 ) {
                                     toggleInterest(interest)
                                 }

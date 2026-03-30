@@ -23,7 +23,7 @@ struct SafetyDashboardView: View {
 
                     Text("Safety scores will appear as you chat with your matches.")
                         .font(HarvestTheme.Typography.bodySmall)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
@@ -78,10 +78,10 @@ struct SafetyDashboardView: View {
 
                             Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                                .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
                         }
                     }
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                 }
             }
         }
@@ -192,11 +192,11 @@ private struct SafetyDetailSheet: View {
                             if analysis.safetyScore >= 80 {
                                 Text("This conversation appears safe. Continue enjoying your connection!")
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                             } else if analysis.safetyScore >= 50 {
                                 Text("Some concerns have been noted. Stay mindful and report anything that makes you uncomfortable.")
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                             } else {
                                 Text("Multiple concerns detected. Consider reporting or blocking this user if you feel unsafe.")
                                     .font(HarvestTheme.Typography.bodySmall)
@@ -222,7 +222,7 @@ private struct SafetyDetailSheet: View {
         HStack {
             Text(label)
                 .font(HarvestTheme.Typography.bodySmall)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
             Spacer()
             Text(value)
                 .font(HarvestTheme.Typography.bodySmall)
@@ -241,7 +241,7 @@ private struct SafetyDetailSheet: View {
                         .fontWeight(.semibold)
                     Text(detail)
                         .font(HarvestTheme.Typography.caption)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                 }
                 Spacer()
             }

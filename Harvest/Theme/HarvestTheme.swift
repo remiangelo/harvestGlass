@@ -46,6 +46,11 @@ enum HarvestTheme {
         static let textOnRedPrimary = deepPlum
         static let textOnRedAccent = harvestGold
         static let textOnBlack = harvestGold
+        static let textOnWhitePrimary = deepPlum
+        static let textOnWhiteSecondary = deepPlum.opacity(0.78)
+        static let textOnWhiteTertiary = deepPlum.opacity(0.58)
+        static let whiteFormSurface = Color.white
+        static let whiteFormBorder = deepPlum.opacity(0.12)
 
         // Semantic
         static let error = Color(hex: "DC2626")

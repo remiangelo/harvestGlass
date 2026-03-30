@@ -12,7 +12,8 @@ struct HelpCenterView: View {
                     HStack(spacing: HarvestTheme.Spacing.sm) {
                         ChipView(
                             title: "All",
-                            isSelected: viewModel.selectedCategory == nil
+                            isSelected: viewModel.selectedCategory == nil,
+                            lightStyle: true
                         ) {
                             viewModel.selectedCategory = nil
                         }
@@ -20,7 +21,8 @@ struct HelpCenterView: View {
                         ForEach(HelpCenterViewModel.categories, id: \.self) { category in
                             ChipView(
                                 title: category,
-                                isSelected: viewModel.selectedCategory == category
+                                isSelected: viewModel.selectedCategory == category,
+                                lightStyle: true
                             ) {
                                 viewModel.selectedCategory = category
                             }
@@ -40,19 +42,19 @@ struct HelpCenterView: View {
                             DisclosureGroup {
                                 Text(faq.answer)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                                     .padding(.top, HarvestTheme.Spacing.sm)
                             } label: {
                                 HStack {
                                     Text(faq.question)
                                         .font(HarvestTheme.Typography.bodyRegular)
                                         .fontWeight(.medium)
-                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                                         .multilineTextAlignment(.leading)
 
                                     Spacer()
 
-                                    GlassBadge(text: faq.category, color: HarvestTheme.Colors.textSecondary)
+                                    GlassBadge(text: faq.category, color: HarvestTheme.Colors.textOnWhiteSecondary)
                                 }
                             }
                             .tint(HarvestTheme.Colors.primary)
@@ -173,7 +175,7 @@ struct HelpCenterView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
             }
         }
     }

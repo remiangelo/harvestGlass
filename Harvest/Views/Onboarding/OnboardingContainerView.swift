@@ -68,7 +68,7 @@ struct OnboardingContainerView: View {
                     Button("Sign Out") {
                         Task { await authViewModel.logout() }
                     }
-                    .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.4))
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
                 }
             }
             .toolbarBackground(Color.white, for: .navigationBar)

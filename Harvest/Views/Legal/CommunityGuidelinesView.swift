@@ -54,7 +54,7 @@ struct CommunityGuidelinesView: View {
 
                 Text("Last updated: March 2026")
                     .font(HarvestTheme.Typography.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
                     .padding(.top, HarvestTheme.Spacing.md)
             }
             .padding()
@@ -70,7 +70,7 @@ struct CommunityGuidelinesView: View {
 
             Text(body)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
         }
     }
 }

@@ -15,14 +15,15 @@ struct InterestedInPickerView: View {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
                 Text("Choose who you want to match with")
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                     .padding(.horizontal)
 
                 FlowLayout(spacing: HarvestTheme.Spacing.xs) {
                     ForEach(options, id: \.value) { option in
                         ChipView(
                             title: option.label,
-                            isSelected: selectedOptions.contains(option.value)
+                            isSelected: selectedOptions.contains(option.value),
+                            lightStyle: true
                         ) {
                             toggleOption(option.value)
                         }

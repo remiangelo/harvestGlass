@@ -17,7 +17,7 @@ struct PhotosStepView: View {
 
             Text("Add at least 1 photo (up to 6)")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnCream.opacity(0.45))
+                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
 
             ProfilePhotoGrid(
                 photoUrls: viewModel.photoUrls,
