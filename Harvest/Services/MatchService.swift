@@ -192,17 +192,25 @@ struct MatchService {
             .from("matches")
             .select()
             .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
-            .eq("is_active", value: true)
+            .execute()
+            .value
+
+        let outgoingSwipes: [Swipe] = try await client
+            .from("swipes")
+            .select()
+            .eq("swiper_id", value: userId)
             .execute()
             .value
 
         let matchedUserIds = Set(matches.compactMap { $0.otherUserId(currentUserId: userId)?.lowercased() })
+        let alreadyActedOnUserIds = Set(outgoingSwipes.map { $0.swipedId.lowercased() })
         var seenSwiperIds = Set<String>()
         var inboundLikes: [InboundLikeWithProfile] = []
 
         for swipe in inboundSwipes {
             let swiperId = swipe.swiperId.lowercased()
             guard !matchedUserIds.contains(swiperId) else { continue }
+            guard !alreadyActedOnUserIds.contains(swiperId) else { continue }
             guard !blockedUserIds.contains(swiperId) else { continue }
             guard seenSwiperIds.insert(swiperId).inserted else { continue }
 
