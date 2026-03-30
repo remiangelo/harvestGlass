@@ -7,6 +7,7 @@ struct MatchService {
     private let profileService = ProfileService()
 
     func getMatches(userId: String) async throws -> [MatchWithProfile] {
+        let blockedUserIds = try await getBlockedUserIds(for: userId)
         let matches: [Match] = try await client
             .from("matches")
             .select()
@@ -20,6 +21,7 @@ struct MatchService {
         var seenOtherUserIds = Set<String>()
         for match in matches {
             guard let otherUserId = match.otherUserId(currentUserId: userId) else { continue }
+            guard !blockedUserIds.contains(otherUserId.lowercased()) else { continue }
             guard seenOtherUserIds.insert(otherUserId).inserted else { continue }
             if let profile = try await profileService.getProfile(userId: otherUserId) {
                 matchesWithProfiles.append(MatchWithProfile(match: match, profile: profile))
@@ -48,6 +50,36 @@ struct MatchService {
                 "blocked_id": blockedUserId
             ])
             .execute()
+
+        let existingMatches: [Match] = try await client
+            .from("matches")
+            .select()
+            .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+            .eq("is_active", value: true)
+            .execute()
+            .value
+
+        let pairMatchIds = existingMatches
+            .filter { match in
+                let user1 = match.user1Id.lowercased()
+                let user2 = match.user2Id.lowercased()
+                let current = userId.lowercased()
+                let blocked = blockedUserId.lowercased()
+                return Set([user1, user2]) == Set([current, blocked])
+            }
+            .map(\.id)
+
+        if !pairMatchIds.isEmpty {
+            try await client
+                .from("matches")
+                .update([
+                    "is_active": AnyJSON.bool(false),
+                    "unmatched_at": AnyJSON.string(ISO8601DateFormatter().string(from: Date())),
+                    "unmatched_by": AnyJSON.string(userId)
+                ])
+                .in("id", values: pairMatchIds)
+                .execute()
+        }
     }
 
     func reportUser(reporterId: String, reportedUserId: String, category: String, description: String) async throws {
@@ -83,14 +115,7 @@ struct MatchService {
     }
 
     func getConversations(userId: String) async throws -> [ConversationWithProfile] {
-        let directConversations: [Conversation] = try await client
-            .from("conversations")
-            .select()
-            .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
-            .order("last_message_at", ascending: false)
-            .execute()
-            .value
-
+        let blockedUserIds = try await getBlockedUserIds(for: userId)
         let matches: [Match] = try await client
             .from("matches")
             .select()
@@ -100,7 +125,7 @@ struct MatchService {
             .value
 
         let matchIds = matches.map(\.id)
-        var conversationsById = Dictionary(uniqueKeysWithValues: directConversations.map { ($0.id, $0) })
+        var conversationsById: [String: Conversation] = [:]
 
         if !matchIds.isEmpty {
             let matchLinkedConversations: [Conversation] = try await client
@@ -131,6 +156,7 @@ struct MatchService {
                 conversation.matchId.flatMap { matchesById[$0]?.otherUserId(currentUserId: userId) }
 
             guard let otherUserId else { continue }
+            guard !blockedUserIds.contains(otherUserId.lowercased()) else { continue }
             if let profile = try await profileService.getProfile(userId: otherUserId) {
                 let hydratedConversation = try await hydrateConversationPreviewIfNeeded(conversation)
                 guard hydratedConversation.lastMessagePreview != nil else { continue }
@@ -152,6 +178,7 @@ struct MatchService {
     }
 
     func getInboundLikes(userId: String) async throws -> [InboundLikeWithProfile] {
+        let blockedUserIds = try await getBlockedUserIds(for: userId)
         let inboundSwipes: [Swipe] = try await client
             .from("swipes")
             .select()
@@ -176,6 +203,7 @@ struct MatchService {
         for swipe in inboundSwipes {
             let swiperId = swipe.swiperId.lowercased()
             guard !matchedUserIds.contains(swiperId) else { continue }
+            guard !blockedUserIds.contains(swiperId) else { continue }
             guard seenSwiperIds.insert(swiperId).inserted else { continue }
 
             if let profile = try await profileService.getProfile(userId: swipe.swiperId) {
@@ -236,5 +264,35 @@ struct MatchService {
 
         guard let latestMessage = latestMessages.first else { return false }
         return !latestMessage.isSentBy(currentUserId)
+    }
+
+    private func getBlockedUserIds(for userId: String) async throws -> Set<String> {
+        struct UserBlockRow: Decodable {
+            let blockerId: String?
+            let blockedId: String?
+
+            enum CodingKeys: String, CodingKey {
+                case blockerId = "blocker_id"
+                case blockedId = "blocked_id"
+            }
+        }
+
+        let blocks: [UserBlockRow] = try await client
+            .from("user_blocks")
+            .select("blocker_id, blocked_id")
+            .or("blocker_id.eq.\(userId),blocked_id.eq.\(userId)")
+            .execute()
+            .value
+
+        var blockedUserIds = Set<String>()
+        for block in blocks {
+            if block.blockerId?.lowercased() == userId.lowercased(), let blockedId = block.blockedId?.lowercased() {
+                blockedUserIds.insert(blockedId)
+            } else if block.blockedId?.lowercased() == userId.lowercased(), let blockerId = block.blockerId?.lowercased() {
+                blockedUserIds.insert(blockerId)
+            }
+        }
+
+        return blockedUserIds
     }
 }
