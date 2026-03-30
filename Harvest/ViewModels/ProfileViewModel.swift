@@ -176,25 +176,12 @@ final class ProfileViewModel {
         }
 
         do {
-            print("ProfileViewModel.uploadPhoto starting user=\(userId) currentEditPhotoUrls=\(editPhotoUrls)")
             let url = try await profileService.uploadPhoto(
                 userId: userId,
                 imageData: jpegData,
                 photoIndex: editPhotoUrls.count
             )
-
-            if let updated = try await profileService.appendPhoto(
-                userId: userId,
-                photoUrl: url
-            ) {
-                profile = updated
-                editPhotoUrls = updated.photos ?? (editPhotoUrls + [url])
-            } else {
-                let updatedPhotos = editPhotoUrls + [url]
-                profile?.photos = updatedPhotos
-                editPhotoUrls = updatedPhotos
-            }
-            originalPhotoUrls = editPhotoUrls
+            editPhotoUrls.append(url)
         } catch {
             self.error = "Failed to upload photo: \(error.localizedDescription)"
         }
@@ -205,22 +192,8 @@ final class ProfileViewModel {
         let url = editPhotoUrls[index]
 
         do {
-            let latestProfile = try await profileService.getProfile(userId: userId)
-            var currentPhotos = latestProfile?.photos ?? profile?.photos ?? editPhotoUrls
             try await profileService.deletePhoto(userId: userId, photoUrl: url)
-
-            currentPhotos.removeAll { $0 == url }
-            if let updated = try await profileService.updatePhotos(
-                userId: userId,
-                photoUrls: currentPhotos
-            ) {
-                profile = updated
-                editPhotoUrls = updated.photos ?? currentPhotos
-            } else {
-                profile?.photos = currentPhotos
-                editPhotoUrls = currentPhotos
-            }
-            originalPhotoUrls = editPhotoUrls
+            editPhotoUrls.remove(at: index)
         } catch {
             self.error = "Failed to delete photo: \(error.localizedDescription)"
         }
