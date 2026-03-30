@@ -12,10 +12,13 @@ struct MatchThread: Identifiable {
 final class MatchesViewModel {
     var matchThreads: [MatchThread] = []
     var conversations: [ConversationWithProfile] = []
+    var inboundLikes: [InboundLikeWithProfile] = []
+    var canSeeLikes = false
     var isLoading = false
     var error: String?
 
     private let matchService = MatchService()
+    private let subscriptionService = SubscriptionService()
 
     func loadMatches(userId: String) async {
         isLoading = true
@@ -24,9 +27,15 @@ final class MatchesViewModel {
         do {
             async let matchesTask = matchService.getMatches(userId: userId)
             async let conversationsTask = matchService.getConversations(userId: userId)
+            async let inboundLikesTask = matchService.getInboundLikes(userId: userId)
+            async let tiersTask = subscriptionService.getSubscriptionTiers()
+            async let subscriptionTask = subscriptionService.getUserSubscription(userId: userId)
 
             let loadedMatches = try await matchesTask
             let loadedConversations = try await conversationsTask
+            let loadedInboundLikes = try await inboundLikesTask
+            let tiers = try await tiersTask
+            let subscription = try await subscriptionTask
 
             let conversationPairs: [(String, ConversationWithProfile)] = loadedConversations.compactMap { conversation in
                 guard let matchId = conversation.conversation.matchId else { return nil }
@@ -42,6 +51,16 @@ final class MatchesViewModel {
             }
 
             conversations = sortConversationsByRecentActivity(loadedConversations)
+            inboundLikes = loadedInboundLikes
+
+            if let subscription,
+               let currentTier = tiers.first(where: { $0.id == subscription.tierId }) {
+                canSeeLikes = currentTier.canSeeLikes
+            } else if let seedTier = tiers.first(where: { $0.name == .seed }) {
+                canSeeLikes = seedTier.canSeeLikes
+            } else {
+                canSeeLikes = false
+            }
         } catch {
             self.error = error.localizedDescription
         }

@@ -31,3 +31,10 @@ struct MatchWithProfile: Identifiable, Sendable {
 
     var id: String { match.id }
 }
+
+struct InboundLikeWithProfile: Identifiable, Sendable {
+    let swipe: Swipe
+    let profile: UserProfile
+
+    var id: String { swipe.id }
+}

@@ -4,6 +4,7 @@ import Supabase
 struct MatchService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
     private let chatService = ChatService()
+    private let profileService = ProfileService()
 
     func getMatches(userId: String) async throws -> [MatchWithProfile] {
         let matches: [Match] = try await client
@@ -17,8 +18,6 @@ struct MatchService {
 
         var matchesWithProfiles: [MatchWithProfile] = []
         var seenOtherUserIds = Set<String>()
-        let profileService = ProfileService()
-
         for match in matches {
             guard let otherUserId = match.otherUserId(currentUserId: userId) else { continue }
             guard seenOtherUserIds.insert(otherUserId).inserted else { continue }
@@ -124,8 +123,6 @@ struct MatchService {
 
         var conversationsWithProfiles: [ConversationWithProfile] = []
         var seenConversationIds = Set<String>()
-        let profileService = ProfileService()
-
         for conversation in conversations {
             guard seenConversationIds.insert(conversation.id).inserted else { continue }
 
@@ -152,6 +149,46 @@ struct MatchService {
         }
 
         return conversationsWithProfiles
+    }
+
+    func getInboundLikes(userId: String) async throws -> [InboundLikeWithProfile] {
+        let inboundSwipes: [Swipe] = try await client
+            .from("swipes")
+            .select()
+            .eq("swiped_id", value: userId)
+            .in("action", values: [SwipeAction.like.rawValue, SwipeAction.superLike.rawValue])
+            .order("created_at", ascending: false)
+            .execute()
+            .value
+
+        let matches: [Match] = try await client
+            .from("matches")
+            .select()
+            .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
+            .eq("is_active", value: true)
+            .execute()
+            .value
+
+        let matchedUserIds = Set(matches.compactMap { $0.otherUserId(currentUserId: userId)?.lowercased() })
+        var seenSwiperIds = Set<String>()
+        var inboundLikes: [InboundLikeWithProfile] = []
+
+        for swipe in inboundSwipes {
+            let swiperId = swipe.swiperId.lowercased()
+            guard !matchedUserIds.contains(swiperId) else { continue }
+            guard seenSwiperIds.insert(swiperId).inserted else { continue }
+
+            if let profile = try await profileService.getProfile(userId: swipe.swiperId) {
+                inboundLikes.append(
+                    InboundLikeWithProfile(
+                        swipe: swipe,
+                        profile: profile
+                    )
+                )
+            }
+        }
+
+        return inboundLikes
     }
 
     private func hydrateConversationPreviewIfNeeded(_ conversation: Conversation) async throws -> Conversation {

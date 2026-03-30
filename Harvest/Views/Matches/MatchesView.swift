@@ -9,6 +9,8 @@ struct MatchesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                    likesYouSection
+
                     Text("Matches")
                         .font(HarvestTheme.Typography.h4)
                         .padding(.horizontal)
@@ -72,6 +74,35 @@ struct MatchesView: View {
         }
     }
 
+    @ViewBuilder
+    private var likesYouSection: some View {
+        if !viewModel.inboundLikes.isEmpty {
+            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                Text("Likes You (\(viewModel.inboundLikes.count))")
+                    .font(HarvestTheme.Typography.h4)
+                    .padding(.horizontal)
+
+                if viewModel.canSeeLikes {
+                    LazyVStack(spacing: HarvestTheme.Spacing.sm) {
+                        ForEach(viewModel.inboundLikes) { inboundLike in
+                            inboundLikeRow(inboundLike)
+                        }
+                    }
+                    .padding(.horizontal)
+                } else {
+                    PremiumGateView(
+                        featureName: "See who likes you",
+                        requiredTier: "Gold",
+                        authViewModel: authViewModel
+                    )
+                    .frame(height: 220)
+                    .padding(.horizontal)
+                }
+            }
+            .padding(.bottom, HarvestTheme.Spacing.md)
+        }
+    }
+
     private func openMatch(_ matchWithProfile: MatchWithProfile) {
         guard let currentUserId = authViewModel.currentUserId else { return }
 
@@ -115,6 +146,38 @@ struct MatchesView: View {
                 }
 
                 Spacer()
+            }
+        }
+    }
+
+    private func inboundLikeRow(_ inboundLike: InboundLikeWithProfile) -> some View {
+        GlassCard(padding: HarvestTheme.Spacing.sm) {
+            HStack(spacing: HarvestTheme.Spacing.sm) {
+                AsyncImage(url: URL(string: inboundLike.profile.primaryPhoto ?? "")) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    Circle().fill(HarvestTheme.Colors.divider)
+                }
+                .frame(width: 50, height: 50)
+                .clipShape(Circle())
+
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(inboundLike.profile.displayName)
+                        .font(HarvestTheme.Typography.bodyRegular)
+                        .fontWeight(.semibold)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+
+                    Text(inboundLike.swipe.action == .superLike ? "Super liked you" : "Liked you")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .lineLimit(1)
+                }
+
+                Spacer()
+
+                if inboundLike.swipe.action == .superLike {
+                    GlassBadge(text: "Super Like", color: HarvestTheme.Colors.accent)
+                }
             }
         }
     }
