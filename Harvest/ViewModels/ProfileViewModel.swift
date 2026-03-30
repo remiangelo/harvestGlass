@@ -85,9 +85,6 @@ final class ProfileViewModel {
         if editLocation != profile?.location ?? "" {
             updates["location"] = .string(editLocation)
         }
-        if photosChanged {
-            updates["photos"] = .array(editPhotoUrls.map { .string($0) })
-        }
         if editHobbies != profile?.hobbies ?? [] {
             updates["hobbies"] = .array(editHobbies.map { .string($0) })
         }
@@ -125,10 +122,24 @@ final class ProfileViewModel {
         }
 
         do {
-            if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
-                profile = updated
-            } else {
-                applyEditsLocally()
+            if photosChanged {
+                let photoUpdates: [String: AnyJSON] = [
+                    "photos": .array(editPhotoUrls.map { .string($0) })
+                ]
+
+                if let updated = try await profileService.updateProfile(userId: userId, updates: photoUpdates) {
+                    profile = updated
+                } else {
+                    profile?.photos = editPhotoUrls
+                }
+            }
+
+            if !updates.isEmpty {
+                if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
+                    profile = updated
+                } else {
+                    applyEditsLocally()
+                }
             }
 
             originalPhotoUrls = profile?.photos ?? editPhotoUrls
