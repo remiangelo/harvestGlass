@@ -5,6 +5,7 @@ struct ChatDetailView: View {
     let conversationId: String
     let partnerUserId: String
     var matchId: String?
+    var onConversationRemoved: (() async -> Void)? = nil
 
     @State private var viewModel = ChatViewModel()
     @Environment(\.dismiss) private var dismiss
@@ -181,11 +182,14 @@ struct ChatDetailView: View {
             Button("Cancel", role: .cancel) { }
             Button("Block", role: .destructive) {
                 Task {
-                    await viewModel.blockUser(
+                    let didBlock = await viewModel.blockUser(
                         userId: authViewModel.currentUserId ?? "",
                         blockedUserId: partnerUserId
                     )
-                    dismiss()
+                    if didBlock {
+                        await onConversationRemoved?()
+                        dismiss()
+                    }
                 }
             }
         } message: {
@@ -196,8 +200,11 @@ struct ChatDetailView: View {
             Button("Unmatch", role: .destructive) {
                 if let matchId {
                     Task {
-                        await viewModel.unmatchUser(matchId: matchId)
-                        dismiss()
+                        let didUnmatch = await viewModel.unmatchUser(matchId: matchId)
+                        if didUnmatch {
+                            await onConversationRemoved?()
+                            dismiss()
+                        }
                     }
                 }
             }

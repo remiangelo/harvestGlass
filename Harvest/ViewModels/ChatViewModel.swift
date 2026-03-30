@@ -254,19 +254,23 @@ final class ChatViewModel {
         }
     }
 
-    func blockUser(userId: String, blockedUserId: String) async {
+    func blockUser(userId: String, blockedUserId: String) async -> Bool {
         do {
             try await matchService.blockUser(userId: userId, blockedUserId: blockedUserId)
+            return true
         } catch {
             self.error = error.localizedDescription
+            return false
         }
     }
 
-    func unmatchUser(matchId: String) async {
+    func unmatchUser(matchId: String) async -> Bool {
         do {
             try await matchService.unmatchUser(matchId: matchId)
+            return true
         } catch {
             self.error = error.localizedDescription
+            return false
         }
     }
 

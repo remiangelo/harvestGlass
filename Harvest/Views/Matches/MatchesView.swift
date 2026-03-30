@@ -43,7 +43,12 @@ struct MatchesView: View {
                     authViewModel: authViewModel,
                     conversationId: route.conversationId,
                     partnerUserId: route.partnerUserId,
-                    matchId: route.matchId
+                    matchId: route.matchId,
+                    onConversationRemoved: {
+                        if let userId = authViewModel.currentUserId {
+                            await viewModel.loadMatches(userId: userId)
+                        }
+                    }
                 )
             }
             .fullScreenCover(item: $selectedInboundLike) { inboundLike in

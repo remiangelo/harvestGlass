@@ -62,7 +62,13 @@ struct ChatListView: View {
                             ChatDetailView(
                                 authViewModel: authViewModel,
                                 conversationId: convoWithProfile.conversation.id,
-                                partnerUserId: convoWithProfile.profile.id
+                                partnerUserId: convoWithProfile.profile.id,
+                                matchId: convoWithProfile.conversation.matchId,
+                                onConversationRemoved: {
+                                    if let userId = authViewModel.currentUserId {
+                                        await viewModel.loadConversations(userId: userId)
+                                    }
+                                }
                             )
                         } label: {
                             chatRow(convoWithProfile)
