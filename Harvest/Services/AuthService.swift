@@ -28,110 +28,61 @@ struct AuthService {
     }
 
     func deleteAccount(userId: String) async throws {
-        // Note: this only removes application data plus the public profile.
-        // Deleting the Supabase Auth user itself requires a privileged backend path
-        // such as an Edge Function or server using the service role key.
+        struct DeleteAccountResponse: Decodable {
+            let success: Bool
+            let message: String?
+        }
 
-        // Delete user data from tables in order (respecting foreign keys)
-        let tablesToClean = [
-            "gardener_chats", "daily_quizzes", "safety_analyses",
-            "red_flag_reports", "user_values_brought", "user_values_sought",
-            "user_blocks", "reports", "support_tickets", "user_preferences",
-            "user_subscriptions"
-        ]
+        let session = try await client.auth.session
+        let endpoint = Config.supabaseURL
+            .appendingPathComponent("functions")
+            .appendingPathComponent("v1")
+            .appendingPathComponent("delete-account")
 
-        // Track failed deletions for error reporting
-        var deletionErrors: [String: Error] = [:]
+        var request = URLRequest(url: endpoint)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
+        request.setValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.httpBody = try JSONSerialization.data(withJSONObject: ["user_id": userId])
 
-        // Delete from all related tables
-        for table in tablesToClean {
-            do {
-                try await client
-                    .from(table)
-                    .delete()
-                    .eq("user_id", value: userId)
-                    .execute()
-            } catch {
-                print("Warning: Failed to delete from \(table): \(error)")
-                deletionErrors[table] = error
+        let (data, response) = try await URLSession.shared.data(for: request)
+
+        guard let httpResponse = response as? HTTPURLResponse else {
+            throw NSError(
+                domain: "AuthService",
+                code: 1002,
+                userInfo: [NSLocalizedDescriptionKey: "Account deletion failed because the backend response was invalid."]
+            )
+        }
+
+        guard 200..<300 ~= httpResponse.statusCode else {
+            let backendMessage = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+            let friendlyMessage: String
+
+            if httpResponse.statusCode == 404 {
+                friendlyMessage = "Account deletion is not available yet because the delete-account Edge Function has not been deployed."
+            } else if let backendMessage, !backendMessage.isEmpty {
+                friendlyMessage = backendMessage
+            } else {
+                friendlyMessage = "Account deletion failed. Please try again or contact support."
             }
+
+            throw NSError(
+                domain: "AuthService",
+                code: httpResponse.statusCode,
+                userInfo: [NSLocalizedDescriptionKey: friendlyMessage]
+            )
         }
 
-        // Delete messages sent by user
-        do {
-            try await client
-                .from("messages")
-                .delete()
-                .eq("sender_id", value: userId)
-                .execute()
-        } catch {
-            print("Warning: Failed to delete messages: \(error)")
-            deletionErrors["messages"] = error
+        if let decoded = try? JSONDecoder().decode(DeleteAccountResponse.self, from: data),
+           decoded.success == false {
+            throw NSError(
+                domain: "AuthService",
+                code: 1003,
+                userInfo: [NSLocalizedDescriptionKey: decoded.message ?? "Account deletion failed."]
+            )
         }
-
-        // Delete swipes
-        do {
-            try await client
-                .from("swipes")
-                .delete()
-                .eq("swiper_id", value: userId)
-                .execute()
-        } catch {
-            print("Warning: Failed to delete swipes: \(error)")
-            deletionErrors["swipes"] = error
-        }
-
-        // Delete matches involving user
-        do {
-            try await client
-                .from("matches")
-                .delete()
-                .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
-                .execute()
-        } catch {
-            print("Warning: Failed to delete matches: \(error)")
-            deletionErrors["matches"] = error
-        }
-
-        // Delete conversations involving user
-        do {
-            try await client
-                .from("conversations")
-                .delete()
-                .or("user1_id.eq.\(userId),user2_id.eq.\(userId)")
-                .execute()
-        } catch {
-            print("Warning: Failed to delete conversations: \(error)")
-            deletionErrors["conversations"] = error
-        }
-
-        // Delete user profile (critical - throw if this fails)
-        do {
-            try await client
-                .from("users")
-                .delete()
-                .eq("id", value: userId)
-                .execute()
-        } catch {
-            print("Error: Failed to delete user profile: \(error)")
-            throw error // Critical failure - don't sign out if profile deletion fails
-        }
-
-        // Log any deletion errors but proceed with sign out
-        if !deletionErrors.isEmpty {
-            print("Account deletion completed with \(deletionErrors.count) non-critical errors")
-        }
-
-        // Sign out the local session after application data deletion.
-        try await client.auth.signOut()
-
-        throw NSError(
-            domain: "AuthService",
-            code: 1001,
-            userInfo: [
-                NSLocalizedDescriptionKey: "Your app data was deleted and you were signed out, but the login account itself still exists. Supabase Auth user deletion requires a secure backend or Edge Function."
-            ]
-        )
     }
 
     func getCurrentSession() async throws -> Auth.Session? {
