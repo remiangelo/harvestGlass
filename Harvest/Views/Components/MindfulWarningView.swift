@@ -32,23 +32,24 @@ struct MindfulWarningView: View {
 
                     Text(analysis.reason)
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                         .multilineTextAlignment(.center)
 
                     // Growth lesson
                     if let lesson = analysis.growthLesson {
-                        GlassCard {
+                        GlassCard(style: .light) {
                             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                 HStack {
                                     Image(systemName: "leaf.fill")
                                         .foregroundStyle(HarvestTheme.Colors.accent)
                                     Text(lesson.title)
                                         .font(HarvestTheme.Typography.h4)
+                                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                                 }
 
                                 Text(lesson.reflection)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                             }
                         }
                     }
@@ -67,8 +68,11 @@ struct MindfulWarningView: View {
                 }
                 .padding()
             }
+            .background(Color.white.ignoresSafeArea())
             .navigationTitle("Message Review")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
         }
     }
 }

@@ -9,6 +9,7 @@ final class SubscriptionViewModel {
     var currentTier: SubscriptionTier?
     var isLoading = false
     var error: String?
+    var successMessage: String?
     var products: [Product] = []
     var isPurchasing = false
 
@@ -66,6 +67,7 @@ final class SubscriptionViewModel {
     func purchase(product: Product, userId: String) async {
         isPurchasing = true
         error = nil
+        successMessage = nil
         defer { isPurchasing = false }
 
         do {
@@ -73,6 +75,7 @@ final class SubscriptionViewModel {
 
             // Reload subscription data after successful purchase
             await loadSubscriptionData(userId: userId)
+            successMessage = "Your subscription is now active."
 
         } catch SubscriptionError.userCancelled {
             // Don't show error for user cancellation
@@ -90,6 +93,7 @@ final class SubscriptionViewModel {
     func restorePurchases(userId: String) async {
         isLoading = true
         error = nil
+        successMessage = nil
         defer { isLoading = false }
 
         do {
@@ -97,6 +101,7 @@ final class SubscriptionViewModel {
 
             // Reload subscription data after restore
             await loadSubscriptionData(userId: userId)
+            successMessage = "Your purchases have been restored."
 
         } catch SubscriptionError.noPurchasesToRestore {
             error = "No previous purchases found to restore."

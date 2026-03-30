@@ -41,9 +41,10 @@ struct LaunchScreenView: View {
             Color.black.opacity(0.06)
                 .ignoresSafeArea()
 
-            Text("Harvest")
-                .font(.custom("Orange Squash", size: 64))
-                .foregroundStyle(HarvestTheme.Colors.deepPlum.opacity(0.95))
+            Image("Harvest_Wordmark_Black")
+                .resizable()
+                .scaledToFit()
+                .frame(width: 240)
                 .shadow(color: Color.white.opacity(0.08), radius: 8, y: 1)
         }
         .onAppear {

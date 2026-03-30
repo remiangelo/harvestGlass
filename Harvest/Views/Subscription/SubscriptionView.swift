@@ -5,6 +5,7 @@ struct SubscriptionView: View {
     @State private var viewModel = SubscriptionViewModel()
     @State private var selectedTier: SubscriptionTier?
     @State private var billingPeriod: BillingPeriod = .monthly
+    @Environment(\.openURL) private var openURL
 
     var body: some View {
         ScrollView {
@@ -18,6 +19,25 @@ struct SubscriptionView: View {
                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
 
+                if viewModel.currentTier?.name != .seed {
+                    GlassCard {
+                        VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                            Text("Manage Your Subscription")
+                                .font(HarvestTheme.Typography.h4)
+
+                            Text("Restore Purchases is for syncing an existing subscription on this device. To cancel or change your plan, use Apple's subscription management.")
+                                .font(HarvestTheme.Typography.bodySmall)
+                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+
+                            GlassButton(title: "Manage Subscription", icon: "arrow.up.right.square", style: .secondary) {
+                                if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
+                                    openURL(url)
+                                }
+                            }
+                        }
+                    }
+                }
+
                 ForEach(viewModel.tiers) { tier in
                     tierCard(tier)
                 }
@@ -30,7 +50,7 @@ struct SubscriptionView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
-                Button("Restore") {
+                Button("Restore Purchases") {
                     Task {
                         if let userId = authViewModel.currentUserId {
                             await viewModel.restorePurchases(userId: userId)
@@ -60,6 +80,13 @@ struct SubscriptionView: View {
         } message: {
             if let error = viewModel.error {
                 Text(error)
+            }
+        }
+        .alert("Success", isPresented: .constant(viewModel.successMessage != nil)) {
+            Button("OK") { viewModel.successMessage = nil }
+        } message: {
+            if let successMessage = viewModel.successMessage {
+                Text(successMessage)
             }
         }
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
