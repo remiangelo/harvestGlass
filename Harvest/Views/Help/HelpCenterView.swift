@@ -38,7 +38,7 @@ struct HelpCenterView: View {
                         .padding(.horizontal)
 
                     ForEach(viewModel.filteredFAQs) { faq in
-                        GlassCard(padding: HarvestTheme.Spacing.sm) {
+                        GlassCard(padding: HarvestTheme.Spacing.sm, style: .light) {
                             DisclosureGroup {
                                 Text(faq.answer)
                                     .font(HarvestTheme.Typography.bodySmall)
@@ -72,7 +72,7 @@ struct HelpCenterView: View {
                         .font(HarvestTheme.Typography.h3)
                         .padding(.horizontal)
 
-                    GlassCard {
+                    GlassCard(style: .light) {
                         VStack(spacing: HarvestTheme.Spacing.md) {
                             // Category
                             HStack {
@@ -165,13 +165,13 @@ struct HelpCenterView: View {
     }
 
     private func resourceRow(_ title: String, icon: String) -> some View {
-        GlassCard(padding: HarvestTheme.Spacing.md) {
+        GlassCard(padding: HarvestTheme.Spacing.md, style: .light) {
             HStack {
                 Image(systemName: icon)
                     .foregroundStyle(HarvestTheme.Colors.primary)
                 Text(title)
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)

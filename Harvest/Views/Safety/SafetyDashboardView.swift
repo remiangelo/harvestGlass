@@ -150,7 +150,7 @@ private struct SafetyDetailSheet: View {
                     }
 
                     // Stats
-                    GlassCard {
+                    GlassCard(style: .light) {
                         VStack(spacing: HarvestTheme.Spacing.sm) {
                             statRow("Total Messages", value: "\(analysis.totalMessages)")
                             statRow("Red Flags", value: "\(analysis.redFlagCount)")
@@ -184,7 +184,7 @@ private struct SafetyDetailSheet: View {
                     }
 
                     // Recommendations
-                    GlassCard {
+                    GlassCard(style: .light) {
                         VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                             Text("Recommendations")
                                 .font(HarvestTheme.Typography.h4)
@@ -231,7 +231,7 @@ private struct SafetyDetailSheet: View {
     }
 
     private func flagRow(title: String, detail: String) -> some View {
-        GlassCard {
+        GlassCard(style: .light) {
             HStack {
                 Image(systemName: "exclamationmark.triangle.fill")
                     .foregroundStyle(HarvestTheme.Colors.warning)
