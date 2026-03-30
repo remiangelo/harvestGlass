@@ -16,16 +16,10 @@ struct LoginView: View {
 
     var body: some View {
         ZStack {
-            // Background gradient
-            LinearGradient(
-                colors: [
-                    HarvestTheme.Colors.primary.opacity(0.1),
-                    HarvestTheme.Colors.background
-                ],
-                startPoint: .top,
-                endPoint: .bottom
-            )
-            .ignoresSafeArea()
+            Image("Splash Page Gradient")
+                .resizable()
+                .scaledToFill()
+                .ignoresSafeArea()
 
             ScrollView {
                 VStack(spacing: HarvestTheme.Spacing.xl) {
@@ -44,18 +38,18 @@ struct LoginView: View {
 
                         Text("Harvest")
                             .font(HarvestTheme.Typography.h1)
-                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
 
                         Text("Grow meaningful connections")
                             .font(HarvestTheme.Typography.bodyRegular)
-                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                     }
 
                     // Form
                     VStack(spacing: HarvestTheme.Spacing.md) {
                         Text(isSignUp ? "Create Account" : "Welcome Back")
                             .font(HarvestTheme.Typography.h3)
-                            .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                            .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
 
                         VStack(spacing: HarvestTheme.Spacing.sm) {
                             TextField("Email", text: $email)
@@ -100,7 +94,7 @@ struct LoginView: View {
                         if let error = authViewModel.error {
                             Text(error)
                                 .font(HarvestTheme.Typography.bodySmall)
-                                .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                                .foregroundStyle(HarvestTheme.Colors.error)
                                 .multilineTextAlignment(.center)
                         }
 
@@ -146,10 +140,10 @@ struct LoginView: View {
                     } label: {
                         HStack(spacing: 4) {
                             Text(isSignUp ? "Already have an account?" : "Don't have an account?")
-                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                             Text(isSignUp ? "Sign In" : "Sign Up")
                                 .fontWeight(.semibold)
-                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
                         }
                         .font(HarvestTheme.Typography.bodySmall)
                     }
