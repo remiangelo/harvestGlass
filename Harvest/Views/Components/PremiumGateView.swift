@@ -7,10 +7,10 @@ struct PremiumGateView: View {
 
     var body: some View {
         ZStack {
-            Rectangle()
+            RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
                 .fill(HarvestTheme.Colors.blackSurface)
                 .overlay {
-                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
                         .stroke(HarvestTheme.Colors.border, lineWidth: 1)
                 }
 

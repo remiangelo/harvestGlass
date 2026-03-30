@@ -58,15 +58,21 @@ struct ChatDetailView: View {
 
             // Input bar
             HStack(spacing: HarvestTheme.Spacing.sm) {
-                TextField("Type a message...", text: $viewModel.messageText, axis: .vertical)
+                TextField(
+                    "",
+                    text: $viewModel.messageText,
+                    prompt: Text("Type a message...").foregroundStyle(HarvestTheme.Colors.textTertiary),
+                    axis: .vertical
+                )
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                    .tint(HarvestTheme.Colors.textOnBlack)
                     .lineLimit(1...4)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .background {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                            .fill(HarvestTheme.Colors.glassFill)
+                            .fill(HarvestTheme.Colors.blackSurface)
                             .overlay {
                                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
                                     .stroke(HarvestTheme.Colors.border, lineWidth: 1)
@@ -83,7 +89,7 @@ struct ChatDetailView: View {
                 } label: {
                     Image(systemName: "paperplane.fill")
                         .font(.title3)
-                        .foregroundStyle(HarvestTheme.Colors.primary)
+                        .foregroundStyle(HarvestTheme.Colors.accent)
                         .frame(width: 40, height: 40)
                 }
                 .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
