@@ -184,7 +184,7 @@ struct ProfileService {
 
         print("ProfileService.appendPhoto user=\(userId)")
         print("  legacyPhotoUrls=\(legacyPhotoUrls)")
-        print("  existingPhotoRowUrls=\(existingPhotoRows.map(\\.url))")
+        print("  existingPhotoRowUrls=\(existingPhotoRows.map { $0.url })")
         print("  newPhotoUrl=\(photoUrl)")
         print("  reconciledPhotoUrls=\(reconciledPhotoUrls)")
 
