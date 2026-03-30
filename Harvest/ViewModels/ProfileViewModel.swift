@@ -85,6 +85,9 @@ final class ProfileViewModel {
         if editLocation != profile?.location ?? "" {
             updates["location"] = .string(editLocation)
         }
+        if photosChanged {
+            updates["photos"] = .array(editPhotoUrls.map { .string($0) })
+        }
         if editHobbies != profile?.hobbies ?? [] {
             updates["hobbies"] = .array(editHobbies.map { .string($0) })
         }
@@ -116,26 +119,20 @@ final class ProfileViewModel {
             updates["children_status"] = anyJSONStringOrNull(editChildrenStatus)
         }
 
-        guard photosChanged || !updates.isEmpty else {
+        guard !updates.isEmpty else {
             isEditing = false
             return true
         }
 
         do {
-            if !updates.isEmpty {
-                if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
-                    profile = updated
-                } else {
-                    applyEditsLocally()
-                }
+            if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
+                profile = updated
+            } else {
+                applyEditsLocally()
             }
 
             if photosChanged {
-                if let updated = try await profileService.updatePhotos(userId: userId, photoUrls: editPhotoUrls) {
-                    profile = updated
-                } else {
-                    profile?.photos = editPhotoUrls
-                }
+                try? await profileService.syncPhotoRows(userId: userId, photoUrls: editPhotoUrls)
             }
 
             originalPhotoUrls = profile?.photos ?? editPhotoUrls

@@ -54,7 +54,7 @@ struct ProfileService {
             .execute()
             .value) ?? []
 
-        if !photoRows.isEmpty {
+        if (profile.photos?.isEmpty ?? true) && !photoRows.isEmpty {
             profile.photos = photoRows.map(\.url)
         }
 
@@ -112,7 +112,25 @@ struct ProfileService {
     }
 
     func updatePhotos(userId: String, photoUrls: [String]) async throws -> UserProfile? {
-        print("ProfileService.updatePhotos user=\(userId) count=\(photoUrls.count) urls=\(photoUrls)")
+        let payload: [String: AnyJSON] = [
+            "photos": .array(photoUrls.map { .string($0) }),
+            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
+        ]
+
+        _ = try await client
+            .from("users")
+            .update(payload)
+            .eq("id", value: userId)
+            .select()
+            .execute()
+            .value as [UserProfile]
+
+        try? await syncPhotoRows(userId: userId, photoUrls: photoUrls)
+
+        return try await getProfile(userId: userId)
+    }
+
+    func syncPhotoRows(userId: String, photoUrls: [String]) async throws {
         try await client
             .from("photos")
             .delete()
@@ -134,22 +152,6 @@ struct ProfileService {
                     .execute()
             }
         }
-
-        // Keep legacy array column in sync for screens that still read it directly.
-        let payload: [String: AnyJSON] = [
-            "photos": .array(photoUrls.map { .string($0) }),
-            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
-        ]
-
-        _ = try await client
-            .from("users")
-            .update(payload)
-            .eq("id", value: userId)
-            .select()
-            .execute()
-            .value as [UserProfile]
-
-        return try await getProfile(userId: userId)
     }
 
     func appendPhoto(userId: String, photoUrl: String) async throws -> UserProfile? {
