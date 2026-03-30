@@ -131,10 +131,6 @@ final class ProfileViewModel {
                 applyEditsLocally()
             }
 
-            if photosChanged {
-                try? await profileService.syncPhotoRows(userId: userId, photoUrls: editPhotoUrls)
-            }
-
             originalPhotoUrls = profile?.photos ?? editPhotoUrls
             isEditing = false
             return true

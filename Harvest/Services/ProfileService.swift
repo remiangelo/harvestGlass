@@ -4,38 +4,6 @@ import Supabase
 struct ProfileService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
-    private struct PhotoRecord: Codable {
-        let id: String?
-        let userId: String
-        let url: String
-        let orderIndex: Int
-
-        enum CodingKeys: String, CodingKey {
-            case id, url
-            case userId = "user_id"
-            case orderIndex = "order_index"
-        }
-    }
-
-    private struct PhotoOrderRow: Codable {
-        let orderIndex: Int
-
-        enum CodingKeys: String, CodingKey {
-            case orderIndex = "order_index"
-        }
-    }
-
-    private struct UserPhotoArrayRow: Decodable {
-        let photos: [String]?
-    }
-
-    private struct PhotoInsertPayload: Encodable {
-        let user_id: String
-        let url: String
-        let order_index: Int
-        let is_primary: Bool
-    }
-
     func getProfile(userId: String) async throws -> UserProfile? {
         let response: [UserProfile] = try await client
             .from("users")
@@ -45,18 +13,6 @@ struct ProfileService {
             .value
 
         guard var profile = response.first else { return nil }
-
-        let photoRows: [PhotoRecord] = (try? await client
-            .from("photos")
-            .select("id, user_id, url, order_index")
-            .eq("user_id", value: userId)
-            .order("order_index", ascending: true)
-            .execute()
-            .value) ?? []
-
-        if (profile.photos?.isEmpty ?? true) && !photoRows.isEmpty {
-            profile.photos = photoRows.map(\.url)
-        }
 
         return profile
     }
@@ -111,88 +67,6 @@ struct ProfileService {
         return response.first
     }
 
-    func updatePhotos(userId: String, photoUrls: [String]) async throws -> UserProfile? {
-        let payload: [String: AnyJSON] = [
-            "photos": .array(photoUrls.map { .string($0) }),
-            "updated_at": .string(ISO8601DateFormatter().string(from: Date()))
-        ]
-
-        _ = try await client
-            .from("users")
-            .update(payload)
-            .eq("id", value: userId)
-            .select()
-            .execute()
-            .value as [UserProfile]
-
-        try? await syncPhotoRows(userId: userId, photoUrls: photoUrls)
-
-        return try await getProfile(userId: userId)
-    }
-
-    func syncPhotoRows(userId: String, photoUrls: [String]) async throws {
-        try await client
-            .from("photos")
-            .delete()
-            .eq("user_id", value: userId)
-            .execute()
-
-        if !photoUrls.isEmpty {
-            for (index, url) in photoUrls.enumerated() {
-                let photoRow = PhotoInsertPayload(
-                    user_id: userId,
-                    url: url,
-                    order_index: index,
-                    is_primary: index == 0
-                )
-
-                try await client
-                    .from("photos")
-                    .insert(photoRow)
-                    .execute()
-            }
-        }
-    }
-
-    func appendPhoto(userId: String, photoUrl: String) async throws -> UserProfile? {
-        let userRows: [UserPhotoArrayRow] = try await client
-            .from("users")
-            .select("photos")
-            .eq("id", value: userId)
-            .limit(1)
-            .execute()
-            .value
-
-        let legacyPhotoUrls = userRows.first?.photos ?? []
-
-        let existingPhotoRows: [PhotoRecord] = try await client
-            .from("photos")
-            .select("id, user_id, url, order_index")
-            .eq("user_id", value: userId)
-            .order("order_index", ascending: true)
-            .execute()
-            .value
-
-        var reconciledPhotoUrls: [String] = []
-        for url in legacyPhotoUrls where !reconciledPhotoUrls.contains(url) {
-            reconciledPhotoUrls.append(url)
-        }
-        for url in existingPhotoRows.map(\.url) where !reconciledPhotoUrls.contains(url) {
-            reconciledPhotoUrls.append(url)
-        }
-        if !reconciledPhotoUrls.contains(photoUrl) {
-            reconciledPhotoUrls.append(photoUrl)
-        }
-
-        print("ProfileService.appendPhoto user=\(userId)")
-        print("  legacyPhotoUrls=\(legacyPhotoUrls)")
-        print("  existingPhotoRowUrls=\(existingPhotoRows.map { $0.url })")
-        print("  newPhotoUrl=\(photoUrl)")
-        print("  reconciledPhotoUrls=\(reconciledPhotoUrls)")
-
-        return try await updatePhotos(userId: userId, photoUrls: reconciledPhotoUrls)
-    }
-
     func checkOnboardingStatus(userId: String) async throws -> Bool {
         struct OnboardingCheck: Decodable {
             let bio: String?
@@ -234,12 +108,5 @@ struct ProfileService {
         try await client.storage
             .from(Config.storageBucket)
             .remove(paths: [pathComponent])
-
-        try? await client
-            .from("photos")
-            .delete()
-            .eq("user_id", value: userId)
-            .eq("url", value: photoUrl)
-            .execute()
     }
 }
