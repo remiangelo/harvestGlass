@@ -4,6 +4,7 @@ struct MatchesView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = MatchesViewModel()
     @State private var activeChatRoute: ChatRoute?
+    @State private var selectedInboundLike: InboundLikeWithProfile?
 
     var body: some View {
         NavigationStack {
@@ -45,6 +46,18 @@ struct MatchesView: View {
                     matchId: route.matchId
                 )
             }
+            .fullScreenCover(item: $selectedInboundLike) { inboundLike in
+                ProfileDetailView(profile: inboundLike.profile) { action in
+                    guard let currentUserId = authViewModel.currentUserId else { return }
+                    Task {
+                        await viewModel.respondToInboundLike(
+                            currentUserId: currentUserId,
+                            inboundLike: inboundLike,
+                            action: action
+                        )
+                    }
+                }
+            }
             .refreshable {
                 if let userId = authViewModel.currentUserId {
                     await viewModel.loadMatches(userId: userId)
@@ -85,7 +98,12 @@ struct MatchesView: View {
                 if viewModel.canSeeLikes {
                     LazyVStack(spacing: HarvestTheme.Spacing.sm) {
                         ForEach(viewModel.inboundLikes) { inboundLike in
-                            inboundLikeRow(inboundLike)
+                            Button {
+                                selectedInboundLike = inboundLike
+                            } label: {
+                                inboundLikeRow(inboundLike)
+                            }
+                            .buttonStyle(.plain)
                         }
                     }
                     .padding(.horizontal)

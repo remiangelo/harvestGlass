@@ -19,6 +19,7 @@ final class MatchesViewModel {
 
     private let matchService = MatchService()
     private let subscriptionService = SubscriptionService()
+    private let swipeService = SwipeService()
 
     func loadMatches(userId: String) async {
         isLoading = true
@@ -84,6 +85,23 @@ final class MatchesViewModel {
         } catch {
             self.error = error.localizedDescription
             return nil
+        }
+    }
+
+    func respondToInboundLike(
+        currentUserId: String,
+        inboundLike: InboundLikeWithProfile,
+        action: SwipeAction
+    ) async {
+        do {
+            _ = try await swipeService.saveSwipe(
+                swiperId: currentUserId,
+                swipedId: inboundLike.profile.id,
+                action: action
+            )
+            await loadMatches(userId: currentUserId)
+        } catch {
+            self.error = error.localizedDescription
         }
     }
 
