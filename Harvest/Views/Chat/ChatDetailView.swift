@@ -191,10 +191,23 @@ struct ChatDetailView: View {
                 ReadyToMoveGateView(
                     analysis: analysis,
                     isReady: viewModel.isReadyToMove,
-                    reason: viewModel.readyToMoveReason
+                    reason: viewModel.readyToMoveReason,
+                    canShareEmail: !(authViewModel.profile?.email ?? "").isEmpty,
+                    onShareEmail: {
+                        Task {
+                            if let email = authViewModel.profile?.email, !email.isEmpty {
+                                await viewModel.shareEmailFromReadyToMove(currentUserEmail: email)
+                            }
+                        }
+                    }
                 )
                 .presentationDetents([.medium, .large])
             }
+        }
+        .alert("Ready to Move", isPresented: $viewModel.showReadyToMoveActionAlert) {
+            Button("OK", role: .cancel) { }
+        } message: {
+            Text(viewModel.readyToMoveActionMessage ?? "")
         }
         .alert("Block User", isPresented: $viewModel.showBlockAlert) {
             Button("Cancel", role: .cancel) { }

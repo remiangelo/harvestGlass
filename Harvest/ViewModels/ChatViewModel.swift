@@ -1,6 +1,7 @@
 import Foundation
 import Observation
 import Realtime
+import UIKit
 
 @Observable
 final class ChatViewModel {
@@ -39,6 +40,8 @@ final class ChatViewModel {
     var showReadyToMoveGate = false
     var isReadyToMove = false
     var readyToMoveReason: String?
+    var readyToMoveActionMessage: String?
+    var showReadyToMoveActionAlert = false
 
     // Report/Block/Unmatch
     var showReportSheet = false
@@ -331,6 +334,27 @@ final class ChatViewModel {
         showReadyToMoveGate = true
     }
 
+    func shareEmailFromReadyToMove(currentUserEmail: String) async {
+        guard isReadyToMove, let analysis = safetyAnalysis else { return }
+
+        do {
+            try await safetyService.recordReadyToMoveDecision(
+                analysisId: analysis.id,
+                userId: activeUserId,
+                approved: true,
+                contactShared: true,
+                contactMethod: "email"
+            )
+            UIPasteboard.general.string = currentUserEmail
+            readyToMoveActionMessage = "Your email has been copied. You can now paste it into the chat."
+            showReadyToMoveActionAlert = true
+            showReadyToMoveGate = false
+        } catch {
+            readyToMoveActionMessage = "We couldn't record your sharing action. Please try again."
+            showReadyToMoveActionAlert = true
+        }
+    }
+
     private func refreshSafetyWarning() {
         if let score = safetyAnalysis?.safetyScore, score < 50 {
             safetyWarning = "Safety concern detected. Be cautious in this conversation."
@@ -340,13 +364,22 @@ final class ChatViewModel {
     }
 
     private func refreshReadyToMoveStatus() async {
-        guard let analysis = safetyAnalysis else {
+        guard var analysis = safetyAnalysis else {
             isReadyToMove = false
             readyToMoveReason = "No safety analysis available yet."
             return
         }
 
         do {
+            if !activeMatchId.isEmpty, !activeUserId.isEmpty, !activePartnerUserId.isEmpty {
+                analysis = try await safetyService.getOrCreateAnalysis(
+                    matchId: activeMatchId,
+                    userId: activeUserId,
+                    otherUserId: activePartnerUserId
+                )
+                safetyAnalysis = analysis
+            }
+
             let result = try await safetyService.isReadyToMove(analysisId: analysis.id)
             isReadyToMove = result.ready
             readyToMoveReason = result.reason

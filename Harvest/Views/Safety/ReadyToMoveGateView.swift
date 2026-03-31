@@ -4,6 +4,8 @@ struct ReadyToMoveGateView: View {
     let analysis: SafetyAnalysis
     let isReady: Bool
     let reason: String?
+    var canShareEmail = false
+    var onShareEmail: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: HarvestTheme.Spacing.lg) {
@@ -13,16 +15,17 @@ struct ReadyToMoveGateView: View {
 
             Text(isReady ? "You're Clear to Share" : "Not Yet Ready")
                 .font(HarvestTheme.Typography.h2)
+                .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
 
             if let reason {
                 Text(reason)
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                     .multilineTextAlignment(.center)
             }
 
             // Progress checklist
-            GlassCard {
+            GlassCard(style: .light) {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     checklistItem(
                         "24 hours elapsed",
@@ -41,8 +44,40 @@ struct ReadyToMoveGateView: View {
                 }
             }
             .padding(.horizontal)
+
+            if isReady {
+                VStack(spacing: HarvestTheme.Spacing.sm) {
+                    Text("You can now choose to share contact details outside the app.")
+                        .font(HarvestTheme.Typography.bodyRegular)
+                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .multilineTextAlignment(.center)
+
+                    if canShareEmail {
+                        Button {
+                            onShareEmail?()
+                        } label: {
+                            Text("Copy My Email")
+                                .font(HarvestTheme.Typography.buttonText)
+                                .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                                .frame(maxWidth: .infinity)
+                                .padding(.vertical, HarvestTheme.Spacing.sm)
+                                .background {
+                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                        .fill(HarvestTheme.Colors.blackSurface)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                                .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                                        }
+                                }
+                        }
+                        .padding(.horizontal)
+                    }
+                }
+            }
         }
         .padding()
+        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+        .background(Color.white.ignoresSafeArea())
     }
 
     private func checklistItem(_ text: String, isComplete: Bool) -> some View {
@@ -52,7 +87,7 @@ struct ReadyToMoveGateView: View {
 
             Text(text)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(isComplete ? HarvestTheme.Colors.textPrimary : HarvestTheme.Colors.textSecondary)
+                .foregroundStyle(isComplete ? HarvestTheme.Colors.textOnWhitePrimary : HarvestTheme.Colors.textOnWhiteSecondary)
         }
     }
 }

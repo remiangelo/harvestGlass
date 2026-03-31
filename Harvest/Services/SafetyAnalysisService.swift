@@ -66,6 +66,16 @@ struct SafetyAnalysisService {
         let user_reported: Bool
     }
 
+    private struct ReadyToMoveCheckPayload: Encodable {
+        let user_id: String
+        let match_id: String
+        let conversation_id: String
+        let safety_score: Int
+        let approved: Bool
+        let contact_shared: Bool
+        let contact_method: String?
+    }
+
     func getOrCreateAnalysis(matchId: String, userId: String, otherUserId: String) async throws -> SafetyAnalysis {
         guard let conversation = try await fetchConversation(matchId: matchId) else {
             throw NSError(domain: "SafetyAnalysisService", code: 404, userInfo: [
@@ -237,6 +247,31 @@ struct SafetyAnalysisService {
 
         try await client
             .from("red_flag_reports")
+            .insert(payload)
+            .execute()
+    }
+
+    func recordReadyToMoveDecision(
+        analysisId: String,
+        userId: String,
+        approved: Bool,
+        contactShared: Bool,
+        contactMethod: String?
+    ) async throws {
+        guard let analysis = try await getAnalysisById(analysisId) else { return }
+
+        let payload = ReadyToMoveCheckPayload(
+            user_id: userId,
+            match_id: analysis.matchId,
+            conversation_id: analysis.conversationId,
+            safety_score: analysis.safetyScore,
+            approved: approved,
+            contact_shared: contactShared,
+            contact_method: contactMethod
+        )
+
+        try await client
+            .from("ready_to_move_checks")
             .insert(payload)
             .execute()
     }
