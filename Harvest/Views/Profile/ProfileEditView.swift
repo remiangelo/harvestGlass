@@ -67,9 +67,7 @@ struct ProfileEditView: View {
                             }
                         },
                         onRemove: { index in
-                            if let userId = authViewModel.currentUserId {
-                                viewModel.deletePhoto(userId: userId, at: index)
-                            }
+                            viewModel.deletePhoto(at: index)
                         }
                     )
 

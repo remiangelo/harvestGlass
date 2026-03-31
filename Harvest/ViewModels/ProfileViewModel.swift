@@ -16,6 +16,7 @@ final class ProfileViewModel {
     var editLocation = ""
     var editPhotoUrls: [String] = []
     private var originalPhotoUrls: [String] = []
+    private var pendingDeletedPhotoUrls: [String] = []
     var editHobbies: [String] = []
     var editAge: Int = 18
     var editLookingFor = ""
@@ -62,11 +63,13 @@ final class ProfileViewModel {
     }
 
     func startEditing() {
+        error = nil
         syncEditableFields()
         isEditing = true
     }
 
     func cancelEditing() {
+        error = nil
         isEditing = false
         syncEditableFields()
     }
@@ -134,6 +137,14 @@ final class ProfileViewModel {
                 } else {
                     profile?.photos = editPhotoUrls
                 }
+
+                for url in pendingDeletedPhotoUrls {
+                    do {
+                        try await profileService.deletePhoto(userId: userId, photoUrl: url)
+                    } catch {
+                        print("Warning: Failed to delete photo from storage: \(error)")
+                    }
+                }
             }
 
             if !updates.isEmpty {
@@ -145,6 +156,7 @@ final class ProfileViewModel {
             }
 
             originalPhotoUrls = profile?.photos ?? editPhotoUrls
+            pendingDeletedPhotoUrls.removeAll()
             isEditing = false
             return true
         } catch {
@@ -193,17 +205,18 @@ final class ProfileViewModel {
         }
     }
 
-    func deletePhoto(userId: String, at index: Int) {
+    func deletePhoto(at index: Int) {
         guard index < editPhotoUrls.count else { return }
+        guard editPhotoUrls.count > 1 else {
+            error = "You need to keep at least one photo on your profile."
+            return
+        }
+
+        error = nil
         let url = editPhotoUrls[index]
         editPhotoUrls.remove(at: index)
-        Task {
-            do {
-                try await profileService.deletePhoto(userId: userId, photoUrl: url)
-            } catch {
-                print("Warning: Failed to delete photo from storage: \(error)")
-                // Photo removed from UI, but may remain in storage
-            }
+        if originalPhotoUrls.contains(url) {
+            pendingDeletedPhotoUrls.append(url)
         }
     }
 
@@ -213,6 +226,7 @@ final class ProfileViewModel {
         editLocation = profile?.location ?? ""
         editPhotoUrls = profile?.photos ?? []
         originalPhotoUrls = profile?.photos ?? []
+        pendingDeletedPhotoUrls.removeAll()
         editHobbies = profile?.hobbies ?? []
         editAge = profile?.age ?? 18
         editInterestedIn = profile?.interestedIn ?? []
