@@ -5,7 +5,7 @@ struct ProfilePhotoGrid: View {
     let photoUrls: [String]
     let maxPhotos: Int
     var onAdd: ((Data) -> Void)?
-    var onRemove: ((Int) -> Void)?
+    var onRemove: ((String) -> Void)?
 
     @State private var selectedItem: PhotosPickerItem?
 
@@ -23,7 +23,7 @@ struct ProfilePhotoGrid: View {
 
                         if itemIndex < photoEntries.count {
                             let entry = photoEntries[itemIndex]
-                            photoCell(url: entry.element, index: entry.offset)
+                            photoCell(url: entry.element)
                         } else if itemIndex == photoEntries.count && photoUrls.count < maxPhotos {
                             addPhotoCell
                         } else {
@@ -36,7 +36,7 @@ struct ProfilePhotoGrid: View {
         }
     }
 
-    private func photoCell(url: String, index: Int) -> some View {
+    private func photoCell(url: String) -> some View {
         ZStack(alignment: .topTrailing) {
             AsyncImage(url: URL(string: url)) { image in
                 image
@@ -56,15 +56,18 @@ struct ProfilePhotoGrid: View {
 
             if onRemove != nil {
                 Button {
-                    onRemove?(index)
+                    onRemove?(url)
                 } label: {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title3)
                         .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                         .shadow(radius: 2)
                 }
+                .frame(width: 32, height: 32)
+                .contentShape(Rectangle())
                 .padding(4)
                 .buttonStyle(.plain)
+                .zIndex(1)
             }
         }
     }

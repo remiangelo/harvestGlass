@@ -27,7 +27,8 @@ struct PhotosStepView: View {
                         await viewModel.uploadPhoto(userId: userId, imageData: data)
                     }
                 },
-                onRemove: { index in
+                onRemove: { url in
+                    guard let index = viewModel.photoUrls.firstIndex(of: url) else { return }
                     viewModel.removePhoto(userId: userId, at: index)
                 }
             )

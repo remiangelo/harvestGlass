@@ -205,8 +205,8 @@ final class ProfileViewModel {
         }
     }
 
-    func deletePhoto(at index: Int) {
-        guard index < editPhotoUrls.count else { return }
+    func deletePhoto(url: String) {
+        guard let index = editPhotoUrls.firstIndex(of: url) else { return }
         guard editPhotoUrls.count > 1 else {
             error = "You need to keep at least one photo on your profile."
             return
