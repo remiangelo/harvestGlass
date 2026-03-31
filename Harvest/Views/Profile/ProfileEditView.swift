@@ -1,16 +1,10 @@
 import SwiftUI
-import UIKit
 
 struct ProfileEditView: View {
     let authViewModel: AuthViewModel
     @Bindable var viewModel: ProfileViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var didInitializeEditing = false
-    @State private var draftPhotoUrls: [String] = []
-    @State private var isUploadingPhoto = false
-    @State private var photoError: String?
-
-    private let profileService = ProfileService()
 
     private let lookingForOptions = [
         ("Dating", "dating"),
@@ -63,27 +57,29 @@ struct ProfileEditView: View {
             Section("Photos") {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     ProfilePhotoGrid(
-                        photoUrls: draftPhotoUrls,
+                        photoUrls: viewModel.editPhotoUrls,
                         maxPhotos: 6,
                         onAdd: { data in
                             if let userId = authViewModel.currentUserId {
-                                Task { await uploadDraftPhoto(userId: userId, imageData: data) }
+                                Task {
+                                    await viewModel.uploadPhoto(userId: userId, imageData: data)
+                                }
                             }
                         },
                         onRemove: { index in
                             if let userId = authViewModel.currentUserId {
-                                removeDraftPhoto(userId: userId, at: index)
+                                viewModel.deletePhoto(userId: userId, at: index)
                             }
                         }
                     )
 
-                    if isUploadingPhoto {
+                    if viewModel.isLoading {
                         ProgressView("Uploading...")
                             .tint(HarvestTheme.Colors.primary)
                     }
 
-                    if let photoError {
-                        Text(photoError)
+                    if let error = viewModel.error {
+                        Text(error)
                             .font(HarvestTheme.Typography.bodySmall)
                             .foregroundStyle(HarvestTheme.Colors.error)
                     }
@@ -187,7 +183,6 @@ struct ProfileEditView: View {
                 Button("Save") {
                     if let userId = authViewModel.currentUserId {
                         Task {
-                            viewModel.editPhotoUrls = draftPhotoUrls
                             if await viewModel.saveChanges(userId: userId) {
                                 dismiss()
                             }
@@ -201,45 +196,7 @@ struct ProfileEditView: View {
         .onAppear {
             guard !didInitializeEditing else { return }
             viewModel.startEditing()
-            draftPhotoUrls = viewModel.editPhotoUrls
             didInitializeEditing = true
-        }
-    }
-
-    private func removeDraftPhoto(userId: String, at index: Int) {
-        guard index < draftPhotoUrls.count else { return }
-        let url = draftPhotoUrls[index]
-        draftPhotoUrls.remove(at: index)
-
-        Task {
-            do {
-                try await profileService.deletePhoto(userId: userId, photoUrl: url)
-            } catch {
-                print("Warning: Failed to delete photo from storage: \(error)")
-            }
-        }
-    }
-
-    private func uploadDraftPhoto(userId: String, imageData: Data) async {
-        isUploadingPhoto = true
-        photoError = nil
-        defer { isUploadingPhoto = false }
-
-        guard let uiImage = UIImage(data: imageData),
-              let jpegData = uiImage.jpegData(compressionQuality: 0.8) else {
-            photoError = "Could not process the selected image"
-            return
-        }
-
-        do {
-            let url = try await profileService.uploadPhoto(
-                userId: userId,
-                imageData: jpegData,
-                photoIndex: draftPhotoUrls.count
-            )
-            draftPhotoUrls.append(url)
-        } catch {
-            photoError = "Failed to upload photo: \(error.localizedDescription)"
         }
     }
 }

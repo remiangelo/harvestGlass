@@ -118,7 +118,7 @@ final class ProfileViewModel {
             updates["children_status"] = anyJSONStringOrNull(editChildrenStatus)
         }
 
-        guard !updates.isEmpty else {
+        guard photosChanged || !updates.isEmpty else {
             isEditing = false
             return true
         }
@@ -193,15 +193,17 @@ final class ProfileViewModel {
         }
     }
 
-    func deletePhoto(userId: String, at index: Int) async {
+    func deletePhoto(userId: String, at index: Int) {
         guard index < editPhotoUrls.count else { return }
         let url = editPhotoUrls[index]
-
-        do {
-            try await profileService.deletePhoto(userId: userId, photoUrl: url)
-            editPhotoUrls.remove(at: index)
-        } catch {
-            self.error = "Failed to delete photo: \(error.localizedDescription)"
+        editPhotoUrls.remove(at: index)
+        Task {
+            do {
+                try await profileService.deletePhoto(userId: userId, photoUrl: url)
+            } catch {
+                print("Warning: Failed to delete photo from storage: \(error)")
+                // Photo removed from UI, but may remain in storage
+            }
         }
     }
 
