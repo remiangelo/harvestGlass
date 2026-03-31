@@ -17,7 +17,7 @@ struct ProfilePhotoGrid: View {
 
     var body: some View {
         LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(Array(photoUrls.enumerated()), id: \.offset) { index, url in
+            ForEach(Array(photoUrls.enumerated()), id: \.element) { index, url in
                 photoCell(url: url, index: index)
             }
 
