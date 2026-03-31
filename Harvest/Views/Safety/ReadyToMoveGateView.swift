@@ -4,8 +4,7 @@ struct ReadyToMoveGateView: View {
     let analysis: SafetyAnalysis
     let isReady: Bool
     let reason: String?
-    var canShareEmail = false
-    var onShareEmail: (() -> Void)? = nil
+    var onSharePreferredContact: (() -> Void)? = nil
 
     var body: some View {
         VStack(spacing: HarvestTheme.Spacing.lg) {
@@ -52,11 +51,11 @@ struct ReadyToMoveGateView: View {
                         .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
                         .multilineTextAlignment(.center)
 
-                    if canShareEmail {
+                    if onSharePreferredContact != nil {
                         Button {
-                            onShareEmail?()
+                            onSharePreferredContact?()
                         } label: {
-                            Text("Copy My Email")
+                            Text("Share Preferred Contact")
                                 .font(HarvestTheme.Typography.buttonText)
                                 .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                                 .frame(maxWidth: .infinity)

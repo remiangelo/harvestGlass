@@ -1,7 +1,6 @@
 import Foundation
 import Observation
 import Realtime
-import UIKit
 
 @Observable
 final class ChatViewModel {
@@ -334,7 +333,7 @@ final class ChatViewModel {
         showReadyToMoveGate = true
     }
 
-    func shareEmailFromReadyToMove(currentUserEmail: String) async {
+    func markPreferredContactShared() async {
         guard isReadyToMove, let analysis = safetyAnalysis else { return }
 
         do {
@@ -343,10 +342,9 @@ final class ChatViewModel {
                 userId: activeUserId,
                 approved: true,
                 contactShared: true,
-                contactMethod: "email"
+                contactMethod: "social"
             )
-            UIPasteboard.general.string = currentUserEmail
-            readyToMoveActionMessage = "Your email has been copied. You can now paste it into the chat."
+            readyToMoveActionMessage = "You're clear to share your preferred contact details in the chat."
             showReadyToMoveActionAlert = true
             showReadyToMoveGate = false
         } catch {

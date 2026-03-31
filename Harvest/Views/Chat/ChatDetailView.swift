@@ -192,12 +192,9 @@ struct ChatDetailView: View {
                     analysis: analysis,
                     isReady: viewModel.isReadyToMove,
                     reason: viewModel.readyToMoveReason,
-                    canShareEmail: !(authViewModel.profile?.email ?? "").isEmpty,
-                    onShareEmail: {
+                    onSharePreferredContact: {
                         Task {
-                            if let email = authViewModel.profile?.email, !email.isEmpty {
-                                await viewModel.shareEmailFromReadyToMove(currentUserEmail: email)
-                            }
+                            await viewModel.markPreferredContactShared()
                         }
                     }
                 )
