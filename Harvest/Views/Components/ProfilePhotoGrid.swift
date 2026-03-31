@@ -64,6 +64,7 @@ struct ProfilePhotoGrid: View {
                         .shadow(radius: 2)
                 }
                 .padding(4)
+                .buttonStyle(.plain)
             }
         }
     }
