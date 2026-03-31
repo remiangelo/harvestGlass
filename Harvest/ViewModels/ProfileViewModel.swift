@@ -77,6 +77,12 @@ final class ProfileViewModel {
     func saveChanges(userId: String) async -> Bool {
         isLoading = true
         defer { isLoading = false }
+        error = nil
+
+        guard !editPhotoUrls.isEmpty else {
+            error = "You need at least one photo on your profile."
+            return false
+        }
 
         var updates: [String: AnyJSON] = [:]
         let photosChanged = editPhotoUrls != originalPhotoUrls
@@ -207,10 +213,6 @@ final class ProfileViewModel {
 
     func deletePhoto(url: String) {
         guard let index = editPhotoUrls.firstIndex(of: url) else { return }
-        guard editPhotoUrls.count > 1 else {
-            error = "You need to keep at least one photo on your profile."
-            return
-        }
 
         error = nil
         let url = editPhotoUrls[index]
