@@ -36,6 +36,9 @@ final class ChatViewModel {
     // Safety
     var safetyAnalysis: SafetyAnalysis?
     var safetyWarning: String?
+    var showReadyToMoveGate = false
+    var isReadyToMove = false
+    var readyToMoveReason: String?
 
     // Report/Block/Unmatch
     var showReportSheet = false
@@ -94,6 +97,7 @@ final class ChatViewModel {
             }
 
             refreshSafetyWarning()
+            await refreshReadyToMoveStatus()
         } catch {
             // Non-critical
         }
@@ -286,6 +290,7 @@ final class ChatViewModel {
             )
             safetyAnalysis = analysis
             refreshSafetyWarning()
+            await refreshReadyToMoveStatus()
             print("Retroactive analysis complete. Safety score: \(analysis.safetyScore), Red flags: \(analysis.redFlagCount)")
         } catch {
             print("Error running retroactive safety analysis: \(error)")
@@ -315,9 +320,15 @@ final class ChatViewModel {
                 otherUserId: activePartnerUserId
             )
             refreshSafetyWarning()
+            await refreshReadyToMoveStatus()
         } catch {
             print("Warning: Failed to analyze message for safety: \(error)")
         }
+    }
+
+    func presentReadyToMoveGate() async {
+        await refreshReadyToMoveStatus()
+        showReadyToMoveGate = true
     }
 
     private func refreshSafetyWarning() {
@@ -325,6 +336,23 @@ final class ChatViewModel {
             safetyWarning = "Safety concern detected. Be cautious in this conversation."
         } else {
             safetyWarning = nil
+        }
+    }
+
+    private func refreshReadyToMoveStatus() async {
+        guard let analysis = safetyAnalysis else {
+            isReadyToMove = false
+            readyToMoveReason = "No safety analysis available yet."
+            return
+        }
+
+        do {
+            let result = try await safetyService.isReadyToMove(analysisId: analysis.id)
+            isReadyToMove = result.ready
+            readyToMoveReason = result.reason
+        } catch {
+            isReadyToMove = false
+            readyToMoveReason = "Couldn't determine whether this conversation is ready yet."
         }
     }
 }

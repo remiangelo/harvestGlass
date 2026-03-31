@@ -105,6 +105,14 @@ struct ChatDetailView: View {
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
+                    Button {
+                        Task {
+                            await viewModel.presentReadyToMoveGate()
+                        }
+                    } label: {
+                        Label("Ready to Move", systemImage: "person.crop.circle.badge.checkmark")
+                    }
+
                     Button(role: .destructive) {
                         viewModel.showReportSheet = true
                     } label: {
@@ -177,6 +185,16 @@ struct ChatDetailView: View {
                 }
             )
             .presentationDetents([.medium])
+        }
+        .sheet(isPresented: $viewModel.showReadyToMoveGate) {
+            if let analysis = viewModel.safetyAnalysis {
+                ReadyToMoveGateView(
+                    analysis: analysis,
+                    isReady: viewModel.isReadyToMove,
+                    reason: viewModel.readyToMoveReason
+                )
+                .presentationDetents([.medium, .large])
+            }
         }
         .alert("Block User", isPresented: $viewModel.showBlockAlert) {
             Button("Cancel", role: .cancel) { }
