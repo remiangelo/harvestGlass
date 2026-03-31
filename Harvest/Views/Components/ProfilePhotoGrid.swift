@@ -9,20 +9,29 @@ struct ProfilePhotoGrid: View {
 
     @State private var selectedItem: PhotosPickerItem?
 
-    private let columns = [
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8),
-        GridItem(.flexible(), spacing: 8)
-    ]
+    private let columnCount = 3
 
     var body: some View {
-        LazyVGrid(columns: columns, spacing: 8) {
-            ForEach(Array(photoUrls.enumerated()), id: \.element) { index, url in
-                photoCell(url: url, index: index)
-            }
+        let photoEntries = Array(photoUrls.enumerated())
+        let rowCount = max((photoEntries.count + (photoUrls.count < maxPhotos ? 1 : 0) + columnCount - 1) / columnCount, 1)
 
-            if photoUrls.count < maxPhotos {
-                addPhotoCell
+        VStack(spacing: 8) {
+            ForEach(0..<rowCount, id: \.self) { rowIndex in
+                HStack(spacing: 8) {
+                    ForEach(0..<columnCount, id: \.self) { columnIndex in
+                        let itemIndex = rowIndex * columnCount + columnIndex
+
+                        if itemIndex < photoEntries.count {
+                            let entry = photoEntries[itemIndex]
+                            photoCell(url: entry.element, index: entry.offset)
+                        } else if itemIndex == photoEntries.count && photoUrls.count < maxPhotos {
+                            addPhotoCell
+                        } else {
+                            Color.clear
+                                .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
+                        }
+                    }
+                }
             }
         }
     }
@@ -63,7 +72,7 @@ struct ProfilePhotoGrid: View {
         PhotosPicker(selection: $selectedItem, matching: .images) {
             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
                 .fill(Color.white)
-                .frame(height: 150)
+                .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
                 .overlay {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
                         .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
