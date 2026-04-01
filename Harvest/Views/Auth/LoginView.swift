@@ -154,6 +154,7 @@ struct LoginView: View {
                         }
                         .font(HarvestTheme.Typography.bodySmall)
                     }
+                    .buttonStyle(.plain)
 
                     Spacer(minLength: 40)
                 }

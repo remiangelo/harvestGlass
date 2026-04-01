@@ -19,6 +19,7 @@ struct HarvestApp: App {
                     LoginView(authViewModel: authViewModel)
                 }
             }
+            .dismissKeyboardOnTap()
             .task {
                 authViewModel.listenToAuthChanges()
                 await authViewModel.checkSession()

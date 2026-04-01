@@ -51,6 +51,7 @@ struct TermsStepView: View {
                         .foregroundStyle(.primary)
                 }
             }
+            .buttonStyle(.plain)
 
             Spacer()
         }

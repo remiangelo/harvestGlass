@@ -99,6 +99,17 @@ struct SwipeService {
             .execute()
             .value
 
+        let profilesWithUsablePhotos = profiles.filter { profile in
+            guard let photos = profile.photos else { return false }
+            return photos.contains { !$0.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty }
+        }
+
+        // Return quickly with usable profiles instead of blocking Discover on full compatibility ranking.
+        // Compatibility scores are still loaded separately in the view model for the first cards.
+        if !profilesWithUsablePhotos.isEmpty {
+            return Array(profilesWithUsablePhotos.prefix(20))
+        }
+
         // Get current user's profile and values for compatibility calculation
         guard let currentUser = try? await profileService.getProfile(userId: userId) else {
             return profiles // Fallback to unranked if can't get current user

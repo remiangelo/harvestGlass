@@ -44,6 +44,7 @@ struct InterestedInStepView: View {
                         HStack {
                             Text(option)
                                 .font(HarvestTheme.Typography.bodyRegular)
+                                .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
                             Spacer()
                             if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
@@ -64,6 +65,7 @@ struct InterestedInStepView: View {
                                 }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, HarvestTheme.Spacing.lg)

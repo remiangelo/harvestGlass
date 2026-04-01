@@ -27,27 +27,7 @@ struct SwipeCardView: View {
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
                 // Photo carousel
-                TabView(selection: $currentPhotoIndex) {
-                    ForEach(Array((profile.photos ?? []).enumerated()), id: \.offset) { index, url in
-                        AsyncImage(url: URL(string: url)) { image in
-                            image
-                                .resizable()
-                                .scaledToFill()
-                        } placeholder: {
-                            Rectangle()
-                                .fill(HarvestTheme.Colors.divider)
-                                .overlay {
-                                    Image(systemName: "person.fill")
-                                        .font(.system(size: 60))
-                                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                                }
-                        }
-                        .frame(width: geo.size.width, height: geo.size.height)
-                        .clipped()
-                        .tag(index)
-                    }
-                }
-                .tabViewStyle(.page(indexDisplayMode: .always))
+                photoCarousel(in: geo.size)
 
                 // Swipe overlays
                 swipeOverlays
@@ -60,6 +40,9 @@ struct SwipeCardView: View {
             .offset(offset)
             .rotationEffect(isTopCard ? dragRotation : .zero)
             .highPriorityGesture(isTopCard ? dragGesture : nil)
+            .onChange(of: profile.id) {
+                currentPhotoIndex = 0
+            }
             .onTapGesture {
                 if isTopCard {
                     showProfileDetail = true
@@ -141,6 +124,51 @@ struct SwipeCardView: View {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
                     .fill(.black.opacity(0.4))
             }
+            .padding(.horizontal, HarvestTheme.Spacing.sm)
+            .padding(.bottom, HarvestTheme.Spacing.md)
+        }
+    }
+
+    @ViewBuilder
+    private func photoCarousel(in size: CGSize) -> some View {
+        let validPhotoURLs = (profile.photos ?? [])
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .compactMap { photoString -> URL? in
+                guard !photoString.isEmpty else { return nil }
+                return URL(string: photoString)
+            }
+
+        if validPhotoURLs.isEmpty {
+            Rectangle()
+                .fill(HarvestTheme.Colors.divider)
+                .frame(width: size.width, height: size.height)
+                .overlay {
+                    Image(systemName: "person.fill")
+                        .font(.system(size: 60))
+                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                }
+        } else {
+            TabView(selection: $currentPhotoIndex) {
+                ForEach(Array(validPhotoURLs.enumerated()), id: \.offset) { index, url in
+                    AsyncImage(url: url) { image in
+                        image
+                            .resizable()
+                            .scaledToFill()
+                    } placeholder: {
+                        Rectangle()
+                            .fill(HarvestTheme.Colors.divider)
+                            .overlay {
+                                Image(systemName: "person.fill")
+                                    .font(.system(size: 60))
+                                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                            }
+                    }
+                    .frame(width: size.width, height: size.height)
+                    .clipped()
+                    .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .always))
         }
     }
 

@@ -41,7 +41,7 @@ struct GlassCard<Content: View>: View {
         case .dark:
             return HarvestTheme.Colors.glassFill
         case .light:
-            return HarvestTheme.Colors.whiteFormSurface
+            return Color(.secondarySystemBackground)
         }
     }
 
@@ -50,7 +50,7 @@ struct GlassCard<Content: View>: View {
         case .dark:
             return HarvestTheme.Colors.border
         case .light:
-            return HarvestTheme.Colors.whiteFormBorder
+            return Color(.separator)
         }
     }
 }

@@ -40,6 +40,7 @@ struct LocationStepView: View {
             } else if !viewModel.locationSuggestions.isEmpty {
                 VStack(spacing: HarvestTheme.Spacing.xs) {
                     ForEach(viewModel.locationSuggestions, id: \.self) { suggestion in
+                        let isSelected = viewModel.resolvedLocation == suggestion
                         Button {
                             viewModel.selectLocationSuggestion(suggestion)
                             validationTask?.cancel()
@@ -47,18 +48,23 @@ struct LocationStepView: View {
                             HStack {
                                 Text(suggestion)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
                                 Spacer()
+                                if isSelected {
+                                    Image(systemName: "checkmark.circle.fill")
+                                        .foregroundStyle(Color.white)
+                                }
                             }
                             .padding(.horizontal, HarvestTheme.Spacing.md)
                             .padding(.vertical, HarvestTheme.Spacing.sm)
-                            .background(Color(.secondarySystemBackground))
+                            .background(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
                             .overlay {
                                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                    .stroke(Color(.separator), lineWidth: 1)
+                                    .stroke(isSelected ? HarvestTheme.Colors.redSurface : Color(.separator), lineWidth: 1)
                             }
                             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
                         }
+                        .buttonStyle(.plain)
                     }
                 }
                 .padding(.horizontal, HarvestTheme.Spacing.xl)
@@ -67,23 +73,32 @@ struct LocationStepView: View {
                     viewModel.selectLocationSuggestion(resolved)
                     validationTask?.cancel()
                 } label: {
-                    Text(resolved)
-                        .font(HarvestTheme.Typography.bodySmall)
-                        .foregroundStyle(.primary)
-                        .padding(.horizontal, HarvestTheme.Spacing.md)
-                        .padding(.vertical, HarvestTheme.Spacing.sm)
-                        .background(Color(.secondarySystemBackground))
-                        .overlay {
-                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .stroke(Color(.separator), lineWidth: 1)
+                    HStack {
+                        Text(resolved)
+                            .font(HarvestTheme.Typography.bodySmall)
+                            .foregroundStyle(Color.white)
+                        Spacer()
+                        Image(systemName: "checkmark.circle.fill")
+                            .foregroundStyle(Color.white)
+                    }
+                    .padding(.horizontal, HarvestTheme.Spacing.md)
+                    .padding(.vertical, HarvestTheme.Spacing.sm)
+                    .background(HarvestTheme.Colors.redSurface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                            .stroke(HarvestTheme.Colors.redSurface, lineWidth: 1)
                         }
-                        .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
+                    .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
                 }
+                .buttonStyle(.plain)
             }
 
             Spacer()
         }
         .onChange(of: viewModel.location) {
+            if viewModel.location == viewModel.resolvedLocation {
+                return
+            }
             viewModel.resolvedLocation = nil
             viewModel.locationSuggestions = []
             validationTask?.cancel()

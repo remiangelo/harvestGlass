@@ -47,8 +47,10 @@ final class DiscoverViewModel {
             profiles = try await swipeService.getDiscoverProfiles(userId: userId, excludeIds: swipedIds, filters: filters)
             currentIndex = 0
 
-            // Load compatibility scores for first few profiles
-            await loadCompatibilityScores(for: userId, profileCount: min(5, profiles.count))
+            // Load compatibility scores for first few profiles without blocking initial card display.
+            Task {
+                await self.loadCompatibilityScores(for: userId, profileCount: min(5, self.profiles.count))
+            }
         } catch {
             self.error = error.localizedDescription
         }
