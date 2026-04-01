@@ -28,10 +28,10 @@ struct TermsStepView: View {
                 }
             }
             .padding(HarvestTheme.Spacing.lg)
-            .background(HarvestTheme.Colors.whiteFormSurface)
+            .background(Color(.secondarySystemBackground))
             .overlay {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                    .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
+                    .stroke(Color(.separator), lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
             .padding(.horizontal, HarvestTheme.Spacing.lg)
@@ -43,12 +43,12 @@ struct TermsStepView: View {
                     Image(systemName: viewModel.termsAccepted ? "checkmark.square.fill" : "square")
                         .font(.title3)
                         .foregroundStyle(
-                            viewModel.termsAccepted ? HarvestTheme.Colors.primary : HarvestTheme.Colors.textOnWhiteTertiary
+                            viewModel.termsAccepted ? AnyShapeStyle(HarvestTheme.Colors.primary) : AnyShapeStyle(.tertiary)
                         )
 
                     Text("I agree to the Terms & Conditions")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                        .foregroundStyle(.primary)
                 }
             }
 
@@ -62,6 +62,6 @@ struct TermsStepView: View {
             Text(text)
         }
         .font(HarvestTheme.Typography.bodySmall)
-        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+        .foregroundStyle(.secondary)
     }
 }

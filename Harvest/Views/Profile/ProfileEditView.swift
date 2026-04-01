@@ -188,7 +188,7 @@ struct ProfileEditView: View {
                     }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(.primary)
             }
         }
         .onAppear {

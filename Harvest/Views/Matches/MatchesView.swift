@@ -10,28 +10,33 @@ struct MatchesView: View {
         NavigationStack {
             ScrollView {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                    likesYouSection
+                    if shouldShowLikesSection {
+                        likesYouSection
+                    }
 
-                    Text("Matches")
-                        .font(HarvestTheme.Typography.h4)
-                        .padding(.horizontal)
+                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                        Text("Matches")
+                            .font(HarvestTheme.Typography.h4)
+                            .padding(.horizontal)
 
-                    if viewModel.matchThreads.isEmpty {
-                        emptyConversations
-                    } else {
-                        LazyVStack(spacing: HarvestTheme.Spacing.sm) {
-                            ForEach(viewModel.matchThreads) { thread in
-                                Button {
-                                    openMatch(thread.match)
-                                } label: {
-                                    threadRow(thread)
+                        if viewModel.matchThreads.isEmpty {
+                            emptyConversations
+                        } else {
+                            LazyVStack(spacing: HarvestTheme.Spacing.sm) {
+                                ForEach(viewModel.matchThreads) { thread in
+                                    Button {
+                                        openMatch(thread.match)
+                                    } label: {
+                                        threadRow(thread)
+                                    }
+                                    .buttonStyle(.plain)
                                 }
-                                .buttonStyle(.plain)
                             }
+                            .padding(.horizontal)
                         }
-                        .padding(.horizontal)
                     }
                 }
+                .frame(maxWidth: .infinity, alignment: .topLeading)
                 .padding(.top, HarvestTheme.Spacing.sm)
                 .padding(.bottom, HarvestTheme.Spacing.lg)
             }
@@ -92,38 +97,40 @@ struct MatchesView: View {
         }
     }
 
+    private var shouldShowLikesSection: Bool {
+        !viewModel.inboundLikes.isEmpty
+    }
+
     @ViewBuilder
     private var likesYouSection: some View {
-        if !viewModel.inboundLikes.isEmpty {
-            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                Text("Likes You (\(viewModel.inboundLikes.count))")
-                    .font(HarvestTheme.Typography.h4)
-                    .padding(.horizontal)
+        VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+            Text("Likes You (\(viewModel.inboundLikes.count))")
+                .font(HarvestTheme.Typography.h4)
+                .padding(.horizontal)
 
-                if viewModel.canSeeLikes {
-                    LazyVStack(spacing: HarvestTheme.Spacing.sm) {
-                        ForEach(viewModel.inboundLikes) { inboundLike in
-                            Button {
-                                selectedInboundLike = inboundLike
-                            } label: {
-                                inboundLikeRow(inboundLike)
-                            }
-                            .buttonStyle(.plain)
+            if viewModel.canSeeLikes {
+                LazyVStack(spacing: HarvestTheme.Spacing.sm) {
+                    ForEach(viewModel.inboundLikes) { inboundLike in
+                        Button {
+                            selectedInboundLike = inboundLike
+                        } label: {
+                            inboundLikeRow(inboundLike)
                         }
+                        .buttonStyle(.plain)
                     }
-                    .padding(.horizontal)
-                } else {
-                    PremiumGateView(
-                        featureName: "See who likes you",
-                        requiredTier: "Gold",
-                        authViewModel: authViewModel
-                    )
-                    .frame(height: 220)
-                    .padding(.horizontal)
                 }
+                .padding(.horizontal)
+            } else {
+                PremiumGateView(
+                    featureName: "See who likes you",
+                    requiredTier: "Gold",
+                    authViewModel: authViewModel
+                )
+                .frame(height: 220)
+                .padding(.horizontal)
             }
-            .padding(.bottom, HarvestTheme.Spacing.md)
         }
+        .padding(.bottom, HarvestTheme.Spacing.md)
     }
 
     private func openMatch(_ matchWithProfile: MatchWithProfile) {

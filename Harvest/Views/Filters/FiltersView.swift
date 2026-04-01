@@ -29,7 +29,7 @@ struct FiltersView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                     Text("Maximum distance: \(viewModel.filters.distanceMax) \(viewModel.filters.distanceUnit)")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                        .foregroundStyle(.primary)
 
                     Slider(
                         value: Binding(
@@ -57,8 +57,8 @@ struct FiltersView: View {
                             Text(option.label)
                                 .foregroundStyle(
                                     viewModel.filters.showMe.contains(option.value)
-                                    ? HarvestTheme.Colors.textOnWhitePrimary
-                                    : HarvestTheme.Colors.textOnWhiteSecondary
+                                    ? AnyShapeStyle(.primary)
+                                    : AnyShapeStyle(.secondary)
                                 )
                             Spacer()
                             if viewModel.filters.showMe.contains(option.value) {
@@ -72,7 +72,7 @@ struct FiltersView: View {
                 Text("Show Me")
                     .textCase(nil)
                     .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                    .foregroundStyle(.secondary)
             }
 
             Section {
@@ -181,7 +181,7 @@ struct FiltersView: View {
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
-        .background(Color.white.ignoresSafeArea())
+        .background(Color(.systemBackground).ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
@@ -194,7 +194,7 @@ struct FiltersView: View {
                     }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(.primary)
             }
         }
         .task {
@@ -202,7 +202,7 @@ struct FiltersView: View {
                 await viewModel.loadFilters(userId: userId)
             }
         }
-        .toolbarBackground(Color.white, for: .navigationBar)
+        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .listSectionSpacing(20)
         .listStyle(.insetGrouped)

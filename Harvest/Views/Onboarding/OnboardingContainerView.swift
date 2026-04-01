@@ -60,7 +60,7 @@ struct OnboardingContainerView: View {
                     .padding(.bottom, HarvestTheme.Spacing.lg)
                 }
             }
-            .background(Color.white.ignoresSafeArea())
+            .background(Color(.systemBackground).ignoresSafeArea())
             .navigationTitle("Set Up Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -68,10 +68,10 @@ struct OnboardingContainerView: View {
                     Button("Sign Out") {
                         Task { await authViewModel.logout() }
                     }
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
+                    .foregroundStyle(.secondary)
                 }
             }
-            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }

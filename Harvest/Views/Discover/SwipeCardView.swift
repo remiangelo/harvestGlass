@@ -59,7 +59,7 @@ struct SwipeCardView: View {
             .shadow(color: .black.opacity(0.15), radius: 10, y: 5)
             .offset(offset)
             .rotationEffect(isTopCard ? dragRotation : .zero)
-            .gesture(isTopCard ? dragGesture : nil)
+            .highPriorityGesture(isTopCard ? dragGesture : nil)
             .onTapGesture {
                 if isTopCard {
                     showProfileDetail = true
@@ -145,7 +145,7 @@ struct SwipeCardView: View {
     }
 
     private var dragGesture: some Gesture {
-        DragGesture()
+        DragGesture(minimumDistance: 12)
             .onChanged { value in
                 offset = value.translation
             }

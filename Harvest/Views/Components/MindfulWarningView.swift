@@ -29,10 +29,11 @@ struct MindfulWarningView: View {
 
                     Text("Mindful Messaging")
                         .font(HarvestTheme.Typography.h2)
+                        .foregroundStyle(.primary)
 
                     Text(analysis.reason)
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
                     // Growth lesson
@@ -44,12 +45,12 @@ struct MindfulWarningView: View {
                                         .foregroundStyle(HarvestTheme.Colors.accent)
                                     Text(lesson.title)
                                         .font(HarvestTheme.Typography.h4)
-                                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                                        .foregroundStyle(.primary)
                                 }
 
                                 Text(lesson.reflection)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                                    .foregroundStyle(.secondary)
                             }
                         }
                     }
@@ -68,10 +69,10 @@ struct MindfulWarningView: View {
                 }
                 .padding()
             }
-            .background(Color.white.ignoresSafeArea())
+            .background(Color(.systemBackground).ignoresSafeArea())
             .navigationTitle("Message Review")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color.white, for: .navigationBar)
+            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }

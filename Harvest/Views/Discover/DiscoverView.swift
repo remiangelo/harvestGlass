@@ -40,11 +40,6 @@ struct DiscoverView: View {
                             .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     }
                 }
-                ToolbarItem(placement: .topBarTrailing) {
-                    if viewModel.remainingCount > 0 {
-                        GlassBadge(text: "\(viewModel.remainingCount)")
-                    }
-                }
             }
             .task {
                 if let userId = authViewModel.currentUserId {

@@ -25,7 +25,7 @@ struct SettingsView: View {
                     Text("Email")
                     Spacer()
                     Text(authViewModel.profile?.email ?? "")
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .foregroundStyle(.secondary)
                 }
 
                 NavigationLink {
@@ -109,7 +109,7 @@ struct SettingsView: View {
                     Text("Version")
                     Spacer()
                     Text("1.0.0")
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .foregroundStyle(.secondary)
                 }
             }
 
@@ -142,7 +142,7 @@ struct SettingsView: View {
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .scrollContentBackground(.hidden)
-        .background(Color.white.ignoresSafeArea())
+        .background(Color(.systemBackground).ignoresSafeArea())
         .task {
             if let userId = authViewModel.currentUserId {
                 await subscriptionViewModel.loadSubscriptionData(userId: userId)
@@ -182,7 +182,7 @@ struct SettingsView: View {
         } message: {
             Text(deleteErrorMessage)
         }
-        .toolbarBackground(Color.white, for: .navigationBar)
+        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .listSectionSpacing(20)
         .listStyle(.insetGrouped)

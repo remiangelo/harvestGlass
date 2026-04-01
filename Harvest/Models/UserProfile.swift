@@ -51,9 +51,26 @@ struct UserProfile: Codable, Identifiable, Sendable {
 
     var goalsList: [String] {
         guard let goals else { return [] }
-        if goals.contains(",") {
-            return goals.components(separatedBy: ",").map { $0.trimmingCharacters(in: .whitespaces) }
+
+        let trimmedGoals = goals.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmedGoals.isEmpty { return [] }
+
+        if trimmedGoals.hasPrefix("["),
+           let data = trimmedGoals.data(using: .utf8),
+           let decoded = try? JSONDecoder().decode([String].self, from: data) {
+            return decoded
+                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .filter { !$0.isEmpty }
         }
-        return [goals]
+
+        if trimmedGoals.contains(",") {
+            return trimmedGoals
+                .components(separatedBy: ",")
+                .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "\"[] ").union(.whitespacesAndNewlines)) }
+                .filter { !$0.isEmpty }
+        }
+
+        let normalizedGoal = trimmedGoals.trimmingCharacters(in: CharacterSet(charactersIn: "\"[] ").union(.whitespacesAndNewlines))
+        return normalizedGoal.isEmpty ? [] : [normalizedGoal]
     }
 }

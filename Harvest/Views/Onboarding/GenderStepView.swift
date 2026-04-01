@@ -20,6 +20,7 @@ struct GenderStepView: View {
 
             Text("What's your gender?")
                 .font(HarvestTheme.Typography.h2)
+                .foregroundStyle(.primary)
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(genders, id: \.0) { gender, icon in
@@ -37,17 +38,17 @@ struct GenderStepView: View {
                             Spacer()
                             if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
+                                    .foregroundStyle(.white)
                             }
                         }
-                        .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnCream)
+                        .foregroundStyle(isSelected ? Color.white : Color.primary)
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color.white)
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(HarvestTheme.Colors.deepPlum.opacity(0.12), lineWidth: 1)
+                                        .stroke(Color(.separator), lineWidth: 1)
                                 }
                         }
                     }

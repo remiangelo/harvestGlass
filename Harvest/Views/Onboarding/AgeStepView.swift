@@ -24,14 +24,14 @@ struct AgeStepView: View {
 
             Text("You must be at least 18 years old")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(.secondary)
 
             ZStack {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                    .fill(HarvestTheme.Colors.whiteFormSurface)
+                    .fill(Color(.secondarySystemBackground))
                     .overlay {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                            .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
+                            .stroke(Color(.separator), lineWidth: 1)
                     }
 
                 DatePicker(
@@ -49,7 +49,7 @@ struct AgeStepView: View {
             if viewModel.age > 0 {
                 Text("Age: \(viewModel.age)")
                     .font(HarvestTheme.Typography.h3)
-                    .foregroundStyle(HarvestTheme.Colors.primary)
+                    .foregroundStyle(.primary)
             }
 
             if !viewModel.isAgeValid && viewModel.age > 0 {

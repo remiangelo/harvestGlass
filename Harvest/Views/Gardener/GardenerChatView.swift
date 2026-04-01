@@ -53,7 +53,7 @@ struct GardenerChatView: View {
                             Task { await viewModel.submitQuizAnswer(userId: userId, answer: answer) }
                         }
                     }
-                    .presentationDetents([.medium, .large])
+                    .presentationDetents([.large])
                 }
             }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)

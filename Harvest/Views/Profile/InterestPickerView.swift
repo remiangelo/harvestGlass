@@ -52,14 +52,14 @@ struct InterestPickerView: View {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
                 Text("Pick your interests (\(draftInterests.count) selected)")
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
                 ForEach(Self.categorizedInterests, id: \.0) { category, interests in
                     VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                         Text(category)
                             .font(HarvestTheme.Typography.h4)
-                            .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                            .foregroundStyle(.primary)
                             .padding(.horizontal)
 
                         FlowLayout(spacing: HarvestTheme.Spacing.xs) {
@@ -88,7 +88,7 @@ struct InterestPickerView: View {
                     dismiss()
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(.primary)
             }
         }
         .onAppear {

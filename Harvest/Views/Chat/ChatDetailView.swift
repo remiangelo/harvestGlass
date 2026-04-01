@@ -166,7 +166,7 @@ struct ChatDetailView: View {
                         Task { await viewModel.confirmSendDespiteWarning() }
                     }
                 )
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
             }
         }
         .sheet(isPresented: $viewModel.showReportSheet) {
@@ -198,7 +198,7 @@ struct ChatDetailView: View {
                         }
                     }
                 )
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
             }
         }
         .alert("Ready to Move", isPresented: $viewModel.showReadyToMoveActionAlert) {

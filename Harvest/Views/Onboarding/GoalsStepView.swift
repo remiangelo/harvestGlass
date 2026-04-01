@@ -24,7 +24,7 @@ struct GoalsStepView: View {
 
             Text("Select all that apply")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(.secondary)
 
             FlowLayout(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(goals, id: \.self) { goal in
@@ -40,15 +40,15 @@ struct GoalsStepView: View {
                         Text(goal)
                             .font(HarvestTheme.Typography.bodySmall)
                             .fontWeight(isSelected ? .semibold : .regular)
-                            .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnWhitePrimary)
+                            .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
                             .padding(.horizontal, HarvestTheme.Spacing.md)
                             .padding(.vertical, HarvestTheme.Spacing.sm)
                             .background {
                                 Capsule()
-                                    .fill(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.whiteFormSurface)
+                                    .fill(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
                                     .overlay {
                                         Capsule()
-                                            .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
+                                            .stroke(Color(.separator), lineWidth: 1)
                                     }
                             }
                     }

@@ -14,12 +14,12 @@ struct ReadyToMoveGateView: View {
 
             Text(isReady ? "You're Clear to Share" : "Not Yet Ready")
                 .font(HarvestTheme.Typography.h2)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                .foregroundStyle(.primary)
 
             if let reason {
                 Text(reason)
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                    .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
             }
 
@@ -48,7 +48,7 @@ struct ReadyToMoveGateView: View {
                 VStack(spacing: HarvestTheme.Spacing.sm) {
                     Text("You can now choose to share contact details outside the app.")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
 
                     if onSharePreferredContact != nil {
@@ -75,18 +75,18 @@ struct ReadyToMoveGateView: View {
             }
         }
         .padding()
-        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
-        .background(Color.white.ignoresSafeArea())
+        .foregroundStyle(.primary)
+        .background(Color(.systemBackground).ignoresSafeArea())
     }
 
     private func checklistItem(_ text: String, isComplete: Bool) -> some View {
         HStack(spacing: HarvestTheme.Spacing.sm) {
             Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isComplete ? HarvestTheme.Colors.accent : HarvestTheme.Colors.textTertiary)
+                .foregroundStyle(isComplete ? HarvestTheme.Colors.accent : .tertiary)
 
             Text(text)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(isComplete ? HarvestTheme.Colors.textOnWhitePrimary : HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(isComplete ? .primary : .secondary)
         }
     }
 }

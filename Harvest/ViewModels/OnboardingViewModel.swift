@@ -31,6 +31,7 @@ final class OnboardingViewModel {
     var isLoading = false
     var error: String?
     var resolvedLocation: String?
+    var locationSuggestions: [String] = []
     var isValidatingLocation = false
 
     private let profileService = ProfileService()
@@ -113,11 +114,13 @@ final class OnboardingViewModel {
         let query = location.trimmingCharacters(in: .whitespaces)
         guard !query.isEmpty else {
             resolvedLocation = nil
+            locationSuggestions = []
             return
         }
 
         guard let request = MKGeocodingRequest(addressString: query) else {
             resolvedLocation = nil
+            locationSuggestions = []
             return
         }
 
@@ -126,14 +129,24 @@ final class OnboardingViewModel {
 
         do {
             let mapItems = try await request.mapItems
-            if let address = mapItems.first?.address {
-                resolvedLocation = address.shortAddress ?? address.fullAddress
-            } else {
-                resolvedLocation = nil
-            }
+            let suggestions = mapItems
+                .compactMap { item -> String? in
+                    guard let address = item.address else { return nil }
+                    return address.shortAddress ?? address.fullAddress
+                }
+            let uniqueSuggestions = Array(NSOrderedSet(array: suggestions)) as? [String] ?? suggestions
+            locationSuggestions = Array(uniqueSuggestions.prefix(5))
+            resolvedLocation = locationSuggestions.first
         } catch {
             resolvedLocation = nil
+            locationSuggestions = []
         }
+    }
+
+    func selectLocationSuggestion(_ suggestion: String) {
+        location = suggestion
+        resolvedLocation = suggestion
+        locationSuggestions = [suggestion]
     }
 
     func completeOnboarding(userId: String) async -> UserProfile? {
@@ -147,7 +160,7 @@ final class OnboardingViewModel {
             "gender": .string(gender),
             "goals": .string(Array(selectedGoals).joined(separator: ",")),
             "photos": .array(photoUrls.map { .string($0) }),
-            "location": .string(location),
+            "location": .string(resolvedLocation ?? location),
             "interested_in": .array(Array(interestedIn).map { .string($0) }),
             "onboarding_completed": .bool(true)
         ]

@@ -35,6 +35,7 @@ struct HelpCenterView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     Text("Frequently Asked Questions")
                         .font(HarvestTheme.Typography.h3)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal)
 
                     ForEach(viewModel.filteredFAQs) { faq in
@@ -42,19 +43,19 @@ struct HelpCenterView: View {
                             DisclosureGroup {
                                 Text(faq.answer)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                                    .foregroundStyle(.secondary)
                                     .padding(.top, HarvestTheme.Spacing.sm)
                             } label: {
                                 HStack {
                                     Text(faq.question)
                                         .font(HarvestTheme.Typography.bodyRegular)
                                         .fontWeight(.medium)
-                                        .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                                        .foregroundStyle(.primary)
                                         .multilineTextAlignment(.leading)
 
                                     Spacer()
 
-                                    GlassBadge(text: faq.category, color: HarvestTheme.Colors.textOnWhiteSecondary)
+                                    GlassBadge(text: faq.category, color: .secondary)
                                 }
                             }
                             .tint(HarvestTheme.Colors.primary)
@@ -70,6 +71,7 @@ struct HelpCenterView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     Text("Contact Support")
                         .font(HarvestTheme.Typography.h3)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal)
 
                     GlassCard(style: .light) {
@@ -78,6 +80,7 @@ struct HelpCenterView: View {
                             HStack {
                                 Text("Category")
                                     .font(HarvestTheme.Typography.bodyRegular)
+                                    .foregroundStyle(.primary)
                                 Spacer()
                                 Picker("", selection: $viewModel.ticketCategory) {
                                     ForEach(HelpCenterViewModel.categories, id: \.self) {
@@ -91,20 +94,22 @@ struct HelpCenterView: View {
                             // Subject
                             TextField("Subject", text: $viewModel.ticketSubject)
                                 .font(HarvestTheme.Typography.bodyRegular)
+                                .foregroundStyle(.primary)
                                 .padding(HarvestTheme.Spacing.sm)
                                 .background {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
-                                        .fill(HarvestTheme.Colors.divider)
+                                        .fill(Color(.secondarySystemBackground))
                                 }
 
                             // Message
                             TextEditor(text: $viewModel.ticketMessage)
                                 .font(HarvestTheme.Typography.bodyRegular)
+                                .scrollContentBackground(.hidden)
                                 .frame(minHeight: 100)
                                 .padding(HarvestTheme.Spacing.xs)
                                 .background {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
-                                        .fill(HarvestTheme.Colors.divider)
+                                        .fill(Color(.secondarySystemBackground))
                                 }
 
                             GlassButton(title: "Submit", icon: "paperplane", style: .primary) {
@@ -129,6 +134,7 @@ struct HelpCenterView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     Text("Resources")
                         .font(HarvestTheme.Typography.h3)
+                        .foregroundStyle(.primary)
                         .padding(.horizontal)
 
                     VStack(spacing: HarvestTheme.Spacing.sm) {
@@ -157,6 +163,8 @@ struct HelpCenterView: View {
         }
         .navigationTitle("Help Center")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
         .alert("Ticket Submitted", isPresented: $viewModel.showSuccess) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -171,11 +179,11 @@ struct HelpCenterView: View {
                     .foregroundStyle(HarvestTheme.Colors.primary)
                 Text(title)
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                    .foregroundStyle(.primary)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
+                    .foregroundStyle(.tertiary)
             }
         }
     }

@@ -18,7 +18,7 @@ struct InterestedInStepView: View {
 
             Text("Select all that apply")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(.secondary)
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(options, id: \.self) { option in
@@ -47,20 +47,20 @@ struct InterestedInStepView: View {
                             Spacer()
                             if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
-                                    .foregroundStyle(HarvestTheme.Colors.textOnRedPrimary)
+                                    .foregroundStyle(Color.white)
                             } else {
                                 Image(systemName: "circle")
-                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
+                                    .foregroundStyle(.tertiary)
                             }
                         }
-                        .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textOnWhitePrimary)
+                        .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.whiteFormSurface)
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(HarvestTheme.Colors.whiteFormBorder, lineWidth: 1)
+                                        .stroke(Color(.separator), lineWidth: 1)
                                 }
                         }
                     }

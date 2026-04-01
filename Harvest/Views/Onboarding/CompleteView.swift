@@ -26,12 +26,13 @@ struct CompleteView: View {
 
             Text("You're all set!")
                 .font(HarvestTheme.Typography.h1)
+                .foregroundStyle(.primary)
                 .opacity(showConfetti ? 1 : 0)
                 .animation(.easeIn.delay(0.4), value: showConfetti)
 
             Text("Time to start discovering amazing people")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
                 .opacity(showConfetti ? 1 : 0)
                 .animation(.easeIn.delay(0.6), value: showConfetti)

@@ -6,6 +6,7 @@ struct CommunityGuidelinesView: View {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
                 Text("Community Guidelines")
                     .font(HarvestTheme.Typography.h2)
+                    .foregroundStyle(.primary)
                     .padding(.bottom, HarvestTheme.Spacing.sm)
 
                 section(title: "Be Respectful", body: """
@@ -54,23 +55,26 @@ struct CommunityGuidelinesView: View {
 
                 Text("Last updated: March 2026")
                     .font(HarvestTheme.Typography.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
+                    .foregroundStyle(.tertiary)
                     .padding(.top, HarvestTheme.Spacing.md)
             }
             .padding()
         }
         .navigationTitle("Community Guidelines")
         .navigationBarTitleDisplayMode(.inline)
+        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 
     private func section(title: String, body: String) -> some View {
         VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
             Text(title)
                 .font(HarvestTheme.Typography.h3)
+                .foregroundStyle(.primary)
 
             Text(body)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(.secondary)
         }
     }
 }

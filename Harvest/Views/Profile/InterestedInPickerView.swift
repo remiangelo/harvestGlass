@@ -15,7 +15,7 @@ struct InterestedInPickerView: View {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
                 Text("Choose who you want to match with")
                     .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                    .foregroundStyle(.secondary)
                     .padding(.horizontal)
 
                 FlowLayout(spacing: HarvestTheme.Spacing.xs) {

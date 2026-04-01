@@ -20,10 +20,11 @@ struct SafetyDashboardView: View {
 
                     Text("No Safety Data Yet")
                         .font(HarvestTheme.Typography.h3)
+                        .foregroundStyle(.primary)
 
                     Text("Safety scores will appear as you chat with your matches.")
                         .font(HarvestTheme.Typography.bodySmall)
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .foregroundStyle(.secondary)
                         .multilineTextAlignment(.center)
                 }
                 .frame(maxWidth: .infinity)
@@ -57,6 +58,7 @@ struct SafetyDashboardView: View {
                                 Text(viewModel.profiles[analysis.otherUserId]?.displayName ?? "User")
                                     .font(HarvestTheme.Typography.bodyRegular)
                                     .fontWeight(.semibold)
+                                    .foregroundStyle(.primary)
 
                                 HStack(spacing: 4) {
                                     Image(systemName: analysis.safetyLevel.icon)
@@ -78,10 +80,10 @@ struct SafetyDashboardView: View {
 
                             Image(systemName: "chevron.right")
                                 .font(.caption)
-                                .foregroundStyle(HarvestTheme.Colors.textOnWhiteTertiary)
+                                .foregroundStyle(.tertiary)
                         }
                     }
-                    .foregroundStyle(HarvestTheme.Colors.textOnWhitePrimary)
+                    .foregroundStyle(.primary)
                 }
             }
         }
@@ -98,7 +100,7 @@ struct SafetyDashboardView: View {
                 } label: {
                     Text("Analyze")
                 }
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(.primary)
                 .disabled(viewModel.isLoading)
                 .accessibilityLabel("Analyze all conversations")
             }
@@ -111,6 +113,8 @@ struct SafetyDashboardView: View {
         .sheet(item: $viewModel.selectedAnalysis) { analysis in
             SafetyDetailSheet(analysis: analysis, redFlags: viewModel.redFlags)
         }
+        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 
@@ -188,15 +192,16 @@ private struct SafetyDetailSheet: View {
                         VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                             Text("Recommendations")
                                 .font(HarvestTheme.Typography.h4)
+                                .foregroundStyle(.primary)
 
                             if analysis.safetyScore >= 80 {
                                 Text("This conversation appears safe. Continue enjoying your connection!")
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                                    .foregroundStyle(.secondary)
                             } else if analysis.safetyScore >= 50 {
                                 Text("Some concerns have been noted. Stay mindful and report anything that makes you uncomfortable.")
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                                    .foregroundStyle(.secondary)
                             } else {
                                 Text("Multiple concerns detected. Consider reporting or blocking this user if you feel unsafe.")
                                     .font(HarvestTheme.Typography.bodySmall)
@@ -222,11 +227,12 @@ private struct SafetyDetailSheet: View {
         HStack {
             Text(label)
                 .font(HarvestTheme.Typography.bodySmall)
-                .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                .foregroundStyle(.secondary)
             Spacer()
             Text(value)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(.semibold)
+                .foregroundStyle(.primary)
         }
     }
 
@@ -239,9 +245,10 @@ private struct SafetyDetailSheet: View {
                     Text(title)
                         .font(HarvestTheme.Typography.bodySmall)
                         .fontWeight(.semibold)
+                        .foregroundStyle(.primary)
                     Text(detail)
                         .font(HarvestTheme.Typography.caption)
-                        .foregroundStyle(HarvestTheme.Colors.textOnWhiteSecondary)
+                        .foregroundStyle(.secondary)
                 }
                 Spacer()
             }
