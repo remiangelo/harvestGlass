@@ -82,11 +82,11 @@ struct ReadyToMoveGateView: View {
     private func checklistItem(_ text: String, isComplete: Bool) -> some View {
         HStack(spacing: HarvestTheme.Spacing.sm) {
             Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isComplete ? HarvestTheme.Colors.accent : .tertiary)
+                .foregroundStyle(isComplete ? AnyShapeStyle(HarvestTheme.Colors.accent) : AnyShapeStyle(Color.secondary))
 
             Text(text)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(isComplete ? .primary : .secondary)
+                .foregroundStyle(isComplete ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
         }
     }
 }
