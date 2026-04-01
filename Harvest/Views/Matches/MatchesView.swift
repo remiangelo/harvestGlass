@@ -226,8 +226,9 @@ struct MatchesView: View {
                 .font(HarvestTheme.Typography.bodySmall)
                 .foregroundStyle(HarvestTheme.Colors.textTertiary)
         }
-        .frame(maxWidth: .infinity)
-        .padding(.vertical, HarvestTheme.Spacing.xxl)
+        .frame(maxWidth: .infinity, alignment: .top)
+        .padding(.top, HarvestTheme.Spacing.lg)
+        .padding(.bottom, HarvestTheme.Spacing.xl)
     }
 }
 

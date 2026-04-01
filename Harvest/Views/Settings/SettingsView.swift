@@ -141,8 +141,6 @@ struct SettingsView: View {
         }
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
-        .scrollContentBackground(.hidden)
-        .background(Color(.systemBackground).ignoresSafeArea())
         .task {
             if let userId = authViewModel.currentUserId {
                 await subscriptionViewModel.loadSubscriptionData(userId: userId)
