@@ -72,7 +72,7 @@ struct ProfileEditView: View {
                     )
 
                     if viewModel.isLoading {
-                        ProgressView("Uploading...")
+                        ProgressView()
                             .tint(HarvestTheme.Colors.primary)
                     }
 

@@ -144,13 +144,6 @@ struct ChatListView: View {
             }
         }
         .padding(.vertical, 4)
-        .overlay(alignment: .leading) {
-            if convoWithProfile.hasReplyHighlight {
-                Capsule()
-                    .fill(HarvestTheme.Colors.primary)
-                    .frame(width: 3, height: 44)
-            }
-        }
     }
 
     private func formatTime(_ isoString: String) -> String {

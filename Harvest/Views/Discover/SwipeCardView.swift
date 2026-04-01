@@ -26,22 +26,17 @@ struct SwipeCardView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
+                // Photo carousel / fallback surface
+                photoCarousel(in: geo.size)
+
+                // Swipe overlays
                 if isTopCard {
-                    // Photo carousel
-                    photoCarousel(in: geo.size)
-
-                    // Swipe overlays
                     swipeOverlays
+                }
 
-                    // Info overlay
+                // Info overlay
+                if isTopCard {
                     infoOverlay
-                } else {
-                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                        .fill(HarvestTheme.Colors.glassFillStrong)
-                        .overlay {
-                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                                .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                        }
                 }
             }
             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
@@ -148,13 +143,17 @@ struct SwipeCardView: View {
             }
 
         if validPhotoURLs.isEmpty {
-            Rectangle()
-                .fill(HarvestTheme.Colors.divider)
+            RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                .fill(HarvestTheme.Colors.glassFillStrong)
                 .frame(width: size.width, height: size.height)
                 .overlay {
                     Image(systemName: "person.fill")
                         .font(.system(size: 60))
                         .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                }
+                .overlay {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
                 }
         } else {
             TabView(selection: $currentPhotoIndex) {

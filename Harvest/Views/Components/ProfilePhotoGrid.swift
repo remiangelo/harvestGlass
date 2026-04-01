@@ -61,15 +61,21 @@ struct ProfilePhotoGrid: View {
                     Image(systemName: "xmark.circle.fill")
                         .font(.title3)
                         .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                        .background(
+                            Circle()
+                                .fill(.black.opacity(0.45))
+                        )
                         .shadow(radius: 2)
                 }
                 .frame(width: 32, height: 32)
                 .contentShape(Rectangle())
-                .padding(4)
+                .padding(8)
                 .buttonStyle(.plain)
                 .zIndex(1)
             }
         }
+        .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
+        .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
     }
 
     private var addPhotoCell: some View {
