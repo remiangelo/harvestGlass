@@ -24,6 +24,7 @@ struct ProfilePhotoGrid: View {
                         if itemIndex < photoEntries.count {
                             let entry = photoEntries[itemIndex]
                             photoCell(url: entry.element, index: entry.offset)
+                                .zIndex(Double(photoEntries.count - entry.offset))
                         } else if itemIndex == photoEntries.count && photoUrls.count < maxPhotos {
                             addPhotoCell
                         } else {
