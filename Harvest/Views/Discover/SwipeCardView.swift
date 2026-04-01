@@ -26,14 +26,23 @@ struct SwipeCardView: View {
     var body: some View {
         GeometryReader { geo in
             ZStack(alignment: .bottom) {
-                // Photo carousel
-                photoCarousel(in: geo.size)
+                if isTopCard {
+                    // Photo carousel
+                    photoCarousel(in: geo.size)
 
-                // Swipe overlays
-                swipeOverlays
+                    // Swipe overlays
+                    swipeOverlays
 
-                // Info overlay
-                infoOverlay
+                    // Info overlay
+                    infoOverlay
+                } else {
+                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                        .fill(HarvestTheme.Colors.glassFillStrong)
+                        .overlay {
+                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                                .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                        }
+                }
             }
             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
             .shadow(color: .black.opacity(0.15), radius: 10, y: 5)

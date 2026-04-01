@@ -124,6 +124,14 @@ final class DiscoverViewModel {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
 
+        currentIndex += 1
+
+        if remainingCount < 3 {
+            Task {
+                await loadProfiles(userId: userId)
+            }
+        }
+
         do {
             let result = try await swipeService.saveSwipe(
                 swiperId: userId,
@@ -141,13 +149,6 @@ final class DiscoverViewModel {
             }
         } catch {
             self.error = error.localizedDescription
-        }
-
-        currentIndex += 1
-
-        // Load more if running low
-        if remainingCount < 3 {
-            await loadProfiles(userId: userId)
         }
     }
 
