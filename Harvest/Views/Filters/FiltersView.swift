@@ -19,7 +19,7 @@ struct FiltersView: View {
     private let childrenOptions = ["Want someday", "Don't want", "Have & want more", "Have & don't want more", "Not sure", "Prefer not to say"]
 
     var body: some View {
-        Form {
+        List {
             Section("Age Range") {
                 Stepper("Minimum: \(viewModel.filters.ageMin)", value: $viewModel.filters.ageMin, in: 18...99)
                 Stepper("Maximum: \(viewModel.filters.ageMax)", value: $viewModel.filters.ageMax, in: 18...99)
@@ -180,8 +180,6 @@ struct FiltersView: View {
         }
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
-        .scrollContentBackground(.hidden)
-        .background(Color(.systemBackground).ignoresSafeArea())
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {

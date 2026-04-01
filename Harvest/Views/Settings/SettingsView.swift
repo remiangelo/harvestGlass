@@ -19,7 +19,7 @@ struct SettingsView: View {
     @State private var showActiveStatus = UserDefaults.standard.object(forKey: "showActiveStatus") as? Bool ?? true
 
     var body: some View {
-        Form {
+        List {
             Section("Account") {
                 HStack {
                     Text("Email")
