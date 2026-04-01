@@ -29,7 +29,14 @@ struct MindfulMessagingService {
         "punch", "hit", "slap", "hurt", "destroy", "ruin", "wreck", "break",
         "smash", "crush", "obliterate", "demolish", "annihilate", "murder", "stab",
         "choke", "strangle", "suffocate", "drown", "burn", "torture", "abuse",
-        "attack", "assault", "threaten", "intimidate", "bully", "harass"
+        "attack", "assault", "threaten", "intimidate", "bully", "harass",
+        "fuck", "fuck you", "fuck off", "fucking", "motherfucker", "mother fucker",
+        "shit", "bullshit", "dipshit", "asshole", "ass hole", "arsehole", "arse hole",
+        "dick", "dickhead", "prick", "cock", "cunt", "twat", "pussy",
+        "slut", "whore", "hoe", "skank", "trashy", "scumbag", "scum",
+        "piece of shit", "piece of crap", "bastard", "jackass", "douche", "douchebag",
+        "eat shit", "go to hell", "screw off", "shut the fuck up", "fuckin",
+        "f off", "fk you", "f u", "wtf"
     ]
 
     private static let possessive: Set<String> = [
@@ -120,6 +127,11 @@ struct MindfulMessagingService {
     }
 
     func analyzeMessage(_ text: String) async -> MindfulAnalysis {
+        let keywordResult = keywordAnalysis(text)
+        if keywordResult.needsReview {
+            return keywordResult
+        }
+
         // Try OpenAI first
         do {
             let messages: [OpenAIService.ChatMessage] = [
@@ -165,6 +177,7 @@ struct MindfulMessagingService {
 
     private func keywordAnalysis(_ text: String) -> MindfulAnalysis {
         let lowered = text.lowercased()
+        let normalized = normalizeForMatching(text)
         var flaggedWords: [String] = []
         var highestCategory: String?
         var highestWeight = 0
@@ -181,7 +194,8 @@ struct MindfulMessagingService {
 
         for (keywords, category, weight) in categories {
             for keyword in keywords {
-                if lowered.contains(keyword) {
+                let normalizedKeyword = normalizeForMatching(keyword)
+                if lowered.contains(keyword) || normalized.contains(normalizedKeyword) {
                     flaggedWords.append(keyword)
                     if weight > highestWeight {
                         highestWeight = weight
@@ -217,5 +231,18 @@ struct MindfulMessagingService {
             growthLesson: lesson,
             flaggedWords: flaggedWords
         )
+    }
+
+    private func normalizeForMatching(_ text: String) -> String {
+        let lowered = text.lowercased()
+        let scalars = lowered.unicodeScalars.map { scalar -> Character in
+            if CharacterSet.alphanumerics.contains(scalar) || CharacterSet.whitespaces.contains(scalar) {
+                return Character(scalar)
+            }
+            return " "
+        }
+        return String(scalars)
+            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
+            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

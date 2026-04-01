@@ -211,9 +211,8 @@ final class ProfileViewModel {
         }
     }
 
-    func deletePhoto(url: String) {
-        guard let index = editPhotoUrls.firstIndex(of: url) else { return }
-
+    func deletePhoto(at index: Int) {
+        guard editPhotoUrls.indices.contains(index) else { return }
         error = nil
         let url = editPhotoUrls[index]
         editPhotoUrls.remove(at: index)

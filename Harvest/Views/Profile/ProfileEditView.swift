@@ -66,8 +66,8 @@ struct ProfileEditView: View {
                                 }
                             }
                         },
-                        onRemove: { url in
-                            viewModel.deletePhoto(url: url)
+                        onRemove: { index in
+                            viewModel.deletePhoto(at: index)
                         }
                     )
 

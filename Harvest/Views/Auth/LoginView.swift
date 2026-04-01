@@ -52,19 +52,27 @@ struct LoginView: View {
                             .foregroundStyle(.primary)
 
                         VStack(spacing: HarvestTheme.Spacing.sm) {
-                            TextField("Email", text: $email)
-                                .textContentType(.emailAddress)
-                                .keyboardType(.emailAddress)
-                                .autocorrectionDisabled()
-                                .textInputAutocapitalization(.never)
-                                .foregroundStyle(.primary)
-                                .padding()
-                                .background(Color(.secondarySystemBackground))
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(Color(.separator), lineWidth: 1)
+                            ZStack(alignment: .leading) {
+                                if email.isEmpty {
+                                    Text("Email")
+                                        .foregroundStyle(.gray)
+                                        .padding(.horizontal)
                                 }
-                                .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
+
+                                TextField("", text: $email)
+                                    .textContentType(.emailAddress)
+                                    .keyboardType(.emailAddress)
+                                    .autocorrectionDisabled()
+                                    .textInputAutocapitalization(.never)
+                                    .foregroundStyle(.primary)
+                                    .padding()
+                            }
+                            .background(Color(.secondarySystemBackground))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                                    .stroke(Color(.separator), lineWidth: 1)
+                            }
+                            .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
 
                             HStack {
                                 ZStack(alignment: .leading) {

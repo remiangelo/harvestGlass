@@ -92,8 +92,9 @@ struct DiscoverView: View {
                         }
                     }
                 )
-                .scaleEffect(index == viewModel.currentIndex ? 1 : 0.95)
-                .offset(y: CGFloat(index - viewModel.currentIndex) * 8)
+                .scaleEffect(1)
+                .offset(y: 0)
+                .zIndex(Double(viewModel.currentIndex + 3 - index))
                 .allowsHitTesting(index == viewModel.currentIndex)
             }
         }
