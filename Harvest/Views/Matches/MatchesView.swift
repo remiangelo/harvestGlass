@@ -43,6 +43,7 @@ struct MatchesView: View {
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Matches")
+            .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(item: $activeChatRoute) { route in
                 ChatDetailView(
                     authViewModel: authViewModel,

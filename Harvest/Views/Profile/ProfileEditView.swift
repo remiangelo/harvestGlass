@@ -70,12 +70,6 @@ struct ProfileEditView: View {
                             viewModel.deletePhoto(at: index)
                         }
                     )
-
-                    if viewModel.isLoading {
-                        ProgressView()
-                            .tint(HarvestTheme.Colors.primary)
-                    }
-
                     if let error = viewModel.error {
                         Text(error)
                             .font(HarvestTheme.Typography.bodySmall)

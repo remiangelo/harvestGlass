@@ -32,12 +32,6 @@ struct PhotosStepView: View {
                 }
             )
             .padding(.horizontal, HarvestTheme.Spacing.lg)
-
-            if viewModel.isLoading {
-                ProgressView("Uploading...")
-                    .tint(HarvestTheme.Colors.primary)
-            }
-
             if let error = viewModel.error {
                 Text(error)
                     .font(HarvestTheme.Typography.bodySmall)
