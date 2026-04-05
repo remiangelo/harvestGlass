@@ -153,7 +153,7 @@ final class OnboardingViewModel {
         isLoading = true
         defer { isLoading = false }
 
-        let updates: [String: AnyJSON] = [
+        var updates: [String: AnyJSON] = [
             "nickname": .string(nickname),
             "age": .double(Double(age)),
             "bio": .string("I'm new here!"),
@@ -171,6 +171,10 @@ final class OnboardingViewModel {
                 return result
             }
             // Profile row doesn't exist — create it via upsert
+            // Include email from auth session since users.email is NOT NULL
+            if let email = try? await SupabaseManager.shared.client.auth.session.user.email {
+                updates["email"] = .string(email)
+            }
             if let result = try await profileService.upsertProfile(userId: userId, updates: updates) {
                 return result
             }
