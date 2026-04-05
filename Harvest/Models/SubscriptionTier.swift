@@ -42,6 +42,10 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         case canDisableMindfulMessaging = "can_disable_mindful_messaging"
         case sortOrder = "sort_order"
     }
+
+    var presentationName: String {
+        name == .green ? "Grow" : displayName
+    }
 }
 
 struct UserSubscription: Codable, Sendable {

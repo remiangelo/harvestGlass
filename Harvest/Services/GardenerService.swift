@@ -36,9 +36,22 @@ struct GardenerService {
         "Remember: you're not just looking for someone to like you. You're looking for someone you genuinely like too. What qualities matter most to you?"
     ]
 
-    func sendMessage(userId: String, message: String, history: [GardenerMessage]) async throws -> String {
+    func sendMessage(userId: String, message: String, history: [GardenerMessage], valuesBrought: [Value] = [], valuesSought: [Value] = []) async throws -> String {
+        var systemContent = Self.systemPrompt
+        if !valuesBrought.isEmpty || !valuesSought.isEmpty {
+            var valuesContext = "\n\nUser's personal values context:"
+            if !valuesBrought.isEmpty {
+                valuesContext += "\n- Values they bring to relationships: \(valuesBrought.map(\.name).joined(separator: ", "))"
+            }
+            if !valuesSought.isEmpty {
+                valuesContext += "\n- Values they seek in a partner: \(valuesSought.map(\.name).joined(separator: ", "))"
+            }
+            valuesContext += "\nUse this context to personalize your advice when relevant, but don't force it into every response."
+            systemContent += valuesContext
+        }
+
         var chatMessages: [OpenAIService.ChatMessage] = [
-            .init(role: "system", content: Self.systemPrompt)
+            .init(role: "system", content: systemContent)
         ]
 
         let recentHistory = history.suffix(10)

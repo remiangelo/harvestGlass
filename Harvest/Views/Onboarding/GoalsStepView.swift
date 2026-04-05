@@ -4,11 +4,10 @@ struct GoalsStepView: View {
     let viewModel: OnboardingViewModel
 
     private let goals = [
-        "Long-term relationship",
-        "Short-term dating",
-        "Casual",
-        "Friendship",
-        "Not sure yet"
+        "Dating",
+        "Relationship",
+        "Long-Term Commitment",
+        "Marriage"
     ]
 
     var body: some View {

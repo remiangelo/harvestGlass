@@ -5,10 +5,13 @@ struct ProfileEditView: View {
     @Bindable var viewModel: ProfileViewModel
     @Environment(\.dismiss) private var dismiss
     @State private var didInitializeEditing = false
+    @State private var heightFeet: Int = 5
+    @State private var heightInches: Int = 7
 
     private let lookingForOptions = [
         ("Dating", "dating"),
         ("Relationship", "relationship"),
+        ("Long-Term Commitment", "long_term_commitment"),
         ("Marriage", "marriage")
     ]
     private let smokingOptions = [
@@ -130,7 +133,14 @@ struct ProfileEditView: View {
                     }
                 }
 
-                Stepper("Height \(viewModel.editHeightCm) cm", value: $viewModel.editHeightCm, in: 100...250)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Height: \(heightFeet)'\(heightInches)\"")
+                        .font(HarvestTheme.Typography.bodyRegular)
+                    Stepper("Feet: \(heightFeet)", value: $heightFeet, in: 4...7)
+                        .onChange(of: heightFeet) { viewModel.editHeightCm = feetInchesToCm(feet: heightFeet, inches: heightInches) }
+                    Stepper("Inches: \(heightInches)", value: $heightInches, in: 0...11)
+                        .onChange(of: heightInches) { viewModel.editHeightCm = feetInchesToCm(feet: heightFeet, inches: heightInches) }
+                }
 
                 Picker("Smoking", selection: $viewModel.editSmoking) {
                     Text("Select").tag("")
@@ -188,8 +198,20 @@ struct ProfileEditView: View {
         .onAppear {
             guard !didInitializeEditing else { return }
             viewModel.startEditing()
+            let (ft, inch) = cmToFeetInches(viewModel.editHeightCm)
+            heightFeet = ft
+            heightInches = inch
             didInitializeEditing = true
         }
+    }
+
+    private func cmToFeetInches(_ cm: Int) -> (Int, Int) {
+        let totalInches = Int(round(Double(cm) / 2.54))
+        return (totalInches / 12, totalInches % 12)
+    }
+
+    private func feetInchesToCm(feet: Int, inches: Int) -> Int {
+        Int(round(Double(feet * 12 + inches) * 2.54))
     }
 }
 

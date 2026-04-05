@@ -188,11 +188,11 @@ final class CompatibilityServiceTests: XCTestCase {
     func testGoalsScore_SharedGoal() {
         let user1 = MockSupabaseClient.createTestUser(
             id: "user1",
-            goals: ["Long-term relationship"]
+            goals: ["Relationship"]
         )
         let user2 = MockSupabaseClient.createTestUser(
             id: "user2",
-            goals: ["Long-term relationship", "Marriage"]
+            goals: ["Relationship", "Marriage"]
         )
 
         let score = service.calculateCompatibility(
@@ -207,11 +207,11 @@ final class CompatibilityServiceTests: XCTestCase {
     func testGoalsScore_MultipleSharedGoals() {
         let user1 = MockSupabaseClient.createTestUser(
             id: "user1",
-            goals: ["Long-term relationship", "Marriage"]
+            goals: ["Relationship", "Marriage"]
         )
         let user2 = MockSupabaseClient.createTestUser(
             id: "user2",
-            goals: ["Long-term relationship", "Marriage"]
+            goals: ["Relationship", "Marriage"]
         )
 
         let score = service.calculateCompatibility(
@@ -226,7 +226,7 @@ final class CompatibilityServiceTests: XCTestCase {
     func testGoalsScore_NoSharedGoals() {
         let user1 = MockSupabaseClient.createTestUser(
             id: "user1",
-            goals: ["Casual dating"]
+            goals: ["Dating"]
         )
         let user2 = MockSupabaseClient.createTestUser(
             id: "user2",
@@ -300,7 +300,7 @@ final class CompatibilityServiceTests: XCTestCase {
 
     func testTotalScore_ExcellentMatch() {
         let sharedHobbies = ["Reading", "Hiking", "Cooking"]
-        let sharedGoals = ["Long-term relationship", "Marriage"]
+        let sharedGoals = ["Relationship", "Marriage"]
         let value1 = MockSupabaseClient.createTestValue(id: "v1", name: "Honesty")
         let value2 = MockSupabaseClient.createTestValue(id: "v2", name: "Loyalty")
 
@@ -337,7 +337,7 @@ final class CompatibilityServiceTests: XCTestCase {
             id: "user1",
             age: 25,
             hobbies: ["Reading"],
-            goals: ["Casual dating"]
+            goals: ["Dating"]
         )
         let user2 = MockSupabaseClient.createTestUser(
             id: "user2",
@@ -365,7 +365,7 @@ final class CompatibilityServiceTests: XCTestCase {
         let user2 = MockSupabaseClient.createTestUser(id: "user2", age: 27, hobbies: ["Reading", "Hiking"])
 
         // Medium compatibility profile
-        let user3 = MockSupabaseClient.createTestUser(id: "user3", age: 30, hobbies: ["Reading"])
+        let user3 = MockSupabaseClient.createTestUser(id: "user3", age: 30, hobbies: ["Reading", "Gaming"])
 
         // Low compatibility profile
         let user4 = MockSupabaseClient.createTestUser(id: "user4", age: 45, hobbies: ["Gaming"])

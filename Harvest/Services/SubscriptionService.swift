@@ -8,15 +8,15 @@ struct SubscriptionService {
     // MARK: - StoreKit Product IDs
     // These must match your App Store Connect configuration
     enum ProductID: String {
-        case greenMonthly = "com.harvestglass.harvest.green.monthly"
-        case greenYearly = "com.harvestglass.harvest.green.yearly"
+        case growWeekly = "com.harvestglass.harvest.grow.weekly"
+        case growMonthly = "com.harvestglass.harvest.grow.monthly"
+        case goldWeekly = "com.harvestglass.harvest.gold.weekly"
         case goldMonthly = "com.harvestglass.harvest.gold.monthly"
-        case goldYearly = "com.harvestglass.harvest.gold.yearly"
 
         var tierName: TierName {
             switch self {
-            case .greenMonthly, .greenYearly: return .green
-            case .goldMonthly, .goldYearly: return .gold
+            case .growWeekly, .growMonthly: return .green
+            case .goldWeekly, .goldMonthly: return .gold
             }
         }
     }
@@ -82,10 +82,10 @@ struct SubscriptionService {
     /// Fetch available products from App Store
     func fetchProducts() async throws -> [Product] {
         let productIDs = [
-            ProductID.greenMonthly.rawValue,
-            ProductID.greenYearly.rawValue,
-            ProductID.goldMonthly.rawValue,
-            ProductID.goldYearly.rawValue
+            ProductID.growWeekly.rawValue,
+            ProductID.growMonthly.rawValue,
+            ProductID.goldWeekly.rawValue,
+            ProductID.goldMonthly.rawValue
         ]
 
         let products = try await Product.products(for: productIDs)

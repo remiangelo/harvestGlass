@@ -4,6 +4,10 @@ struct FiltersView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = FiltersViewModel()
     @Environment(\.dismiss) private var dismiss
+    @State private var minHeightFeet: Int = 4
+    @State private var minHeightInches: Int = 11
+    @State private var maxHeightFeet: Int = 6
+    @State private var maxHeightInches: Int = 7
 
     private let genderOptions: [(label: String, value: String)] = [
         ("Male", "male"),
@@ -11,7 +15,7 @@ struct FiltersView: View {
         ("Non-binary", "non-binary"),
         ("Everyone", "everyone")
     ]
-    private let lookingForOptions = ["Relationship", "Casual", "Friendship", "Not sure"]
+    private let lookingForOptions = ["Dating", "Relationship", "Long-Term Commitment", "Marriage"]
     private let smokingOptions = ["Never", "Sometimes", "Often", "Prefer not to say"]
     private let drinkingOptions = ["Never", "Socially", "Often", "Prefer not to say"]
     private let cannabisOptions = ["Never", "Sometimes", "Often", "Prefer not to say"]
@@ -90,23 +94,21 @@ struct FiltersView: View {
                         ForEach(lookingForOptions, id: \.self) { Text($0).tag($0) }
                     }
 
-                    Stepper(
-                        "Min Height: \(viewModel.filters.heightMin ?? 0) cm",
-                        value: Binding(
-                            get: { viewModel.filters.heightMin ?? 150 },
-                            set: { viewModel.filters.heightMin = $0 }
-                        ),
-                        in: 120...220
-                    )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Min Height: \(minHeightFeet)'\(minHeightInches)\"")
+                        Stepper("Feet: \(minHeightFeet)", value: $minHeightFeet, in: 4...7)
+                            .onChange(of: minHeightFeet) { viewModel.filters.heightMin = feetInchesToCm(feet: minHeightFeet, inches: minHeightInches) }
+                        Stepper("Inches: \(minHeightInches)", value: $minHeightInches, in: 0...11)
+                            .onChange(of: minHeightInches) { viewModel.filters.heightMin = feetInchesToCm(feet: minHeightFeet, inches: minHeightInches) }
+                    }
 
-                    Stepper(
-                        "Max Height: \(viewModel.filters.heightMax ?? 0) cm",
-                        value: Binding(
-                            get: { viewModel.filters.heightMax ?? 200 },
-                            set: { viewModel.filters.heightMax = $0 }
-                        ),
-                        in: 120...220
-                    )
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("Max Height: \(maxHeightFeet)'\(maxHeightInches)\"")
+                        Stepper("Feet: \(maxHeightFeet)", value: $maxHeightFeet, in: 4...7)
+                            .onChange(of: maxHeightFeet) { viewModel.filters.heightMax = feetInchesToCm(feet: maxHeightFeet, inches: maxHeightInches) }
+                        Stepper("Inches: \(maxHeightInches)", value: $maxHeightInches, in: 0...11)
+                            .onChange(of: maxHeightInches) { viewModel.filters.heightMax = feetInchesToCm(feet: maxHeightFeet, inches: maxHeightInches) }
+                    }
 
                     Picker("Smoking", selection: Binding(
                         get: { viewModel.filters.smoking ?? "" },
@@ -134,7 +136,7 @@ struct FiltersView: View {
                 } else {
                     PremiumGateView(
                         featureName: "Advanced Filters",
-                        requiredTier: "Green",
+                        requiredTier: "Grow",
                         authViewModel: authViewModel
                     )
                     .frame(height: 200)
@@ -198,6 +200,12 @@ struct FiltersView: View {
         .task {
             if let userId = authViewModel.currentUserId {
                 await viewModel.loadFilters(userId: userId)
+                let (minFt, minIn) = cmToFeetInches(viewModel.filters.heightMin ?? 150)
+                minHeightFeet = minFt
+                minHeightInches = minIn
+                let (maxFt, maxIn) = cmToFeetInches(viewModel.filters.heightMax ?? 200)
+                maxHeightFeet = maxFt
+                maxHeightInches = maxIn
             }
         }
         .toolbarBackground(Color(.systemBackground), for: .navigationBar)
@@ -212,5 +220,14 @@ struct FiltersView: View {
         } else {
             viewModel.filters.showMe.append(option)
         }
+    }
+
+    private func cmToFeetInches(_ cm: Int) -> (Int, Int) {
+        let totalInches = Int(round(Double(cm) / 2.54))
+        return (totalInches / 12, totalInches % 12)
+    }
+
+    private func feetInchesToCm(feet: Int, inches: Int) -> Int {
+        Int(round(Double(feet * 12 + inches) * 2.54))
     }
 }

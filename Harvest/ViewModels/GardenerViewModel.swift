@@ -20,6 +20,9 @@ final class GardenerViewModel {
     private let gardenerService = GardenerService()
     private let subscriptionService = SubscriptionService()
     private let rateLimitService = RateLimitService()
+    private let valuesService = ValuesService()
+    private var valuesBrought: [Value] = []
+    private var valuesSought: [Value] = []
 
     var isAtLimit: Bool {
         todayCharUsage >= characterLimit
@@ -40,6 +43,13 @@ final class GardenerViewModel {
             todayCharUsage = try await gardenerService.getTodayCharacterUsage(userId: userId)
         } catch {
             self.error = error.localizedDescription
+        }
+
+        do {
+            valuesBrought = try await valuesService.getUserValuesBrought(userId: userId)
+            valuesSought = try await valuesService.getUserValuesSought(userId: userId)
+        } catch {
+            print("Warning: Failed to load user values for Gardener: \(error)")
         }
     }
 
@@ -91,7 +101,9 @@ final class GardenerViewModel {
             let response = try await gardenerService.sendMessage(
                 userId: userId,
                 message: text,
-                history: messages
+                history: messages,
+                valuesBrought: valuesBrought,
+                valuesSought: valuesSought
             )
 
             let assistantMsg = GardenerMessage(

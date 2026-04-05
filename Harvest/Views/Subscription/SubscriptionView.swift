@@ -4,7 +4,7 @@ struct SubscriptionView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = SubscriptionViewModel()
     @State private var selectedTier: SubscriptionTier?
-    @State private var billingPeriod: BillingPeriod = .monthly
+    @State private var billingPeriod: BillingPeriod = .weekly
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -106,7 +106,7 @@ struct SubscriptionView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(tier.displayName)
+                            Text(tier.presentationName)
                                 .font(HarvestTheme.Typography.h3)
 
                             if tier.name == .green {
@@ -163,8 +163,8 @@ struct SubscriptionView: View {
                     }
                     .padding(.vertical, 14)
                 } else if tier.name != .seed {
-                    GlassButton(title: "Upgrade to \(tier.displayName)", style: .primary) {
-                        billingPeriod = .monthly
+                    GlassButton(title: "Upgrade to \(tier.presentationName)", style: .primary) {
+                        billingPeriod = .weekly
                         selectedTier = tier
                     }
                 }

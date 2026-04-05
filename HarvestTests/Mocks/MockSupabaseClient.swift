@@ -59,19 +59,20 @@ extension MockSupabaseClient {
         name: String = "Test User",
         age: Int = 28,
         hobbies: [String] = ["Reading", "Hiking", "Cooking"],
-        goals: [String] = ["Long-term relationship"]
+        goals: [String] = ["Relationship"]
     ) -> UserProfile {
-        UserProfile(
+        let goalsJSON = (try? String(data: JSONEncoder().encode(goals), encoding: .utf8)) ?? "[]"
+        return UserProfile(
             id: id,
             email: "\(id)@test.com",
             nickname: name,
             age: age,
-            gender: "Non-binary",
-            interestedIn: ["Women", "Men"],
             location: "Test City",
-            photos: ["\(id)-photo1.jpg"],
+            gender: "Non-binary",
+            goals: goalsJSON,
             hobbies: hobbies,
-            goals: goals,
+            photos: ["\(id)-photo1.jpg"],
+            interestedIn: ["Women", "Men"],
             createdAt: ISO8601DateFormatter().string(from: Date())
         )
     }
@@ -85,8 +86,7 @@ extension MockSupabaseClient {
             id: id,
             name: name,
             category: category,
-            description: "Test value description",
-            iconName: "heart.fill"
+            displayOrder: nil
         )
     }
 

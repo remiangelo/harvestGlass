@@ -59,39 +59,9 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.harvestglass.harvest.green.monthly",
-          "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Harvest Green Monthly",
-          "subscriptionGroupID" : "257F7465",
-          "type" : "RecurringSubscription",
-          "winbackOffers" : [
-
-          ]
-        },
-        {
-          "adHocOffers" : [
-
-          ],
-          "codeOffers" : [
-
-          ],
-          "displayPrice" : "79.99",
-          "familyShareable" : false,
-          "groupNumber" : 1,
-          "internalID" : "6865E11C",
-          "introductoryOffers" : [
-
-          ],
-          "localizations" : [
-            {
-              "description" : "",
-              "displayName" : "",
-              "locale" : "en_US"
-            }
-          ],
-          "productID" : "com.harvestglass.harvest.green.yearly",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "Harvest Green Yearly",
+          "productID" : "com.harvestglass.harvest.grow.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Harvest Grow Weekly",
           "subscriptionGroupID" : "257F7465",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
@@ -108,7 +78,7 @@
           "displayPrice" : "19.99",
           "familyShareable" : false,
           "groupNumber" : 1,
-          "internalID" : "8C3B4295",
+          "internalID" : "6865E11C",
           "introductoryOffers" : [
 
           ],
@@ -119,9 +89,9 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.harvestglass.harvest.gold.monthly",
+          "productID" : "com.harvestglass.harvest.grow.monthly",
           "recurringSubscriptionPeriod" : "P1M",
-          "referenceName" : "Harvest Gold Monthly",
+          "referenceName" : "Harvest Grow Monthly",
           "subscriptionGroupID" : "257F7465",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
@@ -135,7 +105,37 @@
           "codeOffers" : [
 
           ],
-          "displayPrice" : "149.99",
+          "displayPrice" : "14.99",
+          "familyShareable" : false,
+          "groupNumber" : 1,
+          "internalID" : "8C3B4295",
+          "introductoryOffers" : [
+
+          ],
+          "localizations" : [
+            {
+              "description" : "",
+              "displayName" : "",
+              "locale" : "en_US"
+            }
+          ],
+          "productID" : "com.harvestglass.harvest.gold.weekly",
+          "recurringSubscriptionPeriod" : "P1W",
+          "referenceName" : "Harvest Gold Weekly",
+          "subscriptionGroupID" : "257F7465",
+          "type" : "RecurringSubscription",
+          "winbackOffers" : [
+
+          ]
+        },
+        {
+          "adHocOffers" : [
+
+          ],
+          "codeOffers" : [
+
+          ],
+          "displayPrice" : "24.99",
           "familyShareable" : false,
           "groupNumber" : 1,
           "internalID" : "C2AE79D4",
@@ -149,9 +149,9 @@
               "locale" : "en_US"
             }
           ],
-          "productID" : "com.harvestglass.harvest.gold.yearly",
-          "recurringSubscriptionPeriod" : "P1Y",
-          "referenceName" : "Harvest Gold Yearly",
+          "productID" : "com.harvestglass.harvest.gold.monthly",
+          "recurringSubscriptionPeriod" : "P1M",
+          "referenceName" : "Harvest Gold Monthly",
           "subscriptionGroupID" : "257F7465",
           "type" : "RecurringSubscription",
           "winbackOffers" : [
