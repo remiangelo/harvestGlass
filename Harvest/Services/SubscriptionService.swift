@@ -50,9 +50,9 @@ struct SubscriptionService {
             displayName = try container.decode(String.self, forKey: .displayName)
             description = try container.decode(String.self, forKey: .description)
             priceMonthly = try Self.decodeDouble(in: container, forKey: .priceMonthly) ?? 0
-            priceWeekly = (try Self.decodeDouble(in: container, forKey: .priceWeekly))
-                ?? (try Self.decodeDouble(in: container, forKey: .legacyPriceYearly))
-                ?? 0
+            let weeklyPrice = try Self.decodeDouble(in: container, forKey: .priceWeekly)
+            let legacyPrice = try Self.decodeDouble(in: container, forKey: .legacyPriceYearly)
+            priceWeekly = weeklyPrice ?? legacyPrice ?? 0
             matchesPerWeek = try Self.decodeInt(in: container, forKey: .matchesPerWeek)
             maxDistanceMiles = try Self.decodeInt(in: container, forKey: .maxDistanceMiles)
             gardenerConversationsPerDay = try Self.decodeInt(in: container, forKey: .gardenerConversationsPerDay)
