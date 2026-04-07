@@ -4,6 +4,27 @@ enum TierName: String, Codable, Sendable {
     case seed
     case green
     case gold
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self).lowercased()
+
+        switch rawValue {
+        case "seed":
+            self = .seed
+        case "green", "grow":
+            self = .green
+        case "gold":
+            self = .gold
+        default:
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown tier name: \(rawValue)")
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.singleValueContainer()
+        try container.encode(rawValue)
+    }
 }
 
 struct SubscriptionTier: Codable, Identifiable, Sendable {
@@ -97,7 +118,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         id = try container.decode(String.self, forKey: .id)
         name = try container.decode(TierName.self, forKey: .name)
         displayName = try container.decode(String.self, forKey: .displayName)
-        description = try container.decode(String.self, forKey: .description)
+        description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
         priceMonthly = try container.decode(Double.self, forKey: .priceMonthly)
         priceWeekly = try container.decodeIfPresent(Double.self, forKey: .priceWeekly)
             ?? container.decodeIfPresent(Double.self, forKey: .legacyPriceYearly)

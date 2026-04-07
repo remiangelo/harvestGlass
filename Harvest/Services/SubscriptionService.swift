@@ -48,7 +48,7 @@ struct SubscriptionService {
             id = try container.decode(String.self, forKey: .id)
             name = try container.decode(TierName.self, forKey: .name)
             displayName = try container.decode(String.self, forKey: .displayName)
-            description = try container.decode(String.self, forKey: .description)
+            description = try container.decodeIfPresent(String.self, forKey: .description) ?? ""
             priceMonthly = try Self.decodeDouble(in: container, forKey: .priceMonthly) ?? 0
             let weeklyPrice = try Self.decodeDouble(in: container, forKey: .priceWeekly)
             let legacyPrice = try Self.decodeDouble(in: container, forKey: .legacyPriceYearly)

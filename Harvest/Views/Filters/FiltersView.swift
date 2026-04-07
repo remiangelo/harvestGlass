@@ -57,7 +57,7 @@ struct FiltersView: View {
                             Text(option.label)
                                 .foregroundStyle(
                                     viewModel.filters.showMe.contains(option.value)
-                                    ? AnyShapeStyle(HarvestTheme.Colors.primary)
+                                    ? AnyShapeStyle(HarvestTheme.Colors.textPrimary)
                                     : AnyShapeStyle(HarvestTheme.Colors.textPrimary)
                                 )
                             Spacer()

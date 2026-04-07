@@ -27,14 +27,17 @@ struct OpenAIService {
 
     enum OpenAIError: LocalizedError {
         case notAuthenticated
-        case requestFailed(statusCode: Int)
+        case requestFailed(statusCode: Int, body: String?)
         case noResponse
 
         var errorDescription: String? {
             switch self {
             case .notAuthenticated:
                 return "You must be signed in to use AI features"
-            case .requestFailed(let code):
+            case .requestFailed(let code, let body):
+                if let body, !body.isEmpty {
+                    return "OpenAI request failed with status \(code): \(body)"
+                }
                 return "OpenAI request failed with status \(code)"
             case .noResponse:
                 return "No response from OpenAI"
@@ -44,7 +47,7 @@ struct OpenAIService {
 
     func sendChat(
         messages: [ChatMessage],
-        model: String = "gpt-4-turbo-preview",
+        model: String = "gpt-4.1-mini",
         temperature: Double = 0.7,
         maxTokens: Int = 200
     ) async throws -> String {
@@ -64,7 +67,7 @@ struct OpenAIService {
 
     func sendChatJSON(
         messages: [ChatMessage],
-        model: String = "gpt-4-turbo-preview",
+        model: String = "gpt-4.1-mini",
         temperature: Double = 0.7,
         maxTokens: Int = 500
     ) async throws -> Data {
@@ -114,7 +117,8 @@ struct OpenAIService {
         }
 
         guard httpResponse.statusCode == 200 else {
-            throw OpenAIError.requestFailed(statusCode: httpResponse.statusCode)
+            let responseBody = String(data: data, encoding: .utf8)
+            throw OpenAIError.requestFailed(statusCode: httpResponse.statusCode, body: responseBody)
         }
 
         return data

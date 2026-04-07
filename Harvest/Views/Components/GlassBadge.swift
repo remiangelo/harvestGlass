@@ -8,15 +8,15 @@ struct GlassBadge: View {
         Text(text)
             .font(HarvestTheme.Typography.caption)
             .fontWeight(.semibold)
-            .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+            .foregroundStyle(color)
             .padding(.horizontal, HarvestTheme.Spacing.sm)
             .padding(.vertical, HarvestTheme.Spacing.xs)
             .background {
                 Capsule()
-                    .fill(HarvestTheme.Colors.blackSurface)
+                    .fill(HarvestTheme.Colors.formSurfaceStrong)
                     .overlay {
                         Capsule()
-                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                            .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
                     }
             }
     }

@@ -25,7 +25,7 @@ struct SettingsView: View {
                     Text("Email")
                     Spacer()
                     Text(authViewModel.profile?.email ?? "")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
                 }
 
                 NavigationLink {
@@ -109,7 +109,7 @@ struct SettingsView: View {
                     Text("Version")
                     Spacer()
                     Text("1.0.0")
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
                 }
             }
 

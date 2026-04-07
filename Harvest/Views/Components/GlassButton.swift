@@ -15,7 +15,7 @@ struct GlassButton: View {
     private var foregroundColor: Color {
         switch style {
         case .primary: return HarvestTheme.Colors.textOnRedPrimary
-        case .secondary: return HarvestTheme.Colors.textOnBlack
+        case .secondary: return HarvestTheme.Colors.textPrimary
         case .destructive: return HarvestTheme.Colors.textOnRedAccent
         }
     }
@@ -23,7 +23,7 @@ struct GlassButton: View {
     private var backgroundColor: Color {
         switch style {
         case .primary: return HarvestTheme.Colors.redSurface
-        case .secondary: return HarvestTheme.Colors.blackSurface
+        case .secondary: return HarvestTheme.Colors.formSurfaceStrong
         case .destructive: return HarvestTheme.Colors.redSurface
         }
     }
