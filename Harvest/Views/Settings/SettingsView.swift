@@ -41,32 +41,32 @@ struct SettingsView: View {
 
             Section("Notifications") {
                 Toggle("Enable Notifications", isOn: $notificationsEnabled)
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
 
                 if notificationsEnabled {
                     Toggle("New Matches", isOn: $matchNotifications)
-                        .tint(HarvestTheme.Colors.primary)
+                        .tint(HarvestTheme.Colors.formAccent)
 
                     Toggle("Messages", isOn: $messageNotifications)
-                        .tint(HarvestTheme.Colors.primary)
+                        .tint(HarvestTheme.Colors.formAccent)
                 }
             }
 
             Section("Privacy") {
                 Toggle("Show Location", isOn: $showLocation)
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
                     .onChange(of: showLocation) { _, newValue in
                         UserDefaults.standard.set(newValue, forKey: "showLocation")
                     }
 
                 Toggle("Show Age", isOn: $showAge)
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
                     .onChange(of: showAge) { _, newValue in
                         UserDefaults.standard.set(newValue, forKey: "showAge")
                     }
 
                 Toggle("Show Active Status", isOn: $showActiveStatus)
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
                     .onChange(of: showActiveStatus) { _, newValue in
                         UserDefaults.standard.set(newValue, forKey: "showActiveStatus")
                     }
@@ -92,7 +92,7 @@ struct SettingsView: View {
                 }
 
                 Toggle("Mindful Messaging", isOn: $mindfulMessagingEnabled)
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
                     .onChange(of: mindfulMessagingEnabled) { _, newValue in
                         MindfulMessagingService().setEnabled(newValue)
                     }

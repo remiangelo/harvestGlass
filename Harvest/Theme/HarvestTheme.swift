@@ -116,8 +116,8 @@ enum HarvestTheme {
 
         // Form surfaces
         static let formBackground = Color(hex: "4A1528")
-        static let formSurface = Color(hex: "5A1D33")
-        static let formSurfaceStrong = Color(hex: "6B2440")
+        static let formSurface = Color(hex: "6A2742")
+        static let formSurfaceStrong = Color(hex: "7A3452")
         static let formBorder = harvestCream.opacity(0.14)
         static let formAccent = harvestCream
         static let tabBarBackground = Color(hex: "5B1E35")

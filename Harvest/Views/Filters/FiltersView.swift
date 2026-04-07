@@ -39,7 +39,7 @@ struct FiltersView: View {
                         in: 1...100,
                         step: 1
                     )
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
                 }
 
                 Picker("Unit", selection: $viewModel.filters.distanceUnit) {
@@ -63,7 +63,7 @@ struct FiltersView: View {
                             Spacer()
                             if viewModel.filters.showMe.contains(option.value) {
                                 Image(systemName: "checkmark")
-                                    .foregroundStyle(HarvestTheme.Colors.primary)
+                                    .foregroundStyle(HarvestTheme.Colors.formAccent)
                             }
                         }
                     }
@@ -77,7 +77,7 @@ struct FiltersView: View {
 
             Section {
                 Toggle("Visible to others", isOn: $viewModel.filters.isVisible)
-                    .tint(HarvestTheme.Colors.primary)
+                    .tint(HarvestTheme.Colors.formAccent)
             }
 
             Section("Advanced Filters") {

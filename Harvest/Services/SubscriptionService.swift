@@ -5,6 +5,116 @@ import StoreKit
 struct SubscriptionService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
+    private struct SubscriptionTierDTO: Decodable {
+        let id: String
+        let name: TierName
+        let displayName: String
+        let description: String
+        let priceMonthly: Double
+        let priceWeekly: Double
+        let matchesPerWeek: Int?
+        let maxDistanceMiles: Int?
+        let gardenerConversationsPerDay: Int?
+        let gardenerCharacterLimit: Int
+        let hasValuesMatching: Bool
+        let hasBasicFilters: Bool
+        let hasAdvancedFilters: Bool
+        let hasFullFilters: Bool
+        let canSeeLikes: Bool
+        let canDisableMindfulMessaging: Bool
+        let sortOrder: Int
+
+        enum CodingKeys: String, CodingKey {
+            case id, name, description
+            case displayName = "display_name"
+            case priceMonthly = "price_monthly"
+            case priceWeekly = "price_weekly"
+            case legacyPriceYearly = "price_yearly"
+            case matchesPerWeek = "matches_per_week"
+            case maxDistanceMiles = "max_distance_miles"
+            case gardenerConversationsPerDay = "gardener_conversations_per_day"
+            case gardenerCharacterLimit = "gardener_character_limit"
+            case hasValuesMatching = "has_values_matching"
+            case hasBasicFilters = "has_basic_filters"
+            case hasAdvancedFilters = "has_advanced_filters"
+            case hasFullFilters = "has_full_filters"
+            case canSeeLikes = "can_see_likes"
+            case canDisableMindfulMessaging = "can_disable_mindful_messaging"
+            case sortOrder = "sort_order"
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            id = try container.decode(String.self, forKey: .id)
+            name = try container.decode(TierName.self, forKey: .name)
+            displayName = try container.decode(String.self, forKey: .displayName)
+            description = try container.decode(String.self, forKey: .description)
+            priceMonthly = try Self.decodeDouble(in: container, forKey: .priceMonthly) ?? 0
+            priceWeekly = (try Self.decodeDouble(in: container, forKey: .priceWeekly))
+                ?? (try Self.decodeDouble(in: container, forKey: .legacyPriceYearly))
+                ?? 0
+            matchesPerWeek = try Self.decodeInt(in: container, forKey: .matchesPerWeek)
+            maxDistanceMiles = try Self.decodeInt(in: container, forKey: .maxDistanceMiles)
+            gardenerConversationsPerDay = try Self.decodeInt(in: container, forKey: .gardenerConversationsPerDay)
+            gardenerCharacterLimit = try Self.decodeInt(in: container, forKey: .gardenerCharacterLimit) ?? 1000
+            hasValuesMatching = try container.decodeIfPresent(Bool.self, forKey: .hasValuesMatching) ?? false
+            hasBasicFilters = try container.decodeIfPresent(Bool.self, forKey: .hasBasicFilters) ?? false
+            hasAdvancedFilters = try container.decodeIfPresent(Bool.self, forKey: .hasAdvancedFilters) ?? false
+            hasFullFilters = try container.decodeIfPresent(Bool.self, forKey: .hasFullFilters) ?? false
+            canSeeLikes = try container.decodeIfPresent(Bool.self, forKey: .canSeeLikes) ?? false
+            canDisableMindfulMessaging = try container.decodeIfPresent(Bool.self, forKey: .canDisableMindfulMessaging) ?? false
+            sortOrder = try Self.decodeInt(in: container, forKey: .sortOrder) ?? 0
+        }
+
+        private static func decodeDouble(in container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
+            if let value = try container.decodeIfPresent(Double.self, forKey: key) {
+                return value
+            }
+            if let intValue = try container.decodeIfPresent(Int.self, forKey: key) {
+                return Double(intValue)
+            }
+            if let stringValue = try container.decodeIfPresent(String.self, forKey: key) {
+                return Double(stringValue)
+            }
+            return nil
+        }
+
+        private static func decodeInt(in container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Int? {
+            if let value = try container.decodeIfPresent(Int.self, forKey: key) {
+                return value
+            }
+            if let doubleValue = try container.decodeIfPresent(Double.self, forKey: key) {
+                return Int(doubleValue)
+            }
+            if let stringValue = try container.decodeIfPresent(String.self, forKey: key) {
+                return Int(stringValue)
+            }
+            return nil
+        }
+
+        var tier: SubscriptionTier {
+            SubscriptionTier(
+                id: id,
+                name: name,
+                displayName: displayName,
+                description: description,
+                priceMonthly: priceMonthly,
+                priceWeekly: priceWeekly,
+                matchesPerWeek: matchesPerWeek,
+                maxDistanceMiles: maxDistanceMiles,
+                gardenerConversationsPerDay: gardenerConversationsPerDay,
+                gardenerCharacterLimit: gardenerCharacterLimit,
+                hasValuesMatching: hasValuesMatching,
+                hasBasicFilters: hasBasicFilters,
+                hasAdvancedFilters: hasAdvancedFilters,
+                hasFullFilters: hasFullFilters,
+                canSeeLikes: canSeeLikes,
+                canDisableMindfulMessaging: canDisableMindfulMessaging,
+                sortOrder: sortOrder
+            )
+        }
+    }
+
     // MARK: - StoreKit Product IDs
     // These must match your App Store Connect configuration
     enum ProductID: String {
@@ -22,14 +132,14 @@ struct SubscriptionService {
     }
 
     func getSubscriptionTiers() async throws -> [SubscriptionTier] {
-        let tiers: [SubscriptionTier] = try await client
+        let tierDTOs: [SubscriptionTierDTO] = try await client
             .from("subscription_tiers")
             .select()
             .eq("is_active", value: true)
             .order("sort_order", ascending: true)
             .execute()
             .value
-        return tiers
+        return tierDTOs.map(\.tier)
     }
 
     func getUserSubscription(userId: String) async throws -> UserSubscription? {
