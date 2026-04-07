@@ -157,10 +157,10 @@
 ### Required
 
 - [ ] **App Store Connect**: Create 4 subscription products matching product IDs
-  - `com.harvestglass.harvest.green.monthly`
-  - `com.harvestglass.harvest.green.yearly`
+  - `com.harvestglass.harvest.grow.weekly`
+  - `com.harvestglass.harvest.grow.monthly`
+  - `com.harvestglass.harvest.gold.weekly`
   - `com.harvestglass.harvest.gold.monthly`
-  - `com.harvestglass.harvest.gold.yearly`
 - [ ] **OpenAI API key**: Replace placeholder in `Config.swift`
 - [ ] **TestFlight**: Full purchase flow testing with sandbox accounts
 - [ ] **End-to-end test**: Complete sign-up through onboarding to main app

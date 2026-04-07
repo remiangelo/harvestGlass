@@ -18,7 +18,7 @@ struct InterestedInStepView: View {
 
             Text("Select all that apply")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(options, id: \.self) { option in
@@ -44,24 +44,24 @@ struct InterestedInStepView: View {
                         HStack {
                             Text(option)
                                 .font(HarvestTheme.Typography.bodyRegular)
-                                .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+                                .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(HarvestTheme.Colors.textPrimary))
                             Spacer()
                             if isSelected {
                                 Image(systemName: "checkmark.circle.fill")
                                     .foregroundStyle(Color.white)
                             } else {
                                 Image(systemName: "circle")
-                                    .foregroundStyle(.tertiary)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary.opacity(0.55))
                             }
                         }
-                        .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+                        .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(HarvestTheme.Colors.textPrimary))
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.formSurface)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(Color(.separator), lineWidth: 1)
+                                        .stroke(isSelected ? HarvestTheme.Colors.primaryLight : HarvestTheme.Colors.formBorder, lineWidth: 1)
                                 }
                         }
                     }

@@ -15,10 +15,10 @@ The following product IDs are defined in `SubscriptionService.swift`:
 
 | Product ID | Tier | Billing Period | Description |
 |------------|------|----------------|-------------|
-| `com.harvestglass.harvest.green.monthly` | Green | Monthly | Mid-tier subscription |
-| `com.harvestglass.harvest.green.yearly` | Green | Yearly | Mid-tier annual plan |
-| `com.harvestglass.harvest.gold.monthly` | Gold | Monthly | Premium subscription |
-| `com.harvestglass.harvest.gold.yearly` | Gold | Yearly | Premium annual plan |
+| `com.harvestglass.harvest.grow.weekly` | Grow | Weekly | Mid-tier weekly subscription |
+| `com.harvestglass.harvest.grow.monthly` | Grow | Monthly | Mid-tier monthly subscription |
+| `com.harvestglass.harvest.gold.weekly` | Gold | Weekly | Premium weekly subscription |
+| `com.harvestglass.harvest.gold.monthly` | Gold | Monthly | Premium monthly subscription |
 
 **Note**: The `seed` tier is free and doesn't require a product ID.
 
@@ -38,36 +38,34 @@ The following product IDs are defined in `SubscriptionService.swift`:
 1. Create a subscription group named: `Harvest Premium`
 2. Add all four products to this group
 3. Set subscription hierarchy:
-   - Level 1: Green Monthly, Green Yearly
-   - Level 2: Gold Monthly, Gold Yearly
+   - Level 1: Grow Weekly, Grow Monthly
+   - Level 2: Gold Weekly, Gold Monthly
 
 ### 3. Configure Each Product
 
-For **Green Monthly** (`com.harvestglass.harvest.green.monthly`):
-- **Reference Name**: Harvest Green Monthly
-- **Product ID**: `com.harvestglass.harvest.green.monthly`
-- **Subscription Duration**: 1 Month
-- **Price**: (Set according to `subscription_tiers.price_monthly` in database)
-- **Localizations**: Add display name, description, and benefits
+For **Grow Weekly** (`com.harvestglass.harvest.grow.weekly`):
+- **Reference Name**: Harvest Grow Weekly
+- **Product ID**: `com.harvestglass.harvest.grow.weekly`
+- **Subscription Duration**: 1 Week
+- **Price**: `9.99`
 
-For **Green Yearly** (`com.harvestglass.harvest.green.yearly`):
-- **Reference Name**: Harvest Green Yearly
-- **Product ID**: `com.harvestglass.harvest.green.yearly`
-- **Subscription Duration**: 1 Year
-- **Price**: (Set according to `subscription_tiers.price_yearly` in database)
-- **Introductory Offer**: Optional free trial (e.g., 7 days)
+For **Grow Monthly** (`com.harvestglass.harvest.grow.monthly`):
+- **Reference Name**: Harvest Grow Monthly
+- **Product ID**: `com.harvestglass.harvest.grow.monthly`
+- **Subscription Duration**: 1 Month
+- **Price**: `19.99`
+
+For **Gold Weekly** (`com.harvestglass.harvest.gold.weekly`):
+- **Reference Name**: Harvest Gold Weekly
+- **Product ID**: `com.harvestglass.harvest.gold.weekly`
+- **Subscription Duration**: 1 Week
+- **Price**: `14.99`
 
 For **Gold Monthly** (`com.harvestglass.harvest.gold.monthly`):
 - **Reference Name**: Harvest Gold Monthly
 - **Product ID**: `com.harvestglass.harvest.gold.monthly`
 - **Subscription Duration**: 1 Month
-- **Price**: (Set according to database)
-
-For **Gold Yearly** (`com.harvestglass.harvest.gold.yearly`):
-- **Reference Name**: Harvest Gold Yearly
-- **Product ID**: `com.harvestglass.harvest.gold.yearly`
-- **Subscription Duration**: 1 Year
-- **Price**: (Set according to database)
+- **Price**: `24.99`
 
 ### 4. Set Up Subscription Benefits
 
@@ -104,12 +102,12 @@ For local testing without App Store Connect:
       "localizations" : [
         {
           "description" : "Unlock premium dating features",
-          "displayName" : "Green Monthly",
+          "displayName" : "Grow Weekly",
           "locale" : "en_US"
         }
       ],
-      "productID" : "com.harvestglass.harvest.green.monthly",
-      "referenceName" : "Green Monthly",
+      "productID" : "com.harvestglass.harvest.grow.weekly",
+      "referenceName" : "Grow Weekly",
       "subscriptionGroupID" : "harvest_premium",
       "type" : "RecurringSubscription"
     }
@@ -144,7 +142,7 @@ For local testing without App Store Connect:
 - "Restore" button for users who purchased on another device
 
 ### PurchaseSheet.swift
-- Billing period selection (Monthly/Yearly)
+- Billing period selection (Weekly/Monthly)
 - Real-time pricing from StoreKit
 - Feature comparison
 - Subscription terms and auto-renewal info
@@ -223,7 +221,7 @@ Before launching subscriptions:
 
 - [ ] All 4 products created in App Store Connect
 - [ ] Subscription group configured with correct hierarchy
-- [ ] Prices match database values
+- [ ] Prices match weekly/monthly pricing
 - [ ] Localizations added for all supported languages
 - [ ] Subscription terms reviewed and accurate
 - [ ] Free trial configured (if offering)
@@ -262,7 +260,7 @@ Before launching subscriptions:
 - Multiple devices with same account
 - Subscription expires and user repurchases
 - User restores on new device
-- User upgrades from Green to Gold
+- User upgrades from Grow to Gold
 - User cancels and resubscribes
 
 ---

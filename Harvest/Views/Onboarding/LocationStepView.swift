@@ -60,7 +60,7 @@ struct LocationStepView: View {
                             .background(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.formSurfaceStrong)
                             .overlay {
                                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                    .stroke(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.formBorder, lineWidth: 1)
+                                    .stroke(isSelected ? HarvestTheme.Colors.primaryLight : HarvestTheme.Colors.formBorder, lineWidth: 1)
                             }
                             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
                         }
@@ -86,7 +86,7 @@ struct LocationStepView: View {
                     .background(HarvestTheme.Colors.redSurface)
                     .overlay {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                            .stroke(HarvestTheme.Colors.redSurface, lineWidth: 1)
+                            .stroke(HarvestTheme.Colors.primaryLight, lineWidth: 1)
                         }
                     .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
                 }

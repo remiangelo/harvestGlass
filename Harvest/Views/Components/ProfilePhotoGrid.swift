@@ -95,7 +95,7 @@ struct ProfilePhotoGrid: View {
                             .foregroundStyle(HarvestTheme.Colors.primary)
                         Text("Add")
                             .font(HarvestTheme.Typography.caption)
-                            .foregroundStyle(.primary)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     }
                 }
         }

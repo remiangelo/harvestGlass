@@ -18,7 +18,7 @@ struct ChipView: View {
                 .padding(.vertical, HarvestTheme.Spacing.sm)
                 .background {
                     if isSelected {
-                        Capsule().fill(HarvestTheme.Colors.redSurface)
+                        Capsule().fill(lightStyle ? HarvestTheme.Colors.formAccent : HarvestTheme.Colors.redSurface)
                     } else {
                         Capsule()
                             .fill(lightStyle ? HarvestTheme.Colors.formSurface : HarvestTheme.Colors.glassFillStrong)
@@ -34,7 +34,7 @@ struct ChipView: View {
 
     private var foregroundColor: Color {
         if isSelected {
-            return HarvestTheme.Colors.textOnRedPrimary
+            return lightStyle ? HarvestTheme.Colors.textOnCream : HarvestTheme.Colors.textOnRedPrimary
         }
         return lightStyle ? HarvestTheme.Colors.textPrimary : HarvestTheme.Colors.textPrimary
     }

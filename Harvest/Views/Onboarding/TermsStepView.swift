@@ -43,7 +43,7 @@ struct TermsStepView: View {
                     Image(systemName: viewModel.termsAccepted ? "checkmark.square.fill" : "square")
                         .font(.title3)
                         .foregroundStyle(
-                            viewModel.termsAccepted ? AnyShapeStyle(HarvestTheme.Colors.primary) : AnyShapeStyle(.tertiary)
+                            viewModel.termsAccepted ? AnyShapeStyle(HarvestTheme.Colors.primary) : AnyShapeStyle(HarvestTheme.Colors.textSecondary.opacity(0.55))
                         )
 
                     Text("I agree to the Terms & Conditions")

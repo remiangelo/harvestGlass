@@ -29,7 +29,7 @@ struct FiltersView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                     Text("Maximum distance: \(viewModel.filters.distanceMax) \(viewModel.filters.distanceUnit)")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                     Slider(
                         value: Binding(
@@ -57,8 +57,8 @@ struct FiltersView: View {
                             Text(option.label)
                                 .foregroundStyle(
                                     viewModel.filters.showMe.contains(option.value)
-                                    ? AnyShapeStyle(.primary)
-                                    : AnyShapeStyle(.secondary)
+                                    ? AnyShapeStyle(HarvestTheme.Colors.primary)
+                                    : AnyShapeStyle(HarvestTheme.Colors.textPrimary)
                                 )
                             Spacer()
                             if viewModel.filters.showMe.contains(option.value) {
@@ -72,7 +72,7 @@ struct FiltersView: View {
                 Text("Show Me")
                     .textCase(nil)
                     .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
             }
 
             Section {
@@ -195,7 +195,7 @@ struct FiltersView: View {
                     }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
         }
         .task {
@@ -205,6 +205,7 @@ struct FiltersView: View {
         }
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .listSectionSpacing(20)
         .listStyle(.insetGrouped)
     }

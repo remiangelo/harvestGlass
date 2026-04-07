@@ -14,12 +14,12 @@ struct ReadyToMoveGateView: View {
 
             Text(isReady ? "You're Clear to Share" : "Not Quite Ready")
                 .font(HarvestTheme.Typography.h2)
-                .foregroundStyle(.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
             if let reason {
                 Text(reason)
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
                     .multilineTextAlignment(.center)
             }
 
@@ -46,7 +46,7 @@ struct ReadyToMoveGateView: View {
 
             Text("Safety score reflects the current conversation risk level based on detected red flags.")
                 .font(HarvestTheme.Typography.caption)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
                 .multilineTextAlignment(.center)
                 .padding(.horizontal, HarvestTheme.Spacing.xl)
 
@@ -54,7 +54,7 @@ struct ReadyToMoveGateView: View {
                 VStack(spacing: HarvestTheme.Spacing.sm) {
                     Text("You can now choose to share contact details outside the app.")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
 
                     if onSharePreferredContact != nil {

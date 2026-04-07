@@ -68,11 +68,12 @@ struct OnboardingContainerView: View {
                     Button("Sign Out") {
                         Task { await authViewModel.logout() }
                     }
-                    .foregroundStyle(.secondary)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
                 }
             }
             .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 }

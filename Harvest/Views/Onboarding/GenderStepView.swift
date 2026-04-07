@@ -20,7 +20,7 @@ struct GenderStepView: View {
 
             Text("What's your gender?")
                 .font(HarvestTheme.Typography.h2)
-                .foregroundStyle(.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 ForEach(genders, id: \.0) { gender, icon in
@@ -41,17 +41,18 @@ struct GenderStepView: View {
                                     .foregroundStyle(.white)
                             }
                         }
-                        .foregroundStyle(isSelected ? Color.white : Color.primary)
+                        .foregroundStyle(isSelected ? Color.white : HarvestTheme.Colors.textPrimary)
                         .padding()
                         .background {
                             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
+                                .fill(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.formSurface)
                                 .overlay {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(Color(.separator), lineWidth: 1)
+                                        .stroke(isSelected ? HarvestTheme.Colors.primaryLight : HarvestTheme.Colors.formBorder, lineWidth: 1)
                                 }
                         }
                     }
+                    .buttonStyle(.plain)
                 }
             }
             .padding(.horizontal, HarvestTheme.Spacing.lg)

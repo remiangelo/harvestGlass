@@ -16,12 +16,12 @@ enum HarvestTheme {
 
         // MARK: Existing Tokens (kept for compatibility)
         // Primary
-        static let primary = iconRed
+        static let primary = Color(hex: "B55378")
         static let primaryDark = deepPlum
-        static let primaryLight = appleRed
-        static let primarySoft = iconRed.opacity(0.15)
+        static let primaryLight = Color(hex: "CD7192")
+        static let primarySoft = primary.opacity(0.15)
         static let blackSurface = black
-        static let redSurface = iconRed
+        static let redSurface = Color(hex: "8A3455")
 
         // Accent
         static let accent = harvestGold
@@ -56,7 +56,7 @@ enum HarvestTheme {
         static let error = Color(hex: "DC2626")
         static let success = harvestGold
         static let warning = Color(hex: "F59E0B")
-        static let info = appleRed
+        static let info = primaryLight
 
         // UI
         static let border = harvestCream.opacity(0.18)
@@ -74,7 +74,7 @@ enum HarvestTheme {
         // Gradients
         // Keep the old names so dependent views still work.
         static let primaryGradient = LinearGradient(
-            colors: [iconRed, appleRed],
+            colors: [primary, primaryLight],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
         )
@@ -119,6 +119,10 @@ enum HarvestTheme {
         static let formSurface = Color(hex: "5A1D33")
         static let formSurfaceStrong = Color(hex: "6B2440")
         static let formBorder = harvestCream.opacity(0.14)
+        static let formAccent = harvestCream
+        static let tabBarBackground = Color(hex: "5B1E35")
+        static let tabBarSelectedBackground = Color(hex: "6A2742")
+        static let tabBarText = harvestCream
     }
 
     // MARK: - Typography

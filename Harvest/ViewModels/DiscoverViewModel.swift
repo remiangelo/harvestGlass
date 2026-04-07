@@ -94,7 +94,7 @@ final class DiscoverViewModel {
                         displayName: "Seed",
                         description: "",
                         priceMonthly: 0,
-                        priceYearly: 0,
+                        priceWeekly: 0,
                         matchesPerWeek: 10,
                         maxDistanceMiles: 25,
                         gardenerConversationsPerDay: 1,

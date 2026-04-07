@@ -35,7 +35,7 @@ struct HelpCenterView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     Text("Frequently Asked Questions")
                         .font(HarvestTheme.Typography.h3)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         .padding(.horizontal)
 
                     ForEach(viewModel.filteredFAQs) { faq in
@@ -43,14 +43,14 @@ struct HelpCenterView: View {
                             DisclosureGroup {
                                 Text(faq.answer)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
                                     .padding(.top, HarvestTheme.Spacing.sm)
                             } label: {
                                 HStack {
                                     Text(faq.question)
                                         .font(HarvestTheme.Typography.bodyRegular)
                                         .fontWeight(.medium)
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                         .multilineTextAlignment(.leading)
 
                                     Spacer()
@@ -58,7 +58,7 @@ struct HelpCenterView: View {
                                     GlassBadge(text: faq.category, color: .secondary)
                                 }
                             }
-                            .tint(HarvestTheme.Colors.primary)
+                            .tint(HarvestTheme.Colors.formAccent)
                         }
                     }
                 }
@@ -71,7 +71,7 @@ struct HelpCenterView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     Text("Contact Support")
                         .font(HarvestTheme.Typography.h3)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         .padding(.horizontal)
 
                     GlassCard(style: .light) {
@@ -80,7 +80,7 @@ struct HelpCenterView: View {
                             HStack {
                                 Text("Category")
                                     .font(HarvestTheme.Typography.bodyRegular)
-                                    .foregroundStyle(.primary)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 Spacer()
                                 Picker("", selection: $viewModel.ticketCategory) {
                                     ForEach(HelpCenterViewModel.categories, id: \.self) {
@@ -88,7 +88,7 @@ struct HelpCenterView: View {
                                     }
                                     Text("General").tag("General")
                                 }
-                                .tint(HarvestTheme.Colors.primary)
+                                .tint(HarvestTheme.Colors.formAccent)
                             }
 
                             // Subject
@@ -143,7 +143,7 @@ struct HelpCenterView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                     Text("Resources")
                         .font(HarvestTheme.Typography.h3)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         .padding(.horizontal)
 
                     VStack(spacing: HarvestTheme.Spacing.sm) {
@@ -175,6 +175,7 @@ struct HelpCenterView: View {
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
         .alert("Ticket Submitted", isPresented: $viewModel.showSuccess) {
             Button("OK", role: .cancel) { }
         } message: {
@@ -186,10 +187,10 @@ struct HelpCenterView: View {
         GlassCard(padding: HarvestTheme.Spacing.md, style: .light) {
             HStack {
                 Image(systemName: icon)
-                    .foregroundStyle(HarvestTheme.Colors.primary)
+                    .foregroundStyle(HarvestTheme.Colors.formAccent)
                 Text(title)
                     .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(.primary)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
