@@ -12,7 +12,7 @@ struct ProfileService {
             .execute()
             .value
 
-        guard var profile = response.first else { return nil }
+        guard let profile = response.first else { return nil }
 
         return profile
     }

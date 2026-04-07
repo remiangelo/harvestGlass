@@ -1,5 +1,6 @@
 import Foundation
 import Auth
+import Supabase
 
 struct OpenAIService {
     struct ChatMessage: Codable, Sendable {
