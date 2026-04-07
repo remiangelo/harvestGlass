@@ -19,117 +19,139 @@ struct FiltersView: View {
     private let childrenOptions = ["Want someday", "Don't want", "Have & want more", "Have & don't want more", "Not sure", "Prefer not to say"]
 
     var body: some View {
-        List {
-            Section("Age Range") {
-                Stepper("Minimum: \(viewModel.filters.ageMin)", value: $viewModel.filters.ageMin, in: 18...99)
-                Stepper("Maximum: \(viewModel.filters.ageMax)", value: $viewModel.filters.ageMax, in: 18...99)
-            }
-
-            Section("Distance") {
-                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                    Text("Maximum distance: \(viewModel.filters.distanceMax) \(viewModel.filters.distanceUnit)")
-                        .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
-
-                    Slider(
-                        value: Binding(
-                            get: { Double(viewModel.filters.distanceMax) },
-                            set: { viewModel.filters.distanceMax = Int($0) }
-                        ),
-                        in: 1...100,
-                        step: 1
-                    )
-                    .tint(HarvestTheme.Colors.formAccent)
+        ScrollView {
+            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
+                sectionTitle("Age Range")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        Stepper("Minimum: \(viewModel.filters.ageMin)", value: $viewModel.filters.ageMin, in: 18...99)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        Divider().overlay(HarvestTheme.Colors.formBorder)
+                        Stepper("Maximum: \(viewModel.filters.ageMax)", value: $viewModel.filters.ageMax, in: 18...99)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    }
                 }
 
-                Picker("Unit", selection: $viewModel.filters.distanceUnit) {
-                    Text("Miles").tag("mi")
-                    Text("Kilometers").tag("km")
-                }
-            }
+                sectionTitle("Distance")
+                GlassCard(style: .light) {
+                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
+                        Text("Maximum distance: \(viewModel.filters.distanceMax) \(viewModel.filters.distanceUnit)")
+                            .font(HarvestTheme.Typography.bodyRegular)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
-            Section {
-                ForEach(genderOptions, id: \.value) { option in
-                    Button {
-                        toggleShowMe(option.value)
-                    } label: {
-                        HStack {
-                            Text(option.label)
-                                .foregroundStyle(
-                                    viewModel.filters.showMe.contains(option.value)
-                                    ? AnyShapeStyle(HarvestTheme.Colors.textPrimary)
-                                    : AnyShapeStyle(HarvestTheme.Colors.textPrimary)
-                                )
-                            Spacer()
-                            if viewModel.filters.showMe.contains(option.value) {
-                                Image(systemName: "checkmark")
-                                    .foregroundStyle(HarvestTheme.Colors.formAccent)
+                        Slider(
+                            value: Binding(
+                                get: { Double(viewModel.filters.distanceMax) },
+                                set: { viewModel.filters.distanceMax = Int($0) }
+                            ),
+                            in: 1...100,
+                            step: 1
+                        )
+                        .tint(HarvestTheme.Colors.formAccent)
+
+                        Divider().overlay(HarvestTheme.Colors.formBorder)
+
+                        PickerRow(title: "Unit") {
+                            Picker("Unit", selection: $viewModel.filters.distanceUnit) {
+                                Text("Miles").tag("mi")
+                                Text("Kilometers").tag("km")
+                            }
+                            .labelsHidden()
+                            .tint(HarvestTheme.Colors.formAccent)
+                        }
+                    }
+                }
+
+                sectionTitle("Show Me")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        ForEach(Array(genderOptions.enumerated()), id: \.offset) { index, option in
+                            Button {
+                                toggleShowMe(option.value)
+                            } label: {
+                                HStack {
+                                    Text(option.label)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                    Spacer()
+                                    if viewModel.filters.showMe.contains(option.value) {
+                                        Image(systemName: "checkmark")
+                                            .foregroundStyle(HarvestTheme.Colors.formAccent)
+                                    }
+                                }
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.vertical, HarvestTheme.Spacing.sm)
+                            }
+                            .buttonStyle(.plain)
+
+                            if index < genderOptions.count - 1 {
+                                Divider().overlay(HarvestTheme.Colors.formBorder)
                             }
                         }
                     }
                 }
-            } header: {
-                Text("Show Me")
-                    .textCase(nil)
-                    .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
-            }
 
-            Section {
-                Toggle("Visible to others", isOn: $viewModel.filters.isVisible)
-                    .tint(HarvestTheme.Colors.formAccent)
-            }
+                GlassCard(style: .light) {
+                    Toggle("Visible to others", isOn: $viewModel.filters.isVisible)
+                        .tint(HarvestTheme.Colors.formAccent)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                }
 
-            Section("Advanced Filters") {
+                sectionTitle("Advanced Filters")
                 if viewModel.canAccessAdvanced {
-                    Picker("Looking For", selection: Binding(
-                        get: { viewModel.filters.lookingFor ?? "" },
-                        set: { viewModel.filters.lookingFor = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("Any").tag("")
-                        ForEach(lookingForOptions, id: \.self) { Text($0).tag($0) }
-                    }
-
-                    Stepper(
-                        "Min Height: \(HeightFormatter.string(from: viewModel.filters.heightMin ?? 150))",
-                        value: Binding(
-                            get: { viewModel.filters.heightMin ?? 150 },
-                            set: { viewModel.filters.heightMin = $0 }
-                        ),
-                        in: 120...220
-                    )
-
-                    Stepper(
-                        "Max Height: \(HeightFormatter.string(from: viewModel.filters.heightMax ?? 200))",
-                        value: Binding(
-                            get: { viewModel.filters.heightMax ?? 200 },
-                            set: { viewModel.filters.heightMax = $0 }
-                        ),
-                        in: 120...220
-                    )
-
-                    Picker("Smoking", selection: Binding(
-                        get: { viewModel.filters.smoking ?? "" },
-                        set: { viewModel.filters.smoking = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("Any").tag("")
-                        ForEach(smokingOptions, id: \.self) { Text($0).tag($0) }
-                    }
-
-                    Picker("Drinking", selection: Binding(
-                        get: { viewModel.filters.drinking ?? "" },
-                        set: { viewModel.filters.drinking = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("Any").tag("")
-                        ForEach(drinkingOptions, id: \.self) { Text($0).tag($0) }
-                    }
-
-                    Picker("Cannabis", selection: Binding(
-                        get: { viewModel.filters.cannabis ?? "" },
-                        set: { viewModel.filters.cannabis = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("Any").tag("")
-                        ForEach(cannabisOptions, id: \.self) { Text($0).tag($0) }
+                    GlassCard(style: .light) {
+                        VStack(spacing: 0) {
+                            pickerRow(
+                                title: "Looking For",
+                                selection: Binding(
+                                    get: { viewModel.filters.lookingFor ?? "" },
+                                    set: { viewModel.filters.lookingFor = $0.isEmpty ? nil : $0 }
+                                ),
+                                options: ["Any"] + lookingForOptions
+                            )
+                            dividerRow()
+                            Stepper("Min Height: \(HeightFormatter.string(from: viewModel.filters.heightMin ?? 150))",
+                                    value: Binding(
+                                        get: { viewModel.filters.heightMin ?? 150 },
+                                        set: { viewModel.filters.heightMin = $0 }
+                                    ),
+                                    in: 120...220)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            dividerRow()
+                            Stepper("Max Height: \(HeightFormatter.string(from: viewModel.filters.heightMax ?? 200))",
+                                    value: Binding(
+                                        get: { viewModel.filters.heightMax ?? 200 },
+                                        set: { viewModel.filters.heightMax = $0 }
+                                    ),
+                                    in: 120...220)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            dividerRow()
+                            pickerRow(
+                                title: "Smoking",
+                                selection: Binding(
+                                    get: { viewModel.filters.smoking ?? "" },
+                                    set: { viewModel.filters.smoking = $0.isEmpty ? nil : $0 }
+                                ),
+                                options: ["Any"] + smokingOptions
+                            )
+                            dividerRow()
+                            pickerRow(
+                                title: "Drinking",
+                                selection: Binding(
+                                    get: { viewModel.filters.drinking ?? "" },
+                                    set: { viewModel.filters.drinking = $0.isEmpty ? nil : $0 }
+                                ),
+                                options: ["Any"] + drinkingOptions
+                            )
+                            dividerRow()
+                            pickerRow(
+                                title: "Cannabis",
+                                selection: Binding(
+                                    get: { viewModel.filters.cannabis ?? "" },
+                                    set: { viewModel.filters.cannabis = $0.isEmpty ? nil : $0 }
+                                ),
+                                options: ["Any"] + cannabisOptions
+                            )
+                        }
                     }
                 } else {
                     PremiumGateView(
@@ -138,26 +160,30 @@ struct FiltersView: View {
                         authViewModel: authViewModel
                     )
                     .frame(height: 200)
-                    .listRowInsets(EdgeInsets())
                 }
-            }
 
-            Section("Premium Filters") {
+                sectionTitle("Premium Filters")
                 if viewModel.canAccessFull {
-                    Picker("Spiritual/Faith", selection: Binding(
-                        get: { viewModel.filters.spiritualFaith ?? "" },
-                        set: { viewModel.filters.spiritualFaith = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("Any").tag("")
-                        ForEach(faithOptions, id: \.self) { Text($0).tag($0) }
-                    }
-
-                    Picker("Children", selection: Binding(
-                        get: { viewModel.filters.childrenStatus ?? "" },
-                        set: { viewModel.filters.childrenStatus = $0.isEmpty ? nil : $0 }
-                    )) {
-                        Text("Any").tag("")
-                        ForEach(childrenOptions, id: \.self) { Text($0).tag($0) }
+                    GlassCard(style: .light) {
+                        VStack(spacing: 0) {
+                            pickerRow(
+                                title: "Spiritual/Faith",
+                                selection: Binding(
+                                    get: { viewModel.filters.spiritualFaith ?? "" },
+                                    set: { viewModel.filters.spiritualFaith = $0.isEmpty ? nil : $0 }
+                                ),
+                                options: ["Any"] + faithOptions
+                            )
+                            dividerRow()
+                            pickerRow(
+                                title: "Children",
+                                selection: Binding(
+                                    get: { viewModel.filters.childrenStatus ?? "" },
+                                    set: { viewModel.filters.childrenStatus = $0.isEmpty ? nil : $0 }
+                                ),
+                                options: ["Any"] + childrenOptions
+                            )
+                        }
                     }
                 } else {
                     PremiumGateView(
@@ -166,21 +192,19 @@ struct FiltersView: View {
                         authViewModel: authViewModel
                     )
                     .frame(height: 200)
-                    .listRowInsets(EdgeInsets())
                 }
-            }
 
-            Section {
                 Button("Reset to Defaults", role: .destructive) {
                     if let userId = authViewModel.currentUserId {
                         Task { await viewModel.resetFilters(userId: userId) }
                     }
                 }
+                .font(HarvestTheme.Typography.bodyRegular)
+                .foregroundStyle(HarvestTheme.Colors.formAccent)
             }
+            .padding()
         }
-        .scrollContentBackground(.hidden)
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
-        .listRowBackground(HarvestTheme.Colors.formSurface)
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -206,8 +230,29 @@ struct FiltersView: View {
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .listSectionSpacing(20)
-        .listStyle(.insetGrouped)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(HarvestTheme.Typography.h4)
+            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+    }
+
+    private func dividerRow() -> some View {
+        Divider().overlay(HarvestTheme.Colors.formBorder)
+    }
+
+    private func pickerRow(title: String, selection: Binding<String>, options: [String]) -> some View {
+        PickerRow(title: title) {
+            Picker(title, selection: selection) {
+                ForEach(options, id: \.self) { option in
+                    let value = option == "Any" ? "" : option
+                    Text(option).tag(value)
+                }
+            }
+            .labelsHidden()
+            .tint(HarvestTheme.Colors.formAccent)
+        }
     }
 
     private func toggleShowMe(_ option: String) {
@@ -216,5 +261,20 @@ struct FiltersView: View {
         } else {
             viewModel.filters.showMe.append(option)
         }
+    }
+}
+
+private struct PickerRow<Content: View>: View {
+    let title: String
+    @ViewBuilder let content: () -> Content
+
+    var body: some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+            Spacer()
+            content()
+        }
+        .padding(.vertical, HarvestTheme.Spacing.sm)
     }
 }

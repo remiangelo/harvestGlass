@@ -30,7 +30,7 @@ struct SubscriptionView: View {
                                 .font(HarvestTheme.Typography.bodySmall)
                                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
 
-                            GlassButton(title: "Manage Subscription", icon: "arrow.up.right.square", style: .secondary) {
+                            subscriptionActionButton(title: "Manage Subscription", icon: "arrow.up.right.square") {
                                 if let url = URL(string: "https://apps.apple.com/account/subscriptions") {
                                     openURL(url)
                                 }
@@ -111,7 +111,7 @@ struct SubscriptionView: View {
                                 .font(HarvestTheme.Typography.h3)
 
                             if tier.name == .green {
-                                GlassBadge(text: "Most Popular", color: HarvestTheme.Colors.accent)
+                                subscriptionBadge("Most Popular")
                             }
                         }
 
@@ -128,20 +128,12 @@ struct SubscriptionView: View {
                                 .font(HarvestTheme.Typography.h3)
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         } else {
-                            if let weeklyProduct = viewModel.getProduct(for: tier, billingPeriod: .weekly) {
-                                Text("\(weeklyProduct.displayPrice)/week")
-                                    .font(HarvestTheme.Typography.bodyRegular)
-                                    .fontWeight(.semibold)
-                            }
-                            if let monthlyProduct = viewModel.getProduct(for: tier, billingPeriod: .monthly) {
-                                Text("\(monthlyProduct.displayPrice)/month")
-                                    .font(HarvestTheme.Typography.caption)
-                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                            } else {
-                                Text("Available in checkout")
-                                    .font(HarvestTheme.Typography.caption)
-                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                            }
+                            Text(priceString(for: tier.priceWeekly) + "/week")
+                                .font(HarvestTheme.Typography.bodyRegular)
+                                .fontWeight(.semibold)
+                            Text(priceString(for: tier.priceMonthly) + "/month")
+                                .font(HarvestTheme.Typography.caption)
+                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
                         }
                     }
                 }
@@ -173,7 +165,7 @@ struct SubscriptionView: View {
                     }
                     .padding(.vertical, 14)
                 } else if tier.name != .seed {
-                    GlassButton(title: "Upgrade to \(tier.marketingDisplayName)", style: .primary) {
+                    subscriptionActionButton(title: "Upgrade to \(tier.marketingDisplayName)") {
                         billingPeriod = .weekly
                         selectedTier = tier
                     }
@@ -226,5 +218,50 @@ struct SubscriptionView: View {
         case .green: return HarvestTheme.Colors.accent
         case .gold: return Color(hex: "F59E0B")
         }
+    }
+
+    private func priceString(for value: Double) -> String {
+        String(format: "$%.2f", value)
+    }
+
+    private func subscriptionBadge(_ text: String) -> some View {
+        Text(text)
+            .font(HarvestTheme.Typography.caption)
+            .fontWeight(.semibold)
+            .foregroundStyle(HarvestTheme.Colors.accent)
+            .padding(.horizontal, HarvestTheme.Spacing.sm)
+            .padding(.vertical, HarvestTheme.Spacing.xs)
+            .background {
+                Capsule()
+                    .fill(HarvestTheme.Colors.blackSurface)
+                    .overlay {
+                        Capsule()
+                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                    }
+            }
+    }
+
+    private func subscriptionActionButton(title: String, icon: String? = nil, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: HarvestTheme.Spacing.sm) {
+                if let icon {
+                    Image(systemName: icon)
+                }
+                Text(title)
+                    .font(HarvestTheme.Typography.buttonText)
+            }
+            .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 14)
+            .background {
+                RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                    .fill(HarvestTheme.Colors.blackSurface)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
     }
 }

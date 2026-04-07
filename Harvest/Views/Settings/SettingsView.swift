@@ -13,135 +13,137 @@ struct SettingsView: View {
     @State private var mindfulMessagingEnabled = MindfulMessagingService().isEnabled
     @State private var deleteErrorMessage = ""
 
-    // Privacy toggles
     @State private var showLocation = UserDefaults.standard.object(forKey: "showLocation") as? Bool ?? true
     @State private var showAge = UserDefaults.standard.object(forKey: "showAge") as? Bool ?? true
     @State private var showActiveStatus = UserDefaults.standard.object(forKey: "showActiveStatus") as? Bool ?? true
 
     var body: some View {
-        List {
-            Section("Account") {
-                HStack {
-                    Text("Email")
-                    Spacer()
-                    Text(authViewModel.profile?.email ?? "")
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                }
-
-                NavigationLink {
-                    SubscriptionView(authViewModel: authViewModel)
-                } label: {
-                    HStack {
-                        Text("Subscription")
-                        Spacer()
-                        GlassBadge(text: subscriptionViewModel.currentTierName)
+        ScrollView {
+            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
+                sectionTitle("Account")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        row(title: "Email", trailing: authViewModel.profile?.email ?? "")
+                        dividerRow()
+                        NavigationLink {
+                            SubscriptionView(authViewModel: authViewModel)
+                        } label: {
+                            HStack {
+                                Text("Subscription")
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                Spacer()
+                                GlassBadge(text: subscriptionViewModel.currentTierName, color: HarvestTheme.Colors.accent)
+                                Image(systemName: "chevron.right")
+                                    .font(.caption)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            }
+                            .padding(.vertical, HarvestTheme.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
                     }
                 }
-            }
 
-            Section("Notifications") {
-                Toggle("Enable Notifications", isOn: $notificationsEnabled)
-                    .tint(HarvestTheme.Colors.formAccent)
-
-                if notificationsEnabled {
-                    Toggle("New Matches", isOn: $matchNotifications)
-                        .tint(HarvestTheme.Colors.formAccent)
-
-                    Toggle("Messages", isOn: $messageNotifications)
-                        .tint(HarvestTheme.Colors.formAccent)
-                }
-            }
-
-            Section("Privacy") {
-                Toggle("Show Location", isOn: $showLocation)
-                    .tint(HarvestTheme.Colors.formAccent)
-                    .onChange(of: showLocation) { _, newValue in
-                        UserDefaults.standard.set(newValue, forKey: "showLocation")
-                    }
-
-                Toggle("Show Age", isOn: $showAge)
-                    .tint(HarvestTheme.Colors.formAccent)
-                    .onChange(of: showAge) { _, newValue in
-                        UserDefaults.standard.set(newValue, forKey: "showAge")
-                    }
-
-                Toggle("Show Active Status", isOn: $showActiveStatus)
-                    .tint(HarvestTheme.Colors.formAccent)
-                    .onChange(of: showActiveStatus) { _, newValue in
-                        UserDefaults.standard.set(newValue, forKey: "showActiveStatus")
-                    }
-            }
-
-            Section("Legal") {
-                NavigationLink("Privacy Policy") {
-                    PrivacyPolicyView()
-                }
-
-                NavigationLink("Terms of Service") {
-                    TermsOfServiceView()
-                }
-
-                NavigationLink("Community Guidelines") {
-                    CommunityGuidelinesView()
-                }
-            }
-
-            Section("Safety") {
-                NavigationLink("Safety Dashboard") {
-                    SafetyDashboardView(authViewModel: authViewModel)
-                }
-
-                Toggle("Mindful Messaging", isOn: $mindfulMessagingEnabled)
-                    .tint(HarvestTheme.Colors.formAccent)
-                    .onChange(of: mindfulMessagingEnabled) { _, newValue in
-                        MindfulMessagingService().setEnabled(newValue)
-                    }
-            }
-
-            Section("Support") {
-                NavigationLink("Help Center") {
-                    HelpCenterView(authViewModel: authViewModel)
-                }
-            }
-
-            Section("About") {
-                HStack {
-                    Text("Version")
-                    Spacer()
-                    Text("1.0.0")
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                }
-            }
-
-            Section {
-                Button(role: .destructive) {
-                    showLogoutAlert = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("Log Out")
-                            .fontWeight(.semibold)
-                        Spacer()
+                sectionTitle("Notifications")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        toggleRow("Enable Notifications", isOn: $notificationsEnabled)
+                        if notificationsEnabled {
+                            dividerRow()
+                            toggleRow("New Matches", isOn: $matchNotifications)
+                            dividerRow()
+                            toggleRow("Messages", isOn: $messageNotifications)
+                        }
                     }
                 }
-            }
 
-            Section {
-                Button(role: .destructive) {
-                    showDeleteAlert = true
-                } label: {
-                    HStack {
-                        Spacer()
-                        Text("Delete Account")
-                            .fontWeight(.semibold)
-                        Spacer()
+                sectionTitle("Privacy")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        toggleRow("Show Location", isOn: $showLocation)
+                            .onChange(of: showLocation) { _, newValue in
+                                UserDefaults.standard.set(newValue, forKey: "showLocation")
+                            }
+                        dividerRow()
+                        toggleRow("Show Age", isOn: $showAge)
+                            .onChange(of: showAge) { _, newValue in
+                                UserDefaults.standard.set(newValue, forKey: "showAge")
+                            }
+                        dividerRow()
+                        toggleRow("Show Active Status", isOn: $showActiveStatus)
+                            .onChange(of: showActiveStatus) { _, newValue in
+                                UserDefaults.standard.set(newValue, forKey: "showActiveStatus")
+                            }
                     }
                 }
+
+                sectionTitle("Legal")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        navRow("Privacy Policy") { PrivacyPolicyView() }
+                        dividerRow()
+                        navRow("Terms of Service") { TermsOfServiceView() }
+                        dividerRow()
+                        navRow("Community Guidelines") { CommunityGuidelinesView() }
+                    }
+                }
+
+                sectionTitle("Safety")
+                GlassCard(style: .light) {
+                    VStack(spacing: 0) {
+                        navRow("Safety Dashboard") { SafetyDashboardView(authViewModel: authViewModel) }
+                        dividerRow()
+                        toggleRow("Mindful Messaging", isOn: $mindfulMessagingEnabled)
+                            .onChange(of: mindfulMessagingEnabled) { _, newValue in
+                                MindfulMessagingService().setEnabled(newValue)
+                            }
+                    }
+                }
+
+                sectionTitle("Support")
+                GlassCard(style: .light) {
+                    navRow("Help Center") { HelpCenterView(authViewModel: authViewModel) }
+                }
+
+                sectionTitle("About")
+                GlassCard(style: .light) {
+                    row(title: "Version", trailing: "1.0.0")
+                }
+
+                GlassCard(style: .light) {
+                    Button {
+                        showLogoutAlert = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("Log Out")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(HarvestTheme.Colors.formAccent)
+                            Spacer()
+                        }
+                        .padding(.vertical, HarvestTheme.Spacing.sm)
+                    }
+                    .buttonStyle(.plain)
+                }
+
+                GlassCard(style: .light) {
+                    Button {
+                        showDeleteAlert = true
+                    } label: {
+                        HStack {
+                            Spacer()
+                            Text("Delete Account")
+                                .fontWeight(.semibold)
+                                .foregroundStyle(HarvestTheme.Colors.formAccent)
+                            Spacer()
+                        }
+                        .padding(.vertical, HarvestTheme.Spacing.sm)
+                    }
+                    .buttonStyle(.plain)
+                }
             }
+            .padding()
         }
-        .scrollContentBackground(.hidden)
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
-        .listRowBackground(HarvestTheme.Colors.formSurface)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -152,9 +154,7 @@ struct SettingsView: View {
         .alert("Log Out", isPresented: $showLogoutAlert) {
             Button("Cancel", role: .cancel) { }
             Button("Log Out", role: .destructive) {
-                Task {
-                    await authViewModel.logout()
-                }
+                Task { await authViewModel.logout() }
             }
         } message: {
             Text("Are you sure you want to log out?")
@@ -186,7 +186,48 @@ struct SettingsView: View {
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-        .listSectionSpacing(20)
-        .listStyle(.insetGrouped)
+    }
+
+    private func sectionTitle(_ title: String) -> some View {
+        Text(title)
+            .font(HarvestTheme.Typography.h4)
+            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+    }
+
+    private func dividerRow() -> some View {
+        Divider().overlay(HarvestTheme.Colors.formBorder)
+    }
+
+    private func row(title: String, trailing: String) -> some View {
+        HStack {
+            Text(title)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+            Spacer()
+            Text(trailing)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+        }
+        .padding(.vertical, HarvestTheme.Spacing.sm)
+    }
+
+    private func toggleRow(_ title: String, isOn: Binding<Bool>) -> some View {
+        Toggle(title, isOn: isOn)
+            .tint(HarvestTheme.Colors.formAccent)
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+            .padding(.vertical, HarvestTheme.Spacing.xs)
+    }
+
+    private func navRow<Destination: View>(_ title: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
+        NavigationLink(destination: destination()) {
+            HStack {
+                Text(title)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                Spacer()
+                Image(systemName: "chevron.right")
+                    .font(.caption)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+            }
+            .padding(.vertical, HarvestTheme.Spacing.sm)
+        }
+        .buttonStyle(.plain)
     }
 }
