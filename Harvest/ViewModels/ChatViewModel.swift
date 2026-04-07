@@ -112,7 +112,13 @@ final class ChatViewModel {
         // Mindful messaging check
         if mindfulService.isEnabled {
             let analysis = await mindfulService.analyzeMessage(text)
-            if analysis.needsReview && !(await shouldBypassMindfulWarning(for: analysis, conversationId: conversationId, userId: senderId)) {
+            let shouldBypassWarning = await shouldBypassMindfulWarning(
+                for: analysis,
+                conversationId: conversationId,
+                userId: senderId
+            )
+
+            if analysis.needsReview && !shouldBypassWarning {
                 mindfulAnalysis = analysis
                 pendingMessageText = text
                 pendingConversationId = conversationId
