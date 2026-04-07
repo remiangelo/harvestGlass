@@ -7,9 +7,9 @@ struct MindfulWarningView: View {
 
     private var severityColor: Color {
         switch analysis.severity {
-        case .low: return HarvestTheme.Colors.warning
-        case .medium: return .orange
-        case .high: return HarvestTheme.Colors.error
+        case .low: return Color(hex: "F7D9DD")
+        case .medium: return Color(hex: "F3C5CC")
+        case .high: return Color(hex: "EDB0BA")
         }
     }
 
@@ -22,18 +22,18 @@ struct MindfulWarningView: View {
                         .fill(severityColor)
                         .frame(width: 60, height: 60)
                         .overlay {
-                            Image(systemName: "exclamationmark.triangle.fill")
+                            Image(systemName: "pause.fill")
                                 .font(.title)
-                                .foregroundStyle(.white)
+                                .foregroundStyle(HarvestTheme.Colors.primary)
                         }
 
                     Text("Mindful Messaging")
                         .font(HarvestTheme.Typography.h2)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                     Text(analysis.reason)
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(.secondary)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
                         .multilineTextAlignment(.center)
 
                     // Growth lesson
@@ -45,12 +45,12 @@ struct MindfulWarningView: View {
                                         .foregroundStyle(HarvestTheme.Colors.accent)
                                     Text(lesson.title)
                                         .font(HarvestTheme.Typography.h4)
-                                        .foregroundStyle(.primary)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 }
 
                                 Text(lesson.reflection)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(.secondary)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
                             }
                         }
                     }
@@ -69,10 +69,10 @@ struct MindfulWarningView: View {
                 }
                 .padding()
             }
-            .background(Color(.systemBackground).ignoresSafeArea())
+            .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
             .navigationTitle("Message Review")
             .navigationBarTitleDisplayMode(.inline)
-            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+            .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }

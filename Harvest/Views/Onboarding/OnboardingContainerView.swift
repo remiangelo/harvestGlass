@@ -60,7 +60,7 @@ struct OnboardingContainerView: View {
                     .padding(.bottom, HarvestTheme.Spacing.lg)
                 }
             }
-            .background(Color(.systemBackground).ignoresSafeArea())
+            .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
             .navigationTitle("Set Up Profile")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
@@ -71,7 +71,7 @@ struct OnboardingContainerView: View {
                     .foregroundStyle(.secondary)
                 }
             }
-            .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+            .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
         }
     }

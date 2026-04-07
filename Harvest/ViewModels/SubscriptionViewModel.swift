@@ -50,7 +50,7 @@ final class SubscriptionViewModel {
     }
 
     var currentTierName: String {
-        currentTier?.displayName ?? "Seed"
+        currentTier?.marketingDisplayName ?? "Seed"
     }
 
     // MARK: - StoreKit Purchase Methods
@@ -128,14 +128,14 @@ final class SubscriptionViewModel {
         let productId: String
 
         switch (tier.name, billingPeriod) {
+        case (.green, .weekly):
+            productId = SubscriptionService.ProductID.growWeekly.rawValue
         case (.green, .monthly):
-            productId = SubscriptionService.ProductID.greenMonthly.rawValue
-        case (.green, .yearly):
-            productId = SubscriptionService.ProductID.greenYearly.rawValue
+            productId = SubscriptionService.ProductID.growMonthly.rawValue
+        case (.gold, .weekly):
+            productId = SubscriptionService.ProductID.goldWeekly.rawValue
         case (.gold, .monthly):
             productId = SubscriptionService.ProductID.goldMonthly.rawValue
-        case (.gold, .yearly):
-            productId = SubscriptionService.ProductID.goldYearly.rawValue
         default:
             return nil
         }
@@ -145,6 +145,6 @@ final class SubscriptionViewModel {
 }
 
 enum BillingPeriod {
+    case weekly
     case monthly
-    case yearly
 }

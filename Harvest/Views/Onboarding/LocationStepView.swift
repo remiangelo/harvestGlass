@@ -18,18 +18,18 @@ struct LocationStepView: View {
 
             Text("Enter your city name")
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(.secondary)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
 
             TextField("City name", text: Bindable(viewModel).location)
                 .font(HarvestTheme.Typography.bodyLarge)
-                .foregroundStyle(.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 .textInputAutocapitalization(.words)
                 .multilineTextAlignment(.center)
                 .padding()
-                .background(Color(.secondarySystemBackground))
+                .background(HarvestTheme.Colors.formSurface)
                 .overlay {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                        .stroke(Color(.separator), lineWidth: 1)
+                        .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
                 }
                 .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
                 .padding(.horizontal, HarvestTheme.Spacing.xl)
@@ -48,7 +48,7 @@ struct LocationStepView: View {
                             HStack {
                                 Text(suggestion)
                                     .font(HarvestTheme.Typography.bodySmall)
-                                    .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(.primary))
+                                    .foregroundStyle(isSelected ? AnyShapeStyle(Color.white) : AnyShapeStyle(HarvestTheme.Colors.textPrimary))
                                 Spacer()
                                 if isSelected {
                                     Image(systemName: "checkmark.circle.fill")
@@ -57,10 +57,10 @@ struct LocationStepView: View {
                             }
                             .padding(.horizontal, HarvestTheme.Spacing.md)
                             .padding(.vertical, HarvestTheme.Spacing.sm)
-                            .background(isSelected ? HarvestTheme.Colors.redSurface : Color(.secondarySystemBackground))
+                            .background(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.formSurfaceStrong)
                             .overlay {
                                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                    .stroke(isSelected ? HarvestTheme.Colors.redSurface : Color(.separator), lineWidth: 1)
+                                    .stroke(isSelected ? HarvestTheme.Colors.redSurface : HarvestTheme.Colors.formBorder, lineWidth: 1)
                             }
                             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.md))
                         }

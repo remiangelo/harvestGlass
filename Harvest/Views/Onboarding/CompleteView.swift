@@ -41,16 +41,23 @@ struct CompleteView: View {
 
             GlassButton(title: "Start Exploring", icon: "safari", style: .primary) {
                 Task {
-                    if let userId = authViewModel.currentUserId {
-                        if let updatedProfile = await viewModel.completeOnboarding(userId: userId) {
-                            authViewModel.profile = updatedProfile
-                        } else if viewModel.error == nil {
-                            // Update returned nil without error — reload profile from database as fallback
-                            await authViewModel.loadProfile()
-                            if authViewModel.needsOnboarding {
-                                viewModel.error = "Failed to save profile. Please try again."
-                            }
+                    guard let userId = authViewModel.currentUserId else { return }
+
+                    if let updatedProfile = await viewModel.completeOnboarding(userId: userId) {
+                        authViewModel.profile = updatedProfile
+                        return
+                    }
+
+                    // Re-check the profile after any failure so temporary network issues
+                    // don't strand users on the completion step if the save actually landed.
+                    await authViewModel.loadProfile()
+
+                    if authViewModel.needsOnboarding {
+                        if viewModel.error == nil {
+                            viewModel.error = "We couldn't finish setting up your profile. Please try again."
                         }
+                    } else {
+                        viewModel.error = nil
                     }
                 }
             }

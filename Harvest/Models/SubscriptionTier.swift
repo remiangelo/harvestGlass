@@ -25,6 +25,15 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
     let canDisableMindfulMessaging: Bool
     let sortOrder: Int
 
+    var marketingDisplayName: String {
+        switch name {
+        case .green:
+            return "Grow"
+        case .seed, .gold:
+            return displayName
+        }
+    }
+
     enum CodingKeys: String, CodingKey {
         case id, name, description
         case displayName = "display_name"

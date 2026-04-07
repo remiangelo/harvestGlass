@@ -2,6 +2,7 @@ import Foundation
 
 struct MindfulMessagingService {
     struct MindfulAnalysis: Sendable {
+        let category: String?
         let needsReview: Bool
         let severity: Severity
         let reason: String
@@ -83,36 +84,40 @@ struct MindfulMessagingService {
 
     private static let growthLessons: [String: MindfulAnalysis.GrowthLesson] = [
         "aggressive": .init(
-            title: "Communication with Care",
-            reflection: "Strong emotions are natural, but expressing them through hurtful words can damage connections. Try taking a deep breath and rephrasing your thoughts with kindness."
+            title: "Mindful Communication",
+            reflection: "Pause & reflect — how do you think this might land on the other side?"
         ),
         "possessive": .init(
-            title: "Healthy Boundaries",
-            reflection: "Healthy relationships are built on mutual respect and freedom. True connection comes from choosing to be together, not from control."
+            title: "Respecting Autonomy",
+            reflection: "Quick check-in — how might this come across from their point of view?"
         ),
         "pressuring": .init(
-            title: "Respecting Pace",
-            reflection: "Everyone moves at their own pace in relationships. Building trust takes time, and respecting someone's boundaries shows genuine care."
+            title: "Consent & Choice",
+            reflection: "Growth nudge — what options does this leave on their end?"
         ),
         "manipulative": .init(
-            title: "Emotional Honesty",
-            reflection: "Expressing your needs directly and honestly creates stronger bonds than using guilt or obligation. Open communication builds trust."
+            title: "Authentic Expression",
+            reflection: "Reflection moment — what do you think this communicates beneath the words?"
         ),
         "sexual_pressure": .init(
-            title: "Mutual Respect",
-            reflection: "Physical intimacy should be a mutual decision made when both people feel comfortable. Pressure undermines trust and genuine connection."
+            title: "Respecting Boundaries",
+            reflection: "Heads up — how might this be received at this point in the conversation?"
         ),
         "excessive_intensity": .init(
-            title: "Growing Naturally",
-            reflection: "Deep feelings are wonderful, but sharing intense emotions too early can feel overwhelming. Let your connection develop at a pace that feels right for both of you."
+            title: "Balanced Connection",
+            reflection: "Real quick — how does this fit the stage you’re in right now?"
+        ),
+        "general": .init(
+            title: "Pause & Reflect",
+            reflection: "Quick reflection — how do you imagine this being received?"
         ),
         "personal_info": .init(
-            title: "Protecting Privacy",
-            reflection: "Sharing sensitive personal or financial information early in a relationship can put you at risk. Build trust gradually before sharing private details."
+            title: "Stay Safe",
+            reflection: "Heads up — is this the level of sharing you want at this moment?"
         ),
         "phone_number": .init(
-            title: "Taking It Slow",
-            reflection: "It's generally safer to keep conversations within the app until you've built trust. Our safety features help protect you while you get to know someone."
+            title: "Stay Safe",
+            reflection: "Heads up — is this the level of sharing you want at this moment?"
         )
     ]
 
@@ -160,6 +165,7 @@ struct MindfulMessagingService {
                 let lesson = Self.growthLessons[category]
 
                 return MindfulAnalysis(
+                    category: category == "none" ? nil : category,
                     needsReview: true,
                     severity: severity,
                     reason: reason,
@@ -168,7 +174,7 @@ struct MindfulMessagingService {
                 )
             }
 
-            return MindfulAnalysis(needsReview: false, severity: .low, reason: "", growthLesson: nil, flaggedWords: [])
+            return MindfulAnalysis(category: nil, needsReview: false, severity: .low, reason: "", growthLesson: nil, flaggedWords: [])
         } catch {
             // Fall back to keyword scanning
             return keywordAnalysis(text)
@@ -218,13 +224,14 @@ struct MindfulMessagingService {
         }
 
         guard !flaggedWords.isEmpty, let category = highestCategory else {
-            return MindfulAnalysis(needsReview: false, severity: .low, reason: "", growthLesson: nil, flaggedWords: [])
+            return MindfulAnalysis(category: nil, needsReview: false, severity: .low, reason: "", growthLesson: nil, flaggedWords: [])
         }
 
         let severity: MindfulAnalysis.Severity = highestWeight >= 25 ? .high : highestWeight >= 15 ? .medium : .low
         let lesson = Self.growthLessons[category]
 
         return MindfulAnalysis(
+            category: category,
             needsReview: true,
             severity: severity,
             reason: "Your message contains language that may be concerning.",

@@ -49,7 +49,7 @@ struct PrivacyPolicyView: View {
 
                 section(title: "Contact Us", body: """
                 If you have questions about this Privacy Policy, please contact us through the Help Center \
-                in the app or email us at privacy@harvestdating.app.
+                in the app or email us at support@dateharvest.com.
                 """)
 
                 Text("Last updated: March 2026")

@@ -26,7 +26,7 @@ struct PurchaseSheet: View {
                             .font(.system(size: 60))
                             .foregroundStyle(tierColor)
 
-                        Text("Upgrade to \(tier.displayName)")
+                        Text("Upgrade to \(tier.marketingDisplayName)")
                             .font(HarvestTheme.Typography.h2)
 
                         Text(tier.description)
@@ -38,8 +38,8 @@ struct PurchaseSheet: View {
 
                     // Billing Period Selector
                     Picker("Billing Period", selection: $billingPeriod) {
+                        Text("Weekly").tag(BillingPeriod.weekly)
                         Text("Monthly").tag(BillingPeriod.monthly)
-                        Text("Yearly (Save \(yearlySavingsPercent)%)").tag(BillingPeriod.yearly)
                     }
                     .pickerStyle(.segmented)
                     .padding(.horizontal)
@@ -51,15 +51,9 @@ struct PurchaseSheet: View {
                                 .font(.system(size: 48, weight: .bold))
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
-                            Text(billingPeriod == .monthly ? "per month" : "per year")
+                            Text(billingPeriod == .weekly ? "per week" : "per month")
                                 .font(HarvestTheme.Typography.bodyRegular)
                                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
-
-                            if billingPeriod == .yearly {
-                                Text("That's \(monthlyEquivalent(product)) per month")
-                                    .font(HarvestTheme.Typography.caption)
-                                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                            }
                         }
                         .padding(.vertical)
                     }
@@ -193,19 +187,6 @@ struct PurchaseSheet: View {
         case .green: return HarvestTheme.Colors.accent
         case .gold: return Color(hex: "F59E0B")
         }
-    }
-
-    private var yearlySavingsPercent: Int {
-        guard tier.priceYearly > 0, tier.priceMonthly > 0 else { return 0 }
-        let monthlyCost = tier.priceMonthly * 12
-        let savings = ((monthlyCost - tier.priceYearly) / monthlyCost) * 100
-        return Int(savings)
-    }
-
-    private func monthlyEquivalent(_ product: Product) -> String {
-        guard billingPeriod == .yearly else { return "" }
-        let monthly = product.price / 12
-        return monthly.formatted(.currency(code: product.priceFormatStyle.currencyCode))
     }
 
     private func featureRow(_ label: String, value: String) -> some View {

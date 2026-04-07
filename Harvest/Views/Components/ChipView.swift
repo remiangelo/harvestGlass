@@ -21,10 +21,10 @@ struct ChipView: View {
                         Capsule().fill(HarvestTheme.Colors.redSurface)
                     } else {
                         Capsule()
-                            .fill(lightStyle ? Color(.secondarySystemBackground) : HarvestTheme.Colors.glassFillStrong)
+                            .fill(lightStyle ? HarvestTheme.Colors.formSurface : HarvestTheme.Colors.glassFillStrong)
                             .overlay {
                                 Capsule()
-                                    .stroke(lightStyle ? Color(.separator) : HarvestTheme.Colors.border, lineWidth: 1)
+                                    .stroke(lightStyle ? HarvestTheme.Colors.formBorder : HarvestTheme.Colors.border, lineWidth: 1)
                             }
                     }
                 }
@@ -36,6 +36,6 @@ struct ChipView: View {
         if isSelected {
             return HarvestTheme.Colors.textOnRedPrimary
         }
-        return lightStyle ? .primary : HarvestTheme.Colors.textPrimary
+        return lightStyle ? HarvestTheme.Colors.textPrimary : HarvestTheme.Colors.textPrimary
     }
 }

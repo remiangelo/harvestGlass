@@ -12,7 +12,7 @@ struct ReadyToMoveGateView: View {
                 .font(.system(size: 50))
                 .foregroundStyle(isReady ? HarvestTheme.Colors.accent : HarvestTheme.Colors.warning)
 
-            Text(isReady ? "You're Clear to Share" : "Not Yet Ready")
+            Text(isReady ? "You're Clear to Share" : "Not Quite Ready")
                 .font(HarvestTheme.Typography.h2)
                 .foregroundStyle(.primary)
 
@@ -43,6 +43,12 @@ struct ReadyToMoveGateView: View {
                 }
             }
             .padding(.horizontal)
+
+            Text("Safety score reflects the current conversation risk level based on detected red flags.")
+                .font(HarvestTheme.Typography.caption)
+                .foregroundStyle(.secondary)
+                .multilineTextAlignment(.center)
+                .padding(.horizontal, HarvestTheme.Spacing.xl)
 
             if isReady {
                 VStack(spacing: HarvestTheme.Spacing.sm) {
@@ -75,18 +81,18 @@ struct ReadyToMoveGateView: View {
             }
         }
         .padding()
-        .foregroundStyle(.primary)
-        .background(Color(.systemBackground).ignoresSafeArea())
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
     }
 
     private func checklistItem(_ text: String, isComplete: Bool) -> some View {
         HStack(spacing: HarvestTheme.Spacing.sm) {
             Image(systemName: isComplete ? "checkmark.circle.fill" : "circle")
-                .foregroundStyle(isComplete ? AnyShapeStyle(HarvestTheme.Colors.accent) : AnyShapeStyle(Color.secondary))
+                .foregroundStyle(isComplete ? AnyShapeStyle(HarvestTheme.Colors.accent) : AnyShapeStyle(HarvestTheme.Colors.textSecondary))
 
             Text(text)
                 .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(isComplete ? AnyShapeStyle(.primary) : AnyShapeStyle(.secondary))
+                .foregroundStyle(isComplete ? AnyShapeStyle(HarvestTheme.Colors.textPrimary) : AnyShapeStyle(HarvestTheme.Colors.textSecondary))
         }
     }
 }

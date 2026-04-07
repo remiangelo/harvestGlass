@@ -59,18 +59,37 @@ struct UserProfile: Codable, Identifiable, Sendable {
            let data = trimmedGoals.data(using: .utf8),
            let decoded = try? JSONDecoder().decode([String].self, from: data) {
             return decoded
-                .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+                .map { Self.normalizeGoalLabel($0.trimmingCharacters(in: .whitespacesAndNewlines)) }
                 .filter { !$0.isEmpty }
         }
 
         if trimmedGoals.contains(",") {
             return trimmedGoals
                 .components(separatedBy: ",")
-                .map { $0.trimmingCharacters(in: CharacterSet(charactersIn: "\"[] ").union(.whitespacesAndNewlines)) }
+                .map { Self.normalizeGoalLabel($0.trimmingCharacters(in: CharacterSet(charactersIn: "\"[] ").union(.whitespacesAndNewlines))) }
                 .filter { !$0.isEmpty }
         }
 
-        let normalizedGoal = trimmedGoals.trimmingCharacters(in: CharacterSet(charactersIn: "\"[] ").union(.whitespacesAndNewlines))
+        let normalizedGoal = Self.normalizeGoalLabel(
+            trimmedGoals.trimmingCharacters(in: CharacterSet(charactersIn: "\"[] ").union(.whitespacesAndNewlines))
+        )
         return normalizedGoal.isEmpty ? [] : [normalizedGoal]
+    }
+
+    private static func normalizeGoalLabel(_ value: String) -> String {
+        switch value.lowercased() {
+        case "short-term dating", "casual":
+            return "Dating"
+        case "long-term relationship", "long-term commitment", "long_term_commitment":
+            return "Long-term Commitment"
+        case "relationship":
+            return "Relationship"
+        case "marriage":
+            return "Marriage"
+        case "not sure yet", "not sure":
+            return "Dating"
+        default:
+            return value
+        }
     }
 }

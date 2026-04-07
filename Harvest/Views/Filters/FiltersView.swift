@@ -11,7 +11,7 @@ struct FiltersView: View {
         ("Non-binary", "non-binary"),
         ("Everyone", "everyone")
     ]
-    private let lookingForOptions = ["Relationship", "Casual", "Friendship", "Not sure"]
+    private let lookingForOptions = ["Dating", "Relationship", "Long-term Commitment", "Marriage"]
     private let smokingOptions = ["Never", "Sometimes", "Often", "Prefer not to say"]
     private let drinkingOptions = ["Never", "Socially", "Often", "Prefer not to say"]
     private let cannabisOptions = ["Never", "Sometimes", "Often", "Prefer not to say"]
@@ -91,7 +91,7 @@ struct FiltersView: View {
                     }
 
                     Stepper(
-                        "Min Height: \(viewModel.filters.heightMin ?? 0) cm",
+                        "Min Height: \(HeightFormatter.string(from: viewModel.filters.heightMin ?? 150))",
                         value: Binding(
                             get: { viewModel.filters.heightMin ?? 150 },
                             set: { viewModel.filters.heightMin = $0 }
@@ -100,7 +100,7 @@ struct FiltersView: View {
                     )
 
                     Stepper(
-                        "Max Height: \(viewModel.filters.heightMax ?? 0) cm",
+                        "Max Height: \(HeightFormatter.string(from: viewModel.filters.heightMax ?? 200))",
                         value: Binding(
                             get: { viewModel.filters.heightMax ?? 200 },
                             set: { viewModel.filters.heightMax = $0 }
@@ -178,6 +178,9 @@ struct FiltersView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
+        .listRowBackground(HarvestTheme.Colors.formSurface)
         .navigationTitle("Filters")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -200,7 +203,7 @@ struct FiltersView: View {
                 await viewModel.loadFilters(userId: userId)
             }
         }
-        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+        .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .listSectionSpacing(20)
         .listStyle(.insetGrouped)

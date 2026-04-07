@@ -28,10 +28,10 @@ struct TermsStepView: View {
                 }
             }
             .padding(HarvestTheme.Spacing.lg)
-            .background(Color(.secondarySystemBackground))
+            .background(HarvestTheme.Colors.formSurface)
             .overlay {
                 RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                    .stroke(Color(.separator), lineWidth: 1)
+                    .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
             }
             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
             .padding(.horizontal, HarvestTheme.Spacing.lg)
@@ -48,7 +48,7 @@ struct TermsStepView: View {
 
                     Text("I agree to the Terms & Conditions")
                         .font(HarvestTheme.Typography.bodyRegular)
-                        .foregroundStyle(.primary)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 }
             }
             .buttonStyle(.plain)
@@ -63,6 +63,6 @@ struct TermsStepView: View {
             Text(text)
         }
         .font(HarvestTheme.Typography.bodySmall)
-        .foregroundStyle(.secondary)
+        .foregroundStyle(HarvestTheme.Colors.textSecondary)
     }
 }

@@ -82,11 +82,11 @@ struct ProfilePhotoGrid: View {
     private var addPhotoCell: some View {
         PhotosPicker(selection: $selectedItem, matching: .images) {
             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                .fill(Color(.secondarySystemBackground))
+                .fill(HarvestTheme.Colors.formSurface)
                 .frame(maxWidth: .infinity, minHeight: 150, maxHeight: 150)
                 .overlay {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                        .stroke(Color(.separator), lineWidth: 1)
+                        .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
                 }
                 .overlay {
                     VStack(spacing: 4) {

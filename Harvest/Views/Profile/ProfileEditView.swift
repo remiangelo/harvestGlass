@@ -9,6 +9,7 @@ struct ProfileEditView: View {
     private let lookingForOptions = [
         ("Dating", "dating"),
         ("Relationship", "relationship"),
+        ("Long-term Commitment", "long_term_commitment"),
         ("Marriage", "marriage")
     ]
     private let smokingOptions = [
@@ -130,7 +131,7 @@ struct ProfileEditView: View {
                     }
                 }
 
-                Stepper("Height \(viewModel.editHeightCm) cm", value: $viewModel.editHeightCm, in: 100...250)
+                Stepper("Height \(HeightFormatter.string(from: viewModel.editHeightCm))", value: $viewModel.editHeightCm, in: 100...250)
 
                 Picker("Smoking", selection: $viewModel.editSmoking) {
                     Text("Select").tag("")
@@ -168,6 +169,9 @@ struct ProfileEditView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
+        .listRowBackground(HarvestTheme.Colors.formSurface)
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
@@ -190,6 +194,8 @@ struct ProfileEditView: View {
             viewModel.startEditing()
             didInitializeEditing = true
         }
+        .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
     }
 }
 

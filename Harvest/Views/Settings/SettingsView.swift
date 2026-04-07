@@ -139,6 +139,9 @@ struct SettingsView: View {
                 }
             }
         }
+        .scrollContentBackground(.hidden)
+        .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
+        .listRowBackground(HarvestTheme.Colors.formSurface)
         .navigationTitle("Settings")
         .navigationBarTitleDisplayMode(.inline)
         .task {
@@ -180,7 +183,7 @@ struct SettingsView: View {
         } message: {
             Text(deleteErrorMessage)
         }
-        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+        .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .listSectionSpacing(20)
         .listStyle(.insetGrouped)

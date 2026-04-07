@@ -4,7 +4,7 @@ struct SubscriptionView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = SubscriptionViewModel()
     @State private var selectedTier: SubscriptionTier?
-    @State private var billingPeriod: BillingPeriod = .monthly
+    @State private var billingPeriod: BillingPeriod = .weekly
     @Environment(\.openURL) private var openURL
 
     var body: some View {
@@ -106,7 +106,7 @@ struct SubscriptionView: View {
 
                     VStack(alignment: .leading, spacing: 2) {
                         HStack {
-                            Text(tier.displayName)
+                            Text(tier.marketingDisplayName)
                                 .font(HarvestTheme.Typography.h3)
 
                             if tier.name == .green {
@@ -127,11 +127,20 @@ struct SubscriptionView: View {
                                 .font(HarvestTheme.Typography.h3)
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         } else {
-                            Text("$\(String(format: "%.2f", tier.priceMonthly))")
-                                .font(HarvestTheme.Typography.h3)
-                            Text("/month")
-                                .font(HarvestTheme.Typography.caption)
-                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            if let weeklyProduct = viewModel.getProduct(for: tier, billingPeriod: .weekly) {
+                                Text("\(weeklyProduct.displayPrice)/week")
+                                    .font(HarvestTheme.Typography.bodyRegular)
+                                    .fontWeight(.semibold)
+                            }
+                            if let monthlyProduct = viewModel.getProduct(for: tier, billingPeriod: .monthly) {
+                                Text("\(monthlyProduct.displayPrice)/month")
+                                    .font(HarvestTheme.Typography.caption)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            } else {
+                                Text("Available in checkout")
+                                    .font(HarvestTheme.Typography.caption)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            }
                         }
                     }
                 }
@@ -163,8 +172,8 @@ struct SubscriptionView: View {
                     }
                     .padding(.vertical, 14)
                 } else if tier.name != .seed {
-                    GlassButton(title: "Upgrade to \(tier.displayName)", style: .primary) {
-                        billingPeriod = .monthly
+                    GlassButton(title: "Upgrade to \(tier.marketingDisplayName)", style: .primary) {
+                        billingPeriod = .weekly
                         selectedTier = tier
                     }
                 }

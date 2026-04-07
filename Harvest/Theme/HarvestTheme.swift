@@ -113,6 +113,12 @@ enum HarvestTheme {
         // Helpful utility surfaces for future screens
         static let cardBackground = surface
         static let elevatedSurface = deepPlum
+
+        // Form surfaces
+        static let formBackground = Color(hex: "4A1528")
+        static let formSurface = Color(hex: "5A1D33")
+        static let formSurfaceStrong = Color(hex: "6B2440")
+        static let formBorder = harvestCream.opacity(0.14)
     }
 
     // MARK: - Typography

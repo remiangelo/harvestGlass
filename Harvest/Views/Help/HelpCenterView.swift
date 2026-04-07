@@ -94,22 +94,31 @@ struct HelpCenterView: View {
                             // Subject
                             TextField("Subject", text: $viewModel.ticketSubject)
                                 .font(HarvestTheme.Typography.bodyRegular)
-                                .foregroundStyle(.primary)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 .padding(HarvestTheme.Spacing.sm)
                                 .background {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
-                                        .fill(Color(.secondarySystemBackground))
+                                        .fill(HarvestTheme.Colors.formSurfaceStrong)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
+                                                .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
+                                        }
                                 }
 
                             // Message
                             TextEditor(text: $viewModel.ticketMessage)
                                 .font(HarvestTheme.Typography.bodyRegular)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                 .scrollContentBackground(.hidden)
                                 .frame(minHeight: 100)
                                 .padding(HarvestTheme.Spacing.xs)
                                 .background {
                                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
-                                        .fill(Color(.secondarySystemBackground))
+                                        .fill(HarvestTheme.Colors.formSurfaceStrong)
+                                        .overlay {
+                                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm)
+                                                .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
+                                        }
                                 }
 
                             GlassButton(title: "Submit", icon: "paperplane", style: .primary) {
@@ -163,7 +172,8 @@ struct HelpCenterView: View {
         }
         .navigationTitle("Help Center")
         .navigationBarTitleDisplayMode(.inline)
-        .toolbarBackground(Color(.systemBackground), for: .navigationBar)
+        .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
+        .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .alert("Ticket Submitted", isPresented: $viewModel.showSuccess) {
             Button("OK", role: .cancel) { }
@@ -183,7 +193,7 @@ struct HelpCenterView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.caption)
-                    .foregroundStyle(.tertiary)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
             }
         }
     }

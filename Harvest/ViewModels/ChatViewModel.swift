@@ -112,7 +112,7 @@ final class ChatViewModel {
         // Mindful messaging check
         if mindfulService.isEnabled {
             let analysis = await mindfulService.analyzeMessage(text)
-            if analysis.needsReview {
+            if analysis.needsReview && !(await shouldBypassMindfulWarning(for: analysis, conversationId: conversationId, userId: senderId)) {
                 mindfulAnalysis = analysis
                 pendingMessageText = text
                 pendingConversationId = conversationId
@@ -169,6 +169,28 @@ final class ChatViewModel {
                 }
                 await self.analyzeMessageForSafetyIfNeeded(message)
             }
+        }
+    }
+
+    private func shouldBypassMindfulWarning(
+        for analysis: MindfulMessagingService.MindfulAnalysis,
+        conversationId: String,
+        userId: String
+    ) async -> Bool {
+        guard let category = analysis.category else { return false }
+        guard category == "personal_info" || category == "phone_number" else { return false }
+
+        if safetyAnalysis?.allowContactSharing == true {
+            return true
+        }
+
+        do {
+            return try await safetyService.hasApprovedReadyToMove(
+                conversationId: conversationId,
+                userId: userId
+            )
+        } catch {
+            return false
         }
     }
 

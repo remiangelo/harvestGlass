@@ -276,6 +276,25 @@ struct SafetyAnalysisService {
             .execute()
     }
 
+    func hasApprovedReadyToMove(conversationId: String, userId: String) async throws -> Bool {
+        struct ReadyToMoveApprovalRow: Decodable {
+            let approved: Bool
+        }
+
+        let approvals: [ReadyToMoveApprovalRow] = try await client
+            .from("ready_to_move_checks")
+            .select("approved")
+            .eq("conversation_id", value: conversationId)
+            .eq("user_id", value: userId)
+            .eq("approved", value: true)
+            .order("created_at", ascending: false)
+            .limit(1)
+            .execute()
+            .value
+
+        return approvals.first?.approved == true
+    }
+
     func analyzeConversationHistory(conversationId: String, matchId: String, userId: String, otherUserId: String) async throws -> SafetyAnalysis {
         var analysis = try await getOrCreateAnalysis(matchId: matchId, userId: userId, otherUserId: otherUserId)
 

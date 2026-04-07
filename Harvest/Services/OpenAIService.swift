@@ -1,4 +1,5 @@
 import Foundation
+import Auth
 
 struct OpenAIService {
     struct ChatMessage: Codable, Sendable {
@@ -24,14 +25,14 @@ struct OpenAIService {
     }
 
     enum OpenAIError: LocalizedError {
-        case apiKeyMissing
+        case notAuthenticated
         case requestFailed(statusCode: Int)
         case noResponse
 
         var errorDescription: String? {
             switch self {
-            case .apiKeyMissing:
-                return "OpenAI API key is not configured"
+            case .notAuthenticated:
+                return "You must be signed in to use AI features"
             case .requestFailed(let code):
                 return "OpenAI request failed with status \(code)"
             case .noResponse:
@@ -80,14 +81,21 @@ struct OpenAIService {
         temperature: Double,
         maxTokens: Int
     ) async throws -> Data {
-        guard Config.openAIAPIKey != "YOUR_OPENAI_API_KEY" else {
-            throw OpenAIError.apiKeyMissing
+        let session: Session
+        do {
+            session = try await SupabaseManager.shared.client.auth.session
+        } catch {
+            throw OpenAIError.notAuthenticated
         }
 
-        let url = URL(string: "https://api.openai.com/v1/chat/completions")!
+        let url = Config.supabaseURL
+            .appendingPathComponent("functions")
+            .appendingPathComponent("v1")
+            .appendingPathComponent("openai-chat")
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
-        request.addValue("Bearer \(Config.openAIAPIKey)", forHTTPHeaderField: "Authorization")
+        request.addValue("Bearer \(session.accessToken)", forHTTPHeaderField: "Authorization")
+        request.addValue(Config.supabaseAnonKey, forHTTPHeaderField: "apikey")
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
 
         let body = ChatRequest(
