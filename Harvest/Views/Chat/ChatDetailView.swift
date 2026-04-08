@@ -9,6 +9,7 @@ struct ChatDetailView: View {
 
     @State private var viewModel = ChatViewModel()
     @Environment(\.dismiss) private var dismiss
+    @FocusState private var isMessageFieldFocused: Bool
 
     var body: some View {
         VStack(spacing: 0) {
@@ -46,6 +47,10 @@ struct ChatDetailView: View {
                     .padding(.horizontal)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isMessageFieldFocused = false
+                }
                 .onChange(of: viewModel.messages.count) { _, _ in
                     if let lastId = viewModel.messages.last?.id {
                         withAnimation {
@@ -68,6 +73,7 @@ struct ChatDetailView: View {
                     .font(HarvestTheme.Typography.bodyRegular)
                     .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                     .tint(HarvestTheme.Colors.textOnBlack)
+                    .focused($isMessageFieldFocused)
                     .lineLimit(1...4)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
@@ -100,6 +106,10 @@ struct ChatDetailView: View {
         }
         .foregroundStyle(HarvestTheme.Colors.textPrimary)
         .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isMessageFieldFocused = false
+        }
         .navigationTitle(viewModel.partnerProfile?.displayName ?? "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {

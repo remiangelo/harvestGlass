@@ -4,6 +4,7 @@ struct GardenerChatView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = GardenerViewModel()
     @State private var selectedTab = 0
+    @FocusState private var isMessageFieldFocused: Bool
 
     var body: some View {
         NavigationStack {
@@ -106,6 +107,10 @@ struct GardenerChatView: View {
                     .padding(.horizontal)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    isMessageFieldFocused = false
+                }
                 .onChange(of: viewModel.messages.count) { _, _ in
                     if let lastId = viewModel.messages.last?.id {
                         withAnimation {
@@ -147,6 +152,7 @@ struct GardenerChatView: View {
                         .font(HarvestTheme.Typography.bodyRegular)
                         .foregroundStyle(HarvestTheme.Colors.textOnBlack)
                         .tint(HarvestTheme.Colors.textOnBlack)
+                        .focused($isMessageFieldFocused)
                         .lineLimit(1...4)
                         .padding(.horizontal, HarvestTheme.Spacing.md)
                         .padding(.vertical, HarvestTheme.Spacing.sm)
@@ -182,6 +188,10 @@ struct GardenerChatView: View {
             }
         }
         .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isMessageFieldFocused = false
+        }
     }
 
     private func gardenerBubble(_ message: GardenerMessage) -> some View {
