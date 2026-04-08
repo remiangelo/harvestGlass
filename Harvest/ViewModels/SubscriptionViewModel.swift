@@ -56,8 +56,12 @@ final class SubscriptionViewModel {
     // MARK: - StoreKit Purchase Methods
 
     func loadProducts() async {
+        error = nil
         do {
             products = try await subscriptionService.fetchProducts()
+            if products.isEmpty {
+                self.error = "No subscription products were returned by StoreKit."
+            }
         } catch {
             self.error = "Failed to load products: \(error.localizedDescription)"
             print("Error loading products: \(error)")

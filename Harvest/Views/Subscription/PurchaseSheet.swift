@@ -123,8 +123,9 @@ struct PurchaseSheet: View {
                         .padding(.horizontal)
                     } else {
                         VStack(spacing: HarvestTheme.Spacing.sm) {
-                            Text("Loading product information...")
+                            Text(viewModel.error ?? "Loading product information...")
                                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                .multilineTextAlignment(.center)
 
                             Button("Retry") {
                                 Task {
