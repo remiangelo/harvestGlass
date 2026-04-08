@@ -24,11 +24,17 @@ struct FiltersView: View {
                 sectionTitle("Age Range")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
-                        Stepper("Minimum: \(viewModel.filters.ageMin)", value: $viewModel.filters.ageMin, in: 18...99)
-                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        StepperCapsuleRow(
+                            title: "Minimum: \(viewModel.filters.ageMin)",
+                            value: $viewModel.filters.ageMin,
+                            range: 18...99
+                        )
                         Divider().overlay(HarvestTheme.Colors.formBorder)
-                        Stepper("Maximum: \(viewModel.filters.ageMax)", value: $viewModel.filters.ageMax, in: 18...99)
-                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        StepperCapsuleRow(
+                            title: "Maximum: \(viewModel.filters.ageMax)",
+                            value: $viewModel.filters.ageMax,
+                            range: 18...99
+                        )
                     }
                 }
 
@@ -109,21 +115,23 @@ struct FiltersView: View {
                                 options: ["Any"] + lookingForOptions
                             )
                             dividerRow()
-                            Stepper("Min Height: \(HeightFormatter.string(from: viewModel.filters.heightMin ?? 150))",
-                                    value: Binding(
-                                        get: { viewModel.filters.heightMin ?? 150 },
-                                        set: { viewModel.filters.heightMin = $0 }
-                                    ),
-                                    in: 120...220)
-                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            StepperCapsuleRow(
+                                title: "Min Height: \(HeightFormatter.string(from: viewModel.filters.heightMin ?? 150))",
+                                value: Binding(
+                                    get: { viewModel.filters.heightMin ?? 150 },
+                                    set: { viewModel.filters.heightMin = $0 }
+                                ),
+                                range: 120...220
+                            )
                             dividerRow()
-                            Stepper("Max Height: \(HeightFormatter.string(from: viewModel.filters.heightMax ?? 200))",
-                                    value: Binding(
-                                        get: { viewModel.filters.heightMax ?? 200 },
-                                        set: { viewModel.filters.heightMax = $0 }
-                                    ),
-                                    in: 120...220)
-                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            StepperCapsuleRow(
+                                title: "Max Height: \(HeightFormatter.string(from: viewModel.filters.heightMax ?? 200))",
+                                value: Binding(
+                                    get: { viewModel.filters.heightMax ?? 200 },
+                                    set: { viewModel.filters.heightMax = $0 }
+                                ),
+                                range: 120...220
+                            )
                             dividerRow()
                             pickerRow(
                                 title: "Smoking",

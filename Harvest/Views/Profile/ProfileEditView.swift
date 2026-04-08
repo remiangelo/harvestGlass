@@ -91,8 +91,10 @@ struct ProfileEditView: View {
 
                 HStack {
                     Text("Age")
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     Spacer()
-                    Stepper("\(viewModel.editAge)", value: $viewModel.editAge, in: 18...100)
+                    StepperCapsuleRow(title: "\(viewModel.editAge)", value: $viewModel.editAge, range: 18...100)
+                        .frame(maxWidth: 220)
                 }
 
                 HStack {
@@ -131,7 +133,11 @@ struct ProfileEditView: View {
                     }
                 }
 
-                Stepper("Height \(HeightFormatter.string(from: viewModel.editHeightCm))", value: $viewModel.editHeightCm, in: 100...250)
+                StepperCapsuleRow(
+                    title: "Height \(HeightFormatter.string(from: viewModel.editHeightCm))",
+                    value: $viewModel.editHeightCm,
+                    range: 100...250
+                )
 
                 Picker("Smoking", selection: $viewModel.editSmoking) {
                     Text("Select").tag("")
