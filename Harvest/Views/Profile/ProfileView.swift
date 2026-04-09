@@ -61,24 +61,15 @@ struct ProfileView: View {
                             }
 
                             if let basicDetails = viewModel.profile?.basicProfileDetails, !basicDetails.isEmpty {
-                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                                    Text("Basic Info")
-                                        .font(HarvestTheme.Typography.bodySmall)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
-
-                                    VStack(spacing: HarvestTheme.Spacing.xs) {
-                                        ForEach(Array(basicDetails.enumerated()), id: \.offset) { _, detail in
-                                            HStack(alignment: .top) {
-                                                Text(detail.label)
-                                                    .font(HarvestTheme.Typography.bodySmall)
-                                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                                                Spacer()
-                                                Text(detail.value)
-                                                    .font(HarvestTheme.Typography.bodySmall)
-                                                    .multilineTextAlignment(.trailing)
-                                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                                            }
+                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
+                                    ForEach(Array(basicDetails.enumerated()), id: \.offset) { _, detail in
+                                        HStack(spacing: 6) {
+                                            Text(detail.label)
+                                                .font(HarvestTheme.Typography.bodySmall)
+                                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                            Text(detail.value)
+                                                .font(HarvestTheme.Typography.bodySmall)
+                                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                                         }
                                     }
                                 }

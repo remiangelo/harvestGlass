@@ -98,8 +98,10 @@ struct ProfileEditView: View {
                             Text("Age")
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                             Spacer()
-                            StepperCapsuleRow(title: "\(viewModel.editAge)", value: $viewModel.editAge, range: 18...100)
-                                .frame(maxWidth: 190)
+                            Text("\(viewModel.editAge)")
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                .frame(minWidth: 28, alignment: .trailing)
+                            compactStepper(value: $viewModel.editAge, range: 18...100)
                         }
                         .padding(.vertical, HarvestTheme.Spacing.sm)
                         dividerRow()
@@ -107,12 +109,10 @@ struct ProfileEditView: View {
                             Text("Height")
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                             Spacer()
-                            StepperCapsuleRow(
-                                title: HeightFormatter.string(from: viewModel.editHeightCm),
-                                value: $viewModel.editHeightCm,
-                                range: 100...250
-                            )
-                            .frame(maxWidth: 190)
+                            Text(HeightFormatter.string(from: viewModel.editHeightCm))
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                .frame(minWidth: 56, alignment: .trailing)
+                            compactStepper(value: $viewModel.editHeightCm, range: 100...250)
                         }
                         .padding(.vertical, HarvestTheme.Spacing.sm)
                         dividerRow()
@@ -270,5 +270,42 @@ struct ProfileEditView: View {
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
         }
         .padding(.vertical, HarvestTheme.Spacing.sm)
+    }
+
+    private func compactStepper(value: Binding<Int>, range: ClosedRange<Int>) -> some View {
+        HStack(spacing: 0) {
+            compactStepperButton(systemName: "minus", isEnabled: value.wrappedValue > range.lowerBound) {
+                value.wrappedValue = max(range.lowerBound, value.wrappedValue - 1)
+            }
+
+            Rectangle()
+                .fill(HarvestTheme.Colors.formBorder)
+                .frame(width: 1, height: 24)
+
+            compactStepperButton(systemName: "plus", isEnabled: value.wrappedValue < range.upperBound) {
+                value.wrappedValue = min(range.upperBound, value.wrappedValue + 1)
+            }
+        }
+        .frame(width: 104, height: 38)
+        .background {
+            Capsule()
+                .fill(HarvestTheme.Colors.formSurfaceStrong)
+        }
+        .overlay {
+            Capsule()
+                .stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
+        }
+    }
+
+    private func compactStepperButton(systemName: String, isEnabled: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            Image(systemName: systemName)
+                .font(.system(size: 17, weight: .medium))
+                .foregroundStyle(isEnabled ? HarvestTheme.Colors.textPrimary : HarvestTheme.Colors.textSecondary.opacity(0.45))
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(!isEnabled)
     }
 }
