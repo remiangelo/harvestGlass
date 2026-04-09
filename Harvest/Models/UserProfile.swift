@@ -82,9 +82,6 @@ struct UserProfile: Codable, Identifiable, Sendable {
         if let lookingFor = lookingForDisplayValue {
             details.append(("Looking For", lookingFor))
         }
-        if let height = heightDisplayValue {
-            details.append(("Height", height))
-        }
         if let smoking = smokingDisplayValue {
             details.append(("Smoking", smoking))
         }
@@ -104,13 +101,23 @@ struct UserProfile: Codable, Identifiable, Sendable {
         return details
     }
 
+    var basicProfileDetails: [(label: String, value: String)] {
+        var details: [(label: String, value: String)] = []
+
+        if let height = heightDisplayValue {
+            details.append(("Height", height))
+        }
+
+        return details
+    }
+
     private var lookingForDisplayValue: String? {
         guard let lookingFor else { return nil }
         let normalized = Self.normalizeGoalLabel(lookingFor.trimmingCharacters(in: .whitespacesAndNewlines))
         return normalized.isEmpty ? nil : normalized
     }
 
-    private var heightDisplayValue: String? {
+    var heightDisplayValue: String? {
         guard let heightCm else { return nil }
         return HeightFormatter.string(from: heightCm)
     }

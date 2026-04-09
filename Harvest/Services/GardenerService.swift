@@ -15,6 +15,7 @@ struct GardenerService {
         - When helpful, give 2-4 concrete suggestions, examples, or next steps.
         - Ask at most one follow-up question, and only if it meaningfully helps.
         - Keep the response concise: usually 1 short paragraph or a short paragraph plus bullets.
+        - Break longer replies into short paragraphs of 1-3 sentences, with a blank line between each thought.
         - Never give medical or legal advice. If someone expresses distress or risk, encourage professional or trusted human support.
         """
 
@@ -51,17 +52,18 @@ struct GardenerService {
 
         chatMessages.append(.init(role: "user", content: message))
 
-        let response: String
+        let rawResponse: String
         do {
-            response = try await openAI.sendChat(
+            rawResponse = try await openAI.sendChat(
                 messages: chatMessages,
                 temperature: 0.55,
                 maxTokens: 280
             )
         } catch {
             print("Warning: OpenAI gardener request failed, using fallback: \(error)")
-            response = Self.fallbackResponses.randomElement() ?? Self.fallbackResponses[0]
+            rawResponse = Self.fallbackResponses.randomElement() ?? Self.fallbackResponses[0]
         }
+        let response = Self.formatResponse(rawResponse)
 
         let now = ISO8601DateFormatter().string(from: Date())
 
@@ -94,6 +96,73 @@ struct GardenerService {
         }
 
         return response
+    }
+
+    private static func formatResponse(_ text: String) -> String {
+        let cleaned = text
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard !cleaned.isEmpty else { return text }
+
+        if cleaned.contains("\n\n") {
+            return cleaned
+        }
+
+        let lines = cleaned
+            .split(separator: "\n")
+            .map { $0.trimmingCharacters(in: .whitespacesAndNewlines) }
+            .filter { !$0.isEmpty }
+
+        if lines.count > 1 {
+            return lines.joined(separator: "\n\n")
+        }
+
+        let sentences = splitIntoSentences(cleaned)
+        guard sentences.count > 3 else { return cleaned }
+
+        var paragraphs: [String] = []
+        var index = 0
+
+        while index < sentences.count {
+            let remaining = sentences.count - index
+            let chunkSize = remaining <= 3 ? remaining : 2
+            let paragraph = sentences[index..<min(index + chunkSize, sentences.count)]
+                .joined(separator: " ")
+            paragraphs.append(paragraph)
+            index += chunkSize
+        }
+
+        return paragraphs.joined(separator: "\n\n")
+    }
+
+    private static func splitIntoSentences(_ text: String) -> [String] {
+        var sentences: [String] = []
+        var current = ""
+
+        for character in text {
+            current.append(character)
+
+            if character == "." || character == "!" || character == "?" {
+                let trimmed = current.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    sentences.append(trimmed)
+                }
+                current = ""
+            }
+        }
+
+        let trailing = current.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trailing.isEmpty {
+            if sentences.isEmpty {
+                sentences.append(trailing)
+            } else {
+                let lastIndex = sentences.index(before: sentences.endIndex)
+                sentences[lastIndex] += " " + trailing
+            }
+        }
+
+        return sentences
     }
 
     func getChatHistory(userId: String) async throws -> [GardenerMessage] {

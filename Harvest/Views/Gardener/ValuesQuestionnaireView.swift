@@ -15,36 +15,38 @@ struct ValuesQuestionnaireView: View {
     private let valuesService = ValuesService()
     private let maxSelections = 5
 
+    private var isBroughtMode: Bool { selectedTab == 0 }
+    private var screenTitle: String { isBroughtMode ? "What I Bring" : "What I Seek" }
+    private var currentSet: Set<String> { isBroughtMode ? selectedBrought : selectedSought }
+    private var remainingSelections: Int { maxSelections - currentSet.count }
+
     init(authViewModel: AuthViewModel, initialTab: Int = 0) {
         self.authViewModel = authViewModel
         _selectedTab = State(initialValue: initialTab)
     }
 
     var body: some View {
-        VStack(spacing: 0) {
-            Picker("Type", selection: $selectedTab) {
-                Text("Values I Bring").tag(0)
-                Text("Values I Seek").tag(1)
-            }
-            .pickerStyle(.segmented)
-            .padding()
+        ZStack {
+            HarvestTheme.Colors.formBackground
+                .ignoresSafeArea()
 
             if isLoading {
-                Spacer()
                 ProgressView()
-                Spacer()
+                    .tint(HarvestTheme.Colors.formAccent)
             } else {
                 ScrollView {
-                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
-                        let currentSet = selectedTab == 0 ? selectedBrought : selectedSought
-                        let remaining = maxSelections - currentSet.count
+                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
+                        GlassCard(style: .light) {
+                            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
+                                Text("Select up to \(maxSelections)")
+                                    .font(HarvestTheme.Typography.bodyRegular)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                Text("\(remainingSelections) remaining")
+                                    .font(HarvestTheme.Typography.bodySmall)
+                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            }
+                        }
 
-                        Text("Select up to \(maxSelections) values (\(remaining) remaining)")
-                            .font(HarvestTheme.Typography.bodySmall)
-                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                            .padding(.horizontal)
-
-                        // Group by category
                         let grouped = Dictionary(grouping: allValues) { $0.category }
                         let sortedCategories = grouped.keys.sorted()
 
@@ -52,27 +54,27 @@ struct ValuesQuestionnaireView: View {
                             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                 Text(category.capitalized)
                                     .font(HarvestTheme.Typography.h4)
-                                    .padding(.horizontal)
+                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
                                 FlowLayout(spacing: HarvestTheme.Spacing.xs) {
                                     ForEach(grouped[category] ?? [], id: \.id) { value in
                                         ChipView(
                                             title: value.name,
-                                            isSelected: currentSet.contains(value.id)
+                                            isSelected: currentSet.contains(value.id),
+                                            lightStyle: true
                                         ) {
                                             toggleValue(value.id)
                                         }
                                     }
                                 }
-                                .padding(.horizontal)
                             }
                         }
                     }
-                    .padding(.vertical)
+                    .padding()
                 }
             }
         }
-        .navigationTitle("My Values")
+        .navigationTitle(screenTitle)
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
             ToolbarItem(placement: .topBarTrailing) {
@@ -80,13 +82,16 @@ struct ValuesQuestionnaireView: View {
                     Task { await save() }
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 .disabled(isSaving)
             }
         }
         .task {
             await loadValues()
         }
+        .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func toggleValue(_ valueId: String) {

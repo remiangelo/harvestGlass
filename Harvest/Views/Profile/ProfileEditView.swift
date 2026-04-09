@@ -99,7 +99,20 @@ struct ProfileEditView: View {
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                             Spacer()
                             StepperCapsuleRow(title: "\(viewModel.editAge)", value: $viewModel.editAge, range: 18...100)
-                                .frame(maxWidth: 220)
+                                .frame(maxWidth: 190)
+                        }
+                        .padding(.vertical, HarvestTheme.Spacing.sm)
+                        dividerRow()
+                        HStack {
+                            Text("Height")
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                            Spacer()
+                            StepperCapsuleRow(
+                                title: HeightFormatter.string(from: viewModel.editHeightCm),
+                                value: $viewModel.editHeightCm,
+                                range: 100...250
+                            )
+                            .frame(maxWidth: 190)
                         }
                         .padding(.vertical, HarvestTheme.Spacing.sm)
                         dividerRow()
@@ -123,19 +136,6 @@ struct ProfileEditView: View {
                             selection: $viewModel.editLookingFor,
                             options: lookingForOptions
                         )
-                        dividerRow()
-                        HStack {
-                            Text("Height")
-                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                            Spacer()
-                            StepperCapsuleRow(
-                                title: HeightFormatter.string(from: viewModel.editHeightCm),
-                                value: $viewModel.editHeightCm,
-                                range: 100...250
-                            )
-                            .frame(maxWidth: 220)
-                        }
-                        .padding(.vertical, HarvestTheme.Spacing.sm)
                         dividerRow()
                         pickerRow(title: "Smoking", selection: $viewModel.editSmoking, options: smokingOptions)
                         dividerRow()
@@ -164,7 +164,7 @@ struct ProfileEditView: View {
                         NavigationLink {
                             ValuesQuestionnaireView(authViewModel: authViewModel, initialTab: 1)
                         } label: {
-                            navRow(title: "What I Need", subtitle: valuesSoughtCount > 0 ? "\(valuesSoughtCount) selected" : "Select up to 5")
+                            navRow(title: "What I Seek", subtitle: valuesSoughtCount > 0 ? "\(valuesSoughtCount) selected" : "Select up to 5")
                         }
                         .buttonStyle(.plain)
                     }
@@ -218,7 +218,7 @@ struct ProfileEditView: View {
     private func sectionTitle(_ title: String) -> some View {
         Text(title)
             .font(HarvestTheme.Typography.h4)
-            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
     }
 
     private func dividerRow() -> some View {

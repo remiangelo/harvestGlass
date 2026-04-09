@@ -6,17 +6,28 @@ struct GardenerChatView: View {
     @State private var selectedTab = 0
     @FocusState private var isMessageFieldFocused: Bool
 
+    private let previewSegmentBackground = Color(hex: "5A1B33")
+    private let previewSegmentSurface = Color(hex: "6E2A45")
+    private let previewSegmentBorder = HarvestTheme.Colors.harvestCream.opacity(0.22)
+
     var body: some View {
         NavigationStack {
             VStack(spacing: 0) {
-                // Segmented picker
-                Picker("View", selection: $selectedTab) {
-                    Text("Chat").tag(0)
-                    Text("Tips").tag(1)
+                HStack(spacing: 0) {
+                    gardenerSegmentButton("Chat", tag: 0)
+                    gardenerSegmentButton("Tips", tag: 1)
                 }
-                .pickerStyle(.segmented)
                 .padding(.horizontal)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
+                .background {
+                    Capsule()
+                        .fill(previewSegmentBackground)
+                        .overlay {
+                            Capsule()
+                                .stroke(previewSegmentBorder, lineWidth: 1)
+                        }
+                }
+                .padding(.horizontal)
 
                 if selectedTab == 0 {
                     chatView
@@ -61,6 +72,30 @@ struct GardenerChatView: View {
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
+    }
+
+    private func gardenerSegmentButton(_ title: String, tag: Int) -> some View {
+        Button {
+            withAnimation(.easeInOut(duration: 0.18)) {
+                selectedTab = tag
+            }
+        } label: {
+            Text(title)
+                .font(HarvestTheme.Typography.bodySmall)
+                .fontWeight(.semibold)
+                .foregroundStyle(
+                    selectedTab == tag
+                    ? HarvestTheme.Colors.textOnCream
+                    : HarvestTheme.Colors.harvestCream
+                )
+                .frame(maxWidth: .infinity)
+                .padding(.vertical, 10)
+                .background {
+                    Capsule()
+                        .fill(selectedTab == tag ? HarvestTheme.Colors.harvestCream : previewSegmentSurface)
+                }
+        }
+        .buttonStyle(.plain)
     }
 
     private var chatView: some View {

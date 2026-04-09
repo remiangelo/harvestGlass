@@ -48,36 +48,40 @@ struct InterestPickerView: View {
     ]
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
-                Text("Pick your interests (\(draftInterests.count) selected)")
-                    .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(.secondary)
-                    .padding(.horizontal)
+        ZStack {
+            HarvestTheme.Colors.formBackground
+                .ignoresSafeArea()
 
-                ForEach(Self.categorizedInterests, id: \.0) { category, interests in
-                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                        Text(category)
-                            .font(HarvestTheme.Typography.h4)
-                            .foregroundStyle(.primary)
-                            .padding(.horizontal)
+            ScrollView {
+                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
+                    GlassCard(style: .light) {
+                        Text("Pick your interests (\(draftInterests.count) selected)")
+                            .font(HarvestTheme.Typography.bodySmall)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    }
 
-                        FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                            ForEach(interests, id: \.self) { interest in
-                                ChipView(
-                                    title: interest,
-                                    isSelected: draftInterests.contains(interest),
-                                    lightStyle: true
-                                ) {
-                                    toggleInterest(interest)
+                    ForEach(Self.categorizedInterests, id: \.0) { category, interests in
+                        VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                            Text(category)
+                                .font(HarvestTheme.Typography.h4)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+
+                            FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                                ForEach(interests, id: \.self) { interest in
+                                    ChipView(
+                                        title: interest,
+                                        isSelected: draftInterests.contains(interest),
+                                        lightStyle: true
+                                    ) {
+                                        toggleInterest(interest)
+                                    }
                                 }
                             }
                         }
-                        .padding(.horizontal)
                     }
                 }
+                .padding()
             }
-            .padding(.vertical)
         }
         .navigationTitle("Interests")
         .navigationBarTitleDisplayMode(.inline)
@@ -88,12 +92,15 @@ struct InterestPickerView: View {
                     dismiss()
                 }
                 .fontWeight(.semibold)
-                .foregroundStyle(.primary)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
             }
         }
         .onAppear {
             draftInterests = selectedInterests
         }
+        .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
+        .toolbarBackground(.visible, for: .navigationBar)
+        .toolbarColorScheme(.dark, for: .navigationBar)
     }
 
     private func toggleInterest(_ interest: String) {
