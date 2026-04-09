@@ -6,7 +6,7 @@ struct ValuesQuestionnaireView: View {
     @State private var allValues: [Value] = []
     @State private var selectedBrought: Set<String> = []
     @State private var selectedSought: Set<String> = []
-    @State private var selectedTab = 0
+    @State private var selectedTab: Int
     @State private var isLoading = false
     @State private var isSaving = false
     @State private var error: String?
@@ -14,6 +14,11 @@ struct ValuesQuestionnaireView: View {
 
     private let valuesService = ValuesService()
     private let maxSelections = 5
+
+    init(authViewModel: AuthViewModel, initialTab: Int = 0) {
+        self.authViewModel = authViewModel
+        _selectedTab = State(initialValue: initialTab)
+    }
 
     var body: some View {
         VStack(spacing: 0) {

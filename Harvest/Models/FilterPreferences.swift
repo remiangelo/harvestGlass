@@ -9,7 +9,7 @@ struct FilterPreferences: Codable, Sendable {
     var showMe: [String] = []
     var isVisible: Bool = true
 
-    // Premium (Green+)
+    // Premium (Grow+)
     var lookingFor: String?
     var heightMin: Int?
     var heightMax: Int?

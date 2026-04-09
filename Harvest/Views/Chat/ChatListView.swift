@@ -81,10 +81,12 @@ struct ChatListView: View {
                         )
                     }
                     .scrollContentBackground(.hidden)
+                    .scrollDismissesKeyboard(.interactively)
                     .background(HarvestTheme.Colors.background)
                     .listStyle(.plain)
                 }
             }
+            .dismissKeyboardOnTap()
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .navigationTitle("Messages")
             .background(HarvestTheme.Colors.background.ignoresSafeArea())

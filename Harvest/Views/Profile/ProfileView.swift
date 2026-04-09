@@ -60,6 +60,30 @@ struct ProfileView: View {
                                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
                             }
 
+                            if let lifestyleDetails = viewModel.profile?.lifestyleDetails, !lifestyleDetails.isEmpty {
+                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                                    Text("Lifestyle & Intentions")
+                                        .font(HarvestTheme.Typography.bodySmall)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+
+                                    VStack(spacing: HarvestTheme.Spacing.xs) {
+                                        ForEach(Array(lifestyleDetails.enumerated()), id: \.offset) { _, detail in
+                                            HStack(alignment: .top) {
+                                                Text(detail.label)
+                                                    .font(HarvestTheme.Typography.bodySmall)
+                                                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                                Spacer()
+                                                Text(detail.value)
+                                                    .font(HarvestTheme.Typography.bodySmall)
+                                                    .multilineTextAlignment(.trailing)
+                                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
                             // Hobbies
                             if let hobbies = viewModel.profile?.hobbies, !hobbies.isEmpty {
                                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {

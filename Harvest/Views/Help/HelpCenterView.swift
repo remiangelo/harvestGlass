@@ -170,6 +170,8 @@ struct HelpCenterView: View {
             }
             .padding(.vertical)
         }
+        .scrollDismissesKeyboard(.interactively)
+        .dismissKeyboardOnTap()
         .navigationTitle("Help Center")
         .navigationBarTitleDisplayMode(.inline)
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())

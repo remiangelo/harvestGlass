@@ -98,7 +98,7 @@ For local testing without App Store Connect:
     {
       "displayPrice" : "9.99",
       "familyShareable" : false,
-      "internalID" : "green_monthly",
+      "internalID" : "grow_monthly",
       "localizations" : [
         {
           "description" : "Unlock premium dating features",
@@ -170,8 +170,8 @@ User taps "Upgrade"
 
 ### Upgrade Flow
 Users can upgrade from:
-- Seed (free) → Green or Gold
-- Green → Gold
+- Seed (free) → Grow or Gold
+- Grow → Gold
 
 StoreKit handles prorated billing automatically.
 
@@ -190,7 +190,7 @@ Users cancel in iOS Settings. App continues to provide premium features until su
 
 ### user_subscriptions Table
 After successful purchase, updates:
-- `tier_id`: Maps to `subscription_tiers.id` for green/gold
+- `tier_id`: Maps to `subscription_tiers.id` for grow/gold
 - `status`: Set to `"active"`
 - `started_at`: Timestamp of purchase
 - `cancelled_at`: Cleared on new purchase

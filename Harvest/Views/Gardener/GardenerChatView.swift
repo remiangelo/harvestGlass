@@ -107,6 +107,7 @@ struct GardenerChatView: View {
                     .padding(.horizontal)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .contentShape(Rectangle())
                 .onTapGesture {
                     isMessageFieldFocused = false

@@ -11,8 +11,6 @@ final class GardenerViewModel {
     var showDailyQuiz = false
     var todayCharUsage = 0
     var characterLimit = 1000
-    var conversationsPerDay: Int? = 1
-    var remainingConversations = 0
     var currentTier: SubscriptionTier?
     var error: String?
     var rateLimitWarning: String?
@@ -66,8 +64,6 @@ final class GardenerViewModel {
                 return
             }
 
-            // Update remaining counts for UI
-            remainingConversations = limitCheck.remainingConversations
         } catch {
             print("Warning: Rate limit check failed: \(error)")
             // Continue with send - don't block user due to rate limit check failure
@@ -159,7 +155,6 @@ final class GardenerViewModel {
                 if let tier = tiers.first(where: { $0.id == sub.tierId }) {
                     currentTier = tier
                     characterLimit = tier.gardenerCharacterLimit
-                    conversationsPerDay = tier.gardenerConversationsPerDay
 
                     // Get current rate limit status
                     let limitCheck = try await rateLimitService.checkGardenerLimit(
@@ -167,7 +162,7 @@ final class GardenerViewModel {
                         messageLength: 0,
                         userTier: tier
                     )
-                    remainingConversations = limitCheck.remainingConversations
+                    todayCharUsage = max(0, limitCheck.characterLimit - limitCheck.remainingCharacters)
                     return
                 }
             } else {
@@ -176,13 +171,12 @@ final class GardenerViewModel {
                 if let seedTier = tiers.first(where: { $0.name == .seed }) {
                     currentTier = seedTier
                     characterLimit = seedTier.gardenerCharacterLimit
-                    conversationsPerDay = seedTier.gardenerConversationsPerDay
                     let limitCheck = try await rateLimitService.checkGardenerLimit(
                         userId: userId,
                         messageLength: 0,
                         userTier: seedTier
                     )
-                    remainingConversations = limitCheck.remainingConversations
+                    todayCharUsage = max(0, limitCheck.characterLimit - limitCheck.remainingCharacters)
                     return
                 }
             }
@@ -199,7 +193,7 @@ final class GardenerViewModel {
             priceWeekly: 0,
             matchesPerWeek: 10,
             maxDistanceMiles: 25,
-            gardenerConversationsPerDay: 1,
+            gardenerConversationsPerDay: nil,
             gardenerCharacterLimit: 1000,
             hasValuesMatching: false,
             hasBasicFilters: true,
@@ -210,7 +204,6 @@ final class GardenerViewModel {
             sortOrder: 0
         )
         characterLimit = 1000
-        conversationsPerDay = 1
-        remainingConversations = 1
+        todayCharUsage = 0
     }
 }

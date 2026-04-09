@@ -164,7 +164,7 @@ struct FiltersView: View {
                 } else {
                     PremiumGateView(
                         featureName: "Advanced Filters",
-                        requiredTier: "Green",
+                        requiredTier: "Grow",
                         authViewModel: authViewModel
                     )
                     .frame(height: 200)

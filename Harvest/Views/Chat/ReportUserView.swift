@@ -38,6 +38,8 @@ struct ReportUserView: View {
                     .listRowBackground(Color.clear)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
+            .dismissKeyboardOnTap()
             .navigationTitle("Report User")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

@@ -167,6 +167,8 @@ struct LoginView: View {
                     Spacer(minLength: 40)
                 }
             }
+            .scrollDismissesKeyboard(.interactively)
         }
+        .dismissKeyboardOnTap()
     }
 }

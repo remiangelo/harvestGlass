@@ -76,7 +76,7 @@
 
 ### Subscriptions & Monetization
 - [x] StoreKit 2 integration (`SubscriptionService`, `SubscriptionViewModel`)
-- [x] Subscription tiers: Seed (free) / Green / Gold (`SubscriptionTier` model)
+- [x] Subscription tiers: Seed (free) / Grow / Gold (`SubscriptionTier` model)
 - [x] Purchase sheet UI (`PurchaseSheet`)
 - [x] Subscription management view (`SubscriptionView`)
 - [x] Premium gate component (`PremiumGateView`)
@@ -219,7 +219,7 @@ Harvest/
 | Tier | Matches/Week | Gardener Chats/Day | Char Limit |
 |------|-------------|-------------------|------------|
 | Seed (Free) | 10 | 1 | 1,000 |
-| Green | 50 | 5 | 3,000 |
+| Grow | 50 | 5 | 3,000 |
 | Gold | Unlimited | Unlimited | 10,000 |
 
 ---

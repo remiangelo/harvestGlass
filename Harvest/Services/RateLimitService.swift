@@ -6,8 +6,7 @@ struct RateLimitService {
 
     // MARK: - Gardener Rate Limiting
 
-    /// Check if user can send a Gardener message
-    /// Returns (canSend: Bool, reason: String?, remainingConversations: Int, remainingCharacters: Int)
+    /// Check if user can send a Gardener message based on the daily character budget.
     func checkGardenerLimit(
         userId: String,
         messageLength: Int,
@@ -21,31 +20,8 @@ struct RateLimitService {
             return GardenerLimitCheck(
                 canSend: false,
                 reason: "Daily character limit reached (\(userTier.gardenerCharacterLimit) characters per day)",
-                remainingConversations: remainingConversationAllowance(
-                    limit: userTier.gardenerConversationsPerDay,
-                    used: normalizedUsage.gardenerConversationsToday
-                ),
+                remainingConversations: -1,
                 remainingCharacters: remainingCharactersBeforeSend,
-                characterLimit: userTier.gardenerCharacterLimit
-            )
-        }
-
-        if let conversationLimit = userTier.gardenerConversationsPerDay {
-            if normalizedUsage.gardenerConversationsToday >= conversationLimit {
-                return GardenerLimitCheck(
-                    canSend: false,
-                    reason: "Daily conversation limit reached (\(conversationLimit) conversations per day)",
-                    remainingConversations: 0,
-                    remainingCharacters: remainingCharactersBeforeSend,
-                    characterLimit: userTier.gardenerCharacterLimit
-                )
-            }
-
-            return GardenerLimitCheck(
-                canSend: true,
-                reason: nil,
-                remainingConversations: max(0, conversationLimit - normalizedUsage.gardenerConversationsToday - 1),
-                remainingCharacters: max(0, remainingCharactersBeforeSend - messageLength),
                 characterLimit: userTier.gardenerCharacterLimit
             )
         }
@@ -59,7 +35,7 @@ struct RateLimitService {
         )
     }
 
-    /// Track a Gardener conversation in user_usage
+    /// Track daily Gardener character usage in user_usage
     func trackGardenerConversation(userId: String, characterCount: Int) async throws {
         let usage = try await getOrCreateUsageRow(userId: userId)
         let normalizedUsage = try await normalizedDailyGardenerUsage(for: usage)
@@ -67,7 +43,7 @@ struct RateLimitService {
         try await client
             .from("user_usage")
             .update([
-                "gardener_conversations_today": AnyJSON.double(Double(normalizedUsage.gardenerConversationsToday + 1)),
+                "gardener_conversations_today": AnyJSON.double(Double(normalizedUsage.gardenerConversationsToday)),
                 "gardener_characters_used_today": AnyJSON.double(Double(normalizedUsage.gardenerCharactersUsedToday + characterCount)),
                 "gardener_last_reset_date": AnyJSON.string(Self.dateFormatter.string(from: Date())),
                 "updated_at": AnyJSON.string(Self.timestampFormatter.string(from: Date()))
@@ -192,12 +168,6 @@ struct RateLimitService {
         resetUsage.gardenerLastResetDate = today
         return resetUsage
     }
-
-    private func remainingConversationAllowance(limit: Int?, used: Int) -> Int {
-        guard let limit else { return -1 }
-        return max(0, limit - used)
-    }
-
     private static let timestampFormatter: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
         return formatter
@@ -254,11 +224,9 @@ struct GardenerLimitCheck: Sendable {
     }
 
     var usageDisplayText: String {
-        if isUnlimited {
-            return "Unlimited conversations"
-        } else {
-            return "\(remainingConversations) conversation\(remainingConversations == 1 ? "" : "s") remaining today"
-        }
+        remainingCharacters == -1
+            ? "Unlimited characters"
+            : "\(remainingCharacters) characters remaining today"
     }
 }
 
@@ -284,7 +252,6 @@ struct MatchLimitCheck: Sendable {
 
 enum RateLimitError: LocalizedError {
     case characterLimitExceeded(limit: Int, actual: Int)
-    case dailyConversationLimitReached(limit: Int)
     case weeklyMatchLimitReached(limit: Int)
     case distanceLimitExceeded(maxDistance: Int, actual: Double)
     case usageRowCreationFailed
@@ -293,8 +260,6 @@ enum RateLimitError: LocalizedError {
         switch self {
         case .characterLimitExceeded(let limit, let actual):
             return "Message too long. Limit: \(limit) characters, yours: \(actual)"
-        case .dailyConversationLimitReached(let limit):
-            return "You've reached your daily limit of \(limit) Gardener conversations. Upgrade for more!"
         case .weeklyMatchLimitReached(let limit):
             return "You've reached your weekly limit of \(limit) matches. Upgrade for unlimited matches!"
         case .distanceLimitExceeded(let maxDistance, let actual):
