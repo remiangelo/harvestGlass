@@ -229,6 +229,8 @@ struct ProfileEditView: View {
         HStack {
             Text(title)
                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                .lineLimit(1)
+                .minimumScaleFactor(0.85)
             Spacer()
             TextField(placeholder, text: text)
                 .multilineTextAlignment(.trailing)
@@ -242,7 +244,9 @@ struct ProfileEditView: View {
         HStack {
             Text(title)
                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
-            Spacer()
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Spacer(minLength: HarvestTheme.Spacing.sm)
             Picker(title, selection: selection) {
                 Text("Select").tag("")
                 ForEach(options, id: \.1) { option in
@@ -251,6 +255,7 @@ struct ProfileEditView: View {
             }
             .labelsHidden()
             .tint(HarvestTheme.Colors.formAccent)
+            .frame(maxWidth: 170, alignment: .trailing)
         }
         .padding(.vertical, HarvestTheme.Spacing.sm)
     }
@@ -260,9 +265,13 @@ struct ProfileEditView: View {
             VStack(alignment: .leading, spacing: 2) {
                 Text(title)
                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.85)
                 Text(subtitle)
                     .font(HarvestTheme.Typography.bodySmall)
                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.8)
             }
             Spacer()
             Image(systemName: "chevron.right")

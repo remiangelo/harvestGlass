@@ -280,8 +280,11 @@ private struct PickerRow<Content: View>: View {
         HStack {
             Text(title)
                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
-            Spacer()
+                .lineLimit(1)
+                .minimumScaleFactor(0.82)
+            Spacer(minLength: HarvestTheme.Spacing.sm)
             content()
+                .frame(maxWidth: 170, alignment: .trailing)
         }
         .padding(.vertical, HarvestTheme.Spacing.sm)
     }

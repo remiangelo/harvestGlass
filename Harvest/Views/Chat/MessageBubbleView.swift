@@ -17,7 +17,7 @@ struct MessageBubbleView: View {
                     .background {
                         if isSent {
                             BubbleShape(isSent: true)
-                                .fill(HarvestTheme.Colors.redSurface)
+                                .fill(HarvestTheme.Colors.outgoingMessageSurface)
                         } else {
                             BubbleShape(isSent: false)
                                 .fill(HarvestTheme.Colors.glassFill)

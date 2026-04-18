@@ -244,7 +244,7 @@ struct GardenerChatView: View {
                 .background {
                     if isUser {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                            .fill(HarvestTheme.Colors.redSurface)
+                            .fill(HarvestTheme.Colors.outgoingMessageSurface)
                     } else {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
                             .fill(HarvestTheme.Colors.glassFill)

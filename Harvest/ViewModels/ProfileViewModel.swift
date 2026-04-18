@@ -105,8 +105,8 @@ final class ProfileViewModel {
         if normalizedStringArray(editInterestedIn) != normalizedStringArray(profile?.interestedIn ?? []) {
             updates["interested_in"] = .array(editInterestedIn.map { .string($0) })
         }
-        if normalizedOptional(editLookingFor) != profile?.lookingFor {
-            updates["looking_for"] = anyJSONStringOrNull(editLookingFor)
+        if normalizedLookingForForDB(editLookingFor) != normalizedLookingForForDB(profile?.lookingFor ?? "") {
+            updates["looking_for"] = anyJSONLookingForOrNull(editLookingFor)
         }
         if editHeightCm != profile?.heightCm ?? 170 {
             updates["height_cm"] = .double(Double(editHeightCm))
@@ -179,7 +179,7 @@ final class ProfileViewModel {
         profile?.hobbies = editHobbies
         profile?.age = editAge
         profile?.interestedIn = editInterestedIn
-        profile?.lookingFor = normalizedOptional(editLookingFor)
+        profile?.lookingFor = normalizedLookingForForDB(editLookingFor)
         profile?.heightCm = editHeightCm
         profile?.smoking = normalizedOptional(editSmoking)
         profile?.drinking = normalizedOptional(editDrinking)
@@ -245,9 +245,29 @@ final class ProfileViewModel {
         return .string(normalized)
     }
 
+    private func anyJSONLookingForOrNull(_ value: String) -> AnyJSON {
+        guard let normalized = normalizedLookingForForDB(value) else { return .null }
+        return .string(normalized)
+    }
+
     private func normalizedOptional(_ value: String) -> String? {
         let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
         return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func normalizedLookingForForDB(_ value: String) -> String? {
+        guard let trimmed = normalizedOptional(value)?.lowercased() else { return nil }
+
+        switch trimmed {
+        case "dating", "casual", "not sure yet", "not sure":
+            return "dating"
+        case "relationship", "long_term_commitment", "long-term commitment", "long-term relationship":
+            return "relationship"
+        case "marriage":
+            return "marriage"
+        default:
+            return trimmed
+        }
     }
 
     private func normalizedStringArray(_ values: [String]) -> [String] {

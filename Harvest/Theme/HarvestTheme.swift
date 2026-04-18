@@ -22,6 +22,7 @@ enum HarvestTheme {
         static let primarySoft = primary.opacity(0.15)
         static let blackSurface = black
         static let redSurface = Color(hex: "8A3455")
+        static let outgoingMessageSurface = Color(hex: "C86B95")
 
         // Accent
         static let accent = harvestGold
