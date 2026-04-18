@@ -60,21 +60,6 @@ struct ProfileView: View {
                                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
                             }
 
-                            if let basicDetails = viewModel.profile?.basicProfileDetails, !basicDetails.isEmpty {
-                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
-                                    ForEach(Array(basicDetails.enumerated()), id: \.offset) { _, detail in
-                                        HStack(spacing: 6) {
-                                            Text(detail.label)
-                                                .font(HarvestTheme.Typography.bodySmall)
-                                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                                            Text(detail.value)
-                                                .font(HarvestTheme.Typography.bodySmall)
-                                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                                        }
-                                    }
-                                }
-                            }
-
                             if let lifestyleDetails = viewModel.profile?.lifestyleDetails, !lifestyleDetails.isEmpty {
                                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                     Text("Lifestyle & Intentions")

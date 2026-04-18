@@ -79,6 +79,9 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var lifestyleDetails: [(label: String, value: String)] {
         var details: [(label: String, value: String)] = []
 
+        if let height = heightDisplayValue {
+            details.append(("Height", height))
+        }
         if let lookingFor = lookingForDisplayValue {
             details.append(("Looking For", lookingFor))
         }
@@ -96,16 +99,6 @@ struct UserProfile: Codable, Identifiable, Sendable {
         }
         if let childrenStatus = childrenStatusDisplayValue {
             details.append(("Children", childrenStatus))
-        }
-
-        return details
-    }
-
-    var basicProfileDetails: [(label: String, value: String)] {
-        var details: [(label: String, value: String)] = []
-
-        if let height = heightDisplayValue {
-            details.append(("Height", height))
         }
 
         return details

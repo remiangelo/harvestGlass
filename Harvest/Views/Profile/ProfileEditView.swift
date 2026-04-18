@@ -247,15 +247,26 @@ struct ProfileEditView: View {
                 .lineLimit(1)
                 .minimumScaleFactor(0.82)
             Spacer(minLength: HarvestTheme.Spacing.sm)
-            Picker(title, selection: selection) {
-                Text("Select").tag("")
-                ForEach(options, id: \.1) { option in
-                    Text(option.0).tag(option.1)
+            Menu {
+                Button("Select") {
+                    selection.wrappedValue = ""
                 }
+                ForEach(options, id: \.1) { option in
+                    Button(option.0) {
+                        selection.wrappedValue = option.1
+                    }
+                }
+            } label: {
+                HStack(spacing: 6) {
+                    Text(selectedLabel(for: selection.wrappedValue, options: options))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.72)
+                    Image(systemName: "chevron.up.chevron.down")
+                        .font(.caption.weight(.semibold))
+                }
+                .foregroundStyle(HarvestTheme.Colors.formAccent)
+                .frame(width: 150, alignment: .trailing)
             }
-            .labelsHidden()
-            .tint(HarvestTheme.Colors.formAccent)
-            .frame(maxWidth: 170, alignment: .trailing)
         }
         .padding(.vertical, HarvestTheme.Spacing.sm)
     }
@@ -316,5 +327,9 @@ struct ProfileEditView: View {
         }
         .buttonStyle(.plain)
         .disabled(!isEnabled)
+    }
+
+    private func selectedLabel(for value: String, options: [(String, String)]) -> String {
+        options.first(where: { $0.1 == value })?.0 ?? "Select"
     }
 }
