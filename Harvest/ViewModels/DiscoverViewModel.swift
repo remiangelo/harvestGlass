@@ -18,6 +18,7 @@ final class DiscoverViewModel {
     private let filterService = FilterService()
     private let rateLimitService = RateLimitService()
     private let subscriptionService = SubscriptionService()
+    private var locallyExcludedProfileIds: Set<String> = []
 
     var currentProfile: UserProfile? {
         guard currentIndex < profiles.count else { return nil }
@@ -37,15 +38,24 @@ final class DiscoverViewModel {
         return compatibilityScores[profile.id]
     }
 
-    func loadProfiles(userId: String) async {
+    func loadProfiles(userId: String, append: Bool = false) async {
         isLoading = true
         defer { isLoading = false }
 
         do {
             let swipedIds = try await swipeService.getSwipeHistory(userId: userId)
             let filters = try? await filterService.getFilters(userId: userId)
-            profiles = try await swipeService.getDiscoverProfiles(userId: userId, excludeIds: swipedIds, filters: filters)
-            currentIndex = 0
+            let existingIds = Set(profiles.map(\.id))
+            let excludeIds = Array(Set(swipedIds).union(locallyExcludedProfileIds).union(append ? existingIds : []))
+            let fetchedProfiles = try await swipeService.getDiscoverProfiles(userId: userId, excludeIds: excludeIds, filters: filters)
+
+            if append {
+                let newProfiles = fetchedProfiles.filter { !existingIds.contains($0.id) }
+                profiles.append(contentsOf: newProfiles)
+            } else {
+                profiles = fetchedProfiles
+                currentIndex = 0
+            }
 
             // Load compatibility scores for first few profiles without blocking initial card display.
             Task {
@@ -124,11 +134,16 @@ final class DiscoverViewModel {
         let generator = UIImpactFeedbackGenerator(style: .medium)
         generator.impactOccurred()
 
-        currentIndex += 1
+        locallyExcludedProfileIds.insert(profile.id)
+        let removedProfile = profile
+
+        if currentIndex < profiles.count {
+            profiles.remove(at: currentIndex)
+        }
 
         if remainingCount < 3 {
             Task {
-                await loadProfiles(userId: userId)
+                await loadProfiles(userId: userId, append: true)
             }
         }
 
@@ -148,6 +163,8 @@ final class DiscoverViewModel {
                 notificationGenerator.notificationOccurred(.success)
             }
         } catch {
+            locallyExcludedProfileIds.remove(profile.id)
+            profiles.insert(removedProfile, at: min(currentIndex, profiles.count))
             self.error = error.localizedDescription
         }
     }
