@@ -193,7 +193,6 @@ struct SwipeCardView: View {
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         onSwipe(.like)
-                        offset = .zero
                     }
                 } else if width < -swipeThreshold {
                     withAnimation(.spring(response: 0.3)) {
@@ -201,7 +200,6 @@ struct SwipeCardView: View {
                     }
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
                         onSwipe(.nope)
-                        offset = .zero
                     }
                 } else {
                     withAnimation(.spring(response: 0.4, dampingFraction: 0.6)) {

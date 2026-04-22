@@ -72,16 +72,13 @@ struct SwipeService {
     }
 
     func getDiscoverProfiles(userId: String, excludeIds: [String], filters: FilterPreferences? = nil) async throws -> [UserProfile] {
-        let inboundLikerIds = try await getInboundLikerIds(userId: userId)
-        let effectiveExcludeIds = excludeIds.filter { !inboundLikerIds.contains($0.lowercased()) }
-
         // Fetch basic filtered profiles
         var query = client
             .from("users")
             .select()
             .neq("id", value: userId)
 
-        for excludeId in effectiveExcludeIds {
+        for excludeId in excludeIds {
             query = query.neq("id", value: excludeId)
         }
 
@@ -140,26 +137,6 @@ struct SwipeService {
 
         // Return top 20 by compatibility
         return rankedProfiles.prefix(20).map { $0.profile }
-    }
-
-    private func getInboundLikerIds(userId: String) async throws -> Set<String> {
-        struct InboundSwipeRecord: Decodable {
-            let swiperId: String
-
-            enum CodingKeys: String, CodingKey {
-                case swiperId = "swiper_id"
-            }
-        }
-
-        let inboundLikes: [InboundSwipeRecord] = try await client
-            .from("swipes")
-            .select("swiper_id")
-            .eq("swiped_id", value: userId)
-            .in("action", values: [SwipeAction.like.rawValue, SwipeAction.superLike.rawValue])
-            .execute()
-            .value
-
-        return Set(inboundLikes.map { $0.swiperId.lowercased() })
     }
 
     /// Get compatibility score between current user and another user
