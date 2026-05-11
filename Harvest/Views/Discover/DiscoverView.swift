@@ -173,12 +173,14 @@ struct DiscoverView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(HarvestTheme.Colors.textTertiary)
 
-            Text("No more profiles")
+            Text("No more values-aligned matches right now")
                 .font(HarvestTheme.Typography.h3)
+                .multilineTextAlignment(.center)
 
-            Text("Check back later for new people")
+            Text("Check back soon — we're finding people who share your values")
                 .font(HarvestTheme.Typography.bodyRegular)
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
 
             GlassButton(title: "Refresh", icon: "arrow.clockwise", style: .secondary) {
                 if let userId = authViewModel.currentUserId {

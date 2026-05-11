@@ -9,6 +9,7 @@ enum OnboardingStep: Int, CaseIterable {
     case nickname
     case photos
     case goals
+    case values
     case genderIdentity
     case interestedIn
     case location
@@ -24,6 +25,10 @@ final class OnboardingViewModel {
     var photos: [Data] = []
     var photoUrls: [String] = []
     var selectedGoals: Set<String> = []
+    var allValues: [Value] = []
+    var selectedValuesBrought: Set<String> = []
+    var selectedValuesSought: Set<String> = []
+    var isLoadingValues = false
     var gender = ""
     var interestedIn: Set<String> = []
     var location = ""
@@ -35,6 +40,7 @@ final class OnboardingViewModel {
     var isValidatingLocation = false
 
     private let profileService = ProfileService()
+    private let valuesService = ValuesService()
 
     var age: Int {
         Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
@@ -50,11 +56,23 @@ final class OnboardingViewModel {
         case .nickname: return !nickname.trimmingCharacters(in: .whitespaces).isEmpty
         case .photos: return !photoUrls.isEmpty
         case .goals: return !selectedGoals.isEmpty
+        case .values: return !selectedValuesBrought.isEmpty && !selectedValuesSought.isEmpty
         case .genderIdentity: return !gender.isEmpty
         case .interestedIn: return !interestedIn.isEmpty
         case .location: return resolvedLocation != nil
         case .terms: return termsAccepted
         case .complete: return true
+        }
+    }
+
+    func loadValuesIfNeeded() async {
+        guard allValues.isEmpty, !isLoadingValues else { return }
+        isLoadingValues = true
+        defer { isLoadingValues = false }
+        do {
+            allValues = try await valuesService.getAllValues()
+        } catch {
+            self.error = "Failed to load values: \(error.localizedDescription)"
         }
     }
 
@@ -166,16 +184,28 @@ final class OnboardingViewModel {
         ]
 
         do {
+            let savedProfile: UserProfile?
             // Try update first
             if let result = try await profileService.updateProfile(userId: userId, updates: updates) {
-                return result
+                savedProfile = result
+            } else if let result = try await profileService.upsertProfile(userId: userId, updates: updates) {
+                // Profile row doesn't exist — create it via upsert
+                savedProfile = result
+            } else {
+                self.error = "Failed to save profile. Please try again."
+                return nil
             }
-            // Profile row doesn't exist — create it via upsert
-            if let result = try await profileService.upsertProfile(userId: userId, updates: updates) {
-                return result
+
+            // Best-effort: persist selected values. A failure here shouldn't
+            // strand the user at onboarding — they can re-edit values later.
+            do {
+                try await valuesService.saveUserValuesBrought(userId: userId, valueIds: Array(selectedValuesBrought))
+                try await valuesService.saveUserValuesSought(userId: userId, valueIds: Array(selectedValuesSought))
+            } catch {
+                print("Warning: Failed to save values during onboarding: \(error)")
             }
-            self.error = "Failed to save profile. Please try again."
-            return nil
+
+            return savedProfile
         } catch {
             self.error = "Failed to save profile: \(error.localizedDescription)"
             return nil

@@ -3,6 +3,8 @@ import UIKit
 
 struct MainTabView: View {
     let authViewModel: AuthViewModel
+    @State private var selection: Int = 0
+    @State private var showDifferentiation: Bool = !UserDefaults.standard.bool(forKey: "hasSeenDifferentiation")
 
     init(authViewModel: AuthViewModel) {
         self.authViewModel = authViewModel
@@ -27,28 +29,35 @@ struct MainTabView: View {
     }
 
     var body: some View {
-        TabView {
-            Tab("Discover", systemImage: "safari") {
-                DiscoverView(authViewModel: authViewModel)
-            }
-
-            Tab("Matches", systemImage: "heart.fill") {
-                MatchesView(authViewModel: authViewModel)
-            }
-
-            Tab("Chat", systemImage: "bubble.left.fill") {
-                ChatListView(authViewModel: authViewModel)
-            }
-
-            Tab("Gardener", systemImage: "leaf.fill") {
+        TabView(selection: $selection) {
+            Tab("Gardener", systemImage: "leaf.fill", value: 0) {
                 GardenerChatView(authViewModel: authViewModel)
             }
 
-            Tab("Profile", systemImage: "person.fill") {
+            Tab("Discover", systemImage: "safari", value: 1) {
+                DiscoverView(authViewModel: authViewModel)
+            }
+
+            Tab("Matches", systemImage: "heart.fill", value: 2) {
+                MatchesView(authViewModel: authViewModel)
+            }
+
+            Tab("Chat", systemImage: "bubble.left.fill", value: 3) {
+                ChatListView(authViewModel: authViewModel)
+            }
+
+            Tab("Profile", systemImage: "person.fill", value: 4) {
                 ProfileView(authViewModel: authViewModel)
             }
         }
         .tint(HarvestTheme.Colors.primary)
+        .fullScreenCover(isPresented: $showDifferentiation) {
+            DifferentiationView {
+                UserDefaults.standard.set(true, forKey: "hasSeenDifferentiation")
+                showDifferentiation = false
+                selection = 0
+            }
+        }
     }
 }
 

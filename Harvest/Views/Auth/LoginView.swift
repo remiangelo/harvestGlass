@@ -40,9 +40,10 @@ struct LoginView: View {
                             .font(HarvestTheme.Typography.h1)
                             .foregroundStyle(.primary)
 
-                        Text("Grow meaningful connections")
+                        Text("Values-first dating, with an AI coach in your corner")
                             .font(HarvestTheme.Typography.bodyRegular)
                             .foregroundStyle(.secondary)
+                            .multilineTextAlignment(.center)
                     }
 
                     // Form

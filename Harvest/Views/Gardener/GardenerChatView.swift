@@ -113,7 +113,7 @@ struct GardenerChatView: View {
                                 Text("Welcome to The Gardener")
                                     .font(HarvestTheme.Typography.h3)
 
-                                Text("I'm your AI dating coach. Ask me anything about dating, relationships, or personal growth!")
+                                Text("I'm your AI coach. Ask me about values, red flags, communication, or anything on your mind.")
                                     .font(HarvestTheme.Typography.bodySmall)
                                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
                                     .multilineTextAlignment(.center)

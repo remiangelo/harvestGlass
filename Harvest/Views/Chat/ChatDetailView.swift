@@ -28,6 +28,13 @@ struct ChatDetailView: View {
                 .background(HarvestTheme.Colors.blackSurface)
             }
 
+            // Safety status badge — always visible once analysis loads
+            if let analysis = viewModel.safetyAnalysis {
+                SafetyStatusBadge(level: analysis.safetyLevel)
+                    .padding(.horizontal)
+                    .padding(.vertical, HarvestTheme.Spacing.xs)
+            }
+
             // Messages
             ScrollViewReader { proxy in
                 ScrollView {

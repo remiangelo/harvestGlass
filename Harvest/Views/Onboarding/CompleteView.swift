@@ -30,7 +30,7 @@ struct CompleteView: View {
                 .opacity(showConfetti ? 1 : 0)
                 .animation(.easeIn.delay(0.4), value: showConfetti)
 
-            Text("Time to start discovering amazing people")
+            Text("Meet your AI coach — let's find values-aligned matches")
                 .font(HarvestTheme.Typography.bodyRegular)
                 .foregroundStyle(.secondary)
                 .multilineTextAlignment(.center)
@@ -39,7 +39,7 @@ struct CompleteView: View {
 
             Spacer()
 
-            GlassButton(title: "Start Exploring", icon: "safari", style: .primary) {
+            GlassButton(title: "Meet The Gardener", icon: "leaf.fill", style: .primary) {
                 Task {
                     guard let userId = authViewModel.currentUserId else { return }
 

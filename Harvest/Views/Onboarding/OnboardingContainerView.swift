@@ -23,6 +23,8 @@ struct OnboardingContainerView: View {
                         PhotosStepView(viewModel: viewModel, userId: authViewModel.currentUserId ?? "")
                     case .goals:
                         GoalsStepView(viewModel: viewModel)
+                    case .values:
+                        ValuesStepView(viewModel: viewModel)
                     case .genderIdentity:
                         GenderStepView(viewModel: viewModel)
                     case .interestedIn:
