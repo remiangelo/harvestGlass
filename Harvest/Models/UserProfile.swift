@@ -24,6 +24,11 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var onboardingCompleted: Bool?
     var createdAt: String?
     var updatedAt: String?
+    var valuesBlurb: String?
+    var showValuesBrought: Bool?
+    var showValuesSought: Bool?
+    var showValuesBlurb: Bool?
+    var showValuesGraph: Bool?
 
     enum CodingKeys: String, CodingKey {
         case id, email, nickname, age, bio, location, gender, preferences, goals, hobbies, photos
@@ -39,6 +44,11 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case onboardingCompleted = "onboarding_completed"
         case createdAt = "created_at"
         case updatedAt = "updated_at"
+        case valuesBlurb = "values_blurb"
+        case showValuesBrought = "show_values_brought"
+        case showValuesSought = "show_values_sought"
+        case showValuesBlurb = "show_values_blurb"
+        case showValuesGraph = "show_values_graph"
     }
 
     var displayName: String {
