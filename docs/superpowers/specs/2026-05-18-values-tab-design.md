@@ -112,9 +112,9 @@ Prompt template lives as a private constant in `BlurbService.swift`. No new prom
 
 ### 6.2 Storage
 
-Add `values_blurb text` (nullable) to the `profiles` table. Update `UserProfile.swift` with `var valuesBlurb: String?` and matching `CodingKeys` (`valuesBlurb = "values_blurb"`). Add the field to `ProfileService` select projection and upsert payloads.
+Add `values_blurb text` (nullable) to the `users` table. Update `UserProfile.swift` with `var valuesBlurb: String?` and matching `CodingKeys` (`valuesBlurb = "values_blurb"`). Add the field to `ProfileService` select projection and upsert payloads.
 
-Migration file under `supabase/migrations/` following the project's existing naming convention.
+The project has no existing `supabase/migrations/` directory (only Edge Functions live under `supabase/`); the plan creates the directory and adds the file using the Supabase CLI naming convention (`YYYYMMDDHHMMSS_description.sql`). The SQL must also be applied via the Supabase dashboard or CLI — committing the file does not run it.
 
 ### 6.3 UI
 
@@ -128,7 +128,7 @@ Blurb card inside `ValuesView`:
 
 ### 7.1 Storage
 
-Add four boolean columns to `profiles`, all default `true`:
+Add four boolean columns to `users`, all default `true`:
 
 | Column | Controls |
 |---|---|
@@ -158,10 +158,10 @@ Update `UserProfile.swift` with four `Bool?` fields. Read sites use `?? true` so
 
 ## 9. Data & Migration
 
-Single SQL migration under `supabase/migrations/`:
+Single SQL migration under `supabase/migrations/` (directory does not yet exist; the plan creates it):
 
 ```sql
-alter table profiles
+alter table users
   add column values_blurb text,
   add column show_values_brought boolean default true,
   add column show_values_sought boolean default true,
