@@ -3,6 +3,9 @@ import SwiftUI
 struct ProfileDetailView: View {
     let profile: UserProfile
     let onSwipe: (SwipeAction) -> Void
+    @State private var valuesBrought: [Value] = []
+    @State private var valuesSought: [Value] = []
+    private let valuesService = ValuesService()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -73,6 +76,20 @@ struct ProfileDetailView: View {
                             }
                         }
 
+                        if (profile.showValuesBlurb ?? true),
+                           let blurb = profile.valuesBlurb,
+                           !blurb.isEmpty {
+                            GlassCard {
+                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                                    Text("Values Blurb")
+                                        .font(HarvestTheme.Typography.h4)
+                                    Text(blurb)
+                                        .font(HarvestTheme.Typography.bodyRegular)
+                                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                }
+                            }
+                        }
+
                         // Goals
                         if !profile.goalsList.isEmpty {
                             GlassCard {
@@ -104,6 +121,38 @@ struct ProfileDetailView: View {
                                 }
                             }
                         }
+                        if (profile.showValuesBrought ?? true), !valuesBrought.isEmpty {
+                            GlassCard {
+                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                                    Text("Values I Bring")
+                                        .font(HarvestTheme.Typography.h4)
+                                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                                        ForEach(valuesBrought) { value in
+                                            ChipView(title: value.name)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (profile.showValuesSought ?? true), !valuesSought.isEmpty {
+                            GlassCard {
+                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                                    Text("Values I Seek")
+                                        .font(HarvestTheme.Typography.h4)
+                                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                                        ForEach(valuesSought) { value in
+                                            ChipView(title: value.name)
+                                        }
+                                    }
+                                }
+                            }
+                        }
+
+                        if (profile.showValuesGraph ?? true),
+                           !valuesBrought.isEmpty || !valuesSought.isEmpty {
+                            ValuesRadarCard(brought: valuesBrought, sought: valuesSought)
+                        }
                     }
                     .padding(.horizontal)
 
@@ -113,6 +162,10 @@ struct ProfileDetailView: View {
             }
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
+            .task {
+                valuesBrought = (try? await valuesService.getUserValuesBrought(userId: profile.id)) ?? []
+                valuesSought = (try? await valuesService.getUserValuesSought(userId: profile.id)) ?? []
+            }
 
             // Close button
             HStack {
