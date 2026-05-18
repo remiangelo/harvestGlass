@@ -60,6 +60,20 @@ struct ProfileView: View {
                                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
                             }
 
+                            if (viewModel.profile?.showValuesBlurb ?? true),
+                               let blurb = viewModel.profile?.valuesBlurb,
+                               !blurb.isEmpty {
+                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                                    Text("Values Blurb")
+                                        .font(HarvestTheme.Typography.bodySmall)
+                                        .fontWeight(.semibold)
+                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                                    Text(blurb)
+                                        .font(HarvestTheme.Typography.bodyRegular)
+                                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                }
+                            }
+
                             if let lifestyleDetails = viewModel.profile?.lifestyleDetails, !lifestyleDetails.isEmpty {
                                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                     Text("Lifestyle & Intentions")
@@ -104,7 +118,8 @@ struct ProfileView: View {
                             }
 
                             // Values I Bring
-                            if let values = viewModel.valuesBrought, !values.isEmpty {
+                            if (viewModel.profile?.showValuesBrought ?? true),
+                               let values = viewModel.valuesBrought, !values.isEmpty {
                                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                     Text("Values I Bring")
                                         .font(HarvestTheme.Typography.bodySmall)
@@ -120,7 +135,8 @@ struct ProfileView: View {
                             }
 
                             // Values I Seek
-                            if let values = viewModel.valuesSought, !values.isEmpty {
+                            if (viewModel.profile?.showValuesSought ?? true),
+                               let values = viewModel.valuesSought, !values.isEmpty {
                                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                     Text("Values I Seek")
                                         .font(HarvestTheme.Typography.bodySmall)
@@ -137,6 +153,15 @@ struct ProfileView: View {
                         }
                     }
                     .padding(.horizontal)
+
+                    if (viewModel.profile?.showValuesGraph ?? true),
+                       (viewModel.valuesBrought?.isEmpty == false || viewModel.valuesSought?.isEmpty == false) {
+                        ValuesRadarCard(
+                            brought: viewModel.valuesBrought ?? [],
+                            sought: viewModel.valuesSought ?? []
+                        )
+                        .padding(.horizontal)
+                    }
 
                     // Edit button
                     NavigationLink {
