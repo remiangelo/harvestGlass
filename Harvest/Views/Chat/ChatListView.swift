@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ChatListView: View {
     let authViewModel: AuthViewModel
-    @State private var viewModel = MatchesViewModel()
+    @State private var viewModel = MindfulMessagesViewModel()
     @State private var searchText = ""
 
     private var filteredConversations: [ConversationWithProfile] {

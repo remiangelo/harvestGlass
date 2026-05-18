@@ -2,7 +2,7 @@ import SwiftUI
 
 struct MatchesView: View {
     let authViewModel: AuthViewModel
-    @State private var viewModel = MatchesViewModel()
+    @State private var viewModel = MindfulMessagesViewModel()
     @State private var activeChatRoute: ChatRoute?
     @State private var selectedInboundLike: InboundLikeWithProfile?
 

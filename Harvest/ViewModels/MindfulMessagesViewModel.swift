@@ -9,7 +9,7 @@ struct MatchThread: Identifiable {
 }
 
 @Observable
-final class MatchesViewModel {
+final class MindfulMessagesViewModel {
     var matchThreads: [MatchThread] = []
     var conversations: [ConversationWithProfile] = []
     var inboundLikes: [InboundLikeWithProfile] = []
