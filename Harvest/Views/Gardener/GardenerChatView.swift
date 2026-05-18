@@ -3,99 +3,48 @@ import SwiftUI
 struct GardenerChatView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = GardenerViewModel()
-    @State private var selectedTab = 0
     @FocusState private var isMessageFieldFocused: Bool
-
-    private let previewSegmentBackground = Color(hex: "5A1B33")
-    private let previewSegmentSurface = Color(hex: "6E2A45")
-    private let previewSegmentBorder = HarvestTheme.Colors.harvestCream.opacity(0.22)
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 0) {
-                HStack(spacing: 0) {
-                    gardenerSegmentButton("Chat", tag: 0)
-                    gardenerSegmentButton("Tips", tag: 1)
+            chatView
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                .background(HarvestTheme.Colors.background.ignoresSafeArea())
+                .navigationTitle("The Gardener")
+                .navigationBarTitleDisplayMode(.inline)
+                .toolbar {
+                    ToolbarItem(placement: .topBarLeading) {
+                        Image(systemName: "leaf.fill")
+                            .foregroundStyle(HarvestTheme.Colors.accent)
+                    }
                 }
-                .padding(.horizontal)
-                .padding(.vertical, HarvestTheme.Spacing.sm)
-                .background {
-                    Capsule()
-                        .fill(previewSegmentBackground)
-                        .overlay {
-                            Capsule()
-                                .stroke(previewSegmentBorder, lineWidth: 1)
-                        }
-                }
-                .padding(.horizontal)
-
-                if selectedTab == 0 {
-                    chatView
-                } else {
-                    TipsView()
-                }
-            }
-            .foregroundStyle(HarvestTheme.Colors.textPrimary)
-            .background(HarvestTheme.Colors.background.ignoresSafeArea())
-            .navigationTitle("The Gardener")
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .topBarLeading) {
-                    Image(systemName: "leaf.fill")
-                        .foregroundStyle(HarvestTheme.Colors.accent)
-                }
-            }
-            .task {
-                if let userId = authViewModel.currentUserId {
-                    await viewModel.loadChat(userId: userId)
-                    await viewModel.checkDailyQuiz(userId: userId)
-                }
-            }
-            .onAppear {
-                if let userId = authViewModel.currentUserId {
-                    Task {
+                .task {
+                    if let userId = authViewModel.currentUserId {
                         await viewModel.loadChat(userId: userId)
+                        await viewModel.checkDailyQuiz(userId: userId)
                     }
                 }
-            }
-            .sheet(isPresented: $viewModel.showDailyQuiz) {
-                if let quiz = viewModel.dailyQuiz {
-                    DailyQuizPopup(quiz: quiz) { answer in
-                        if let userId = authViewModel.currentUserId {
-                            Task { await viewModel.submitQuizAnswer(userId: userId, answer: answer) }
+                .onAppear {
+                    if let userId = authViewModel.currentUserId {
+                        Task {
+                            await viewModel.loadChat(userId: userId)
                         }
                     }
-                    .presentationDetents([.large])
                 }
-            }
-            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
-            .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
-        }
-    }
-
-    private func gardenerSegmentButton(_ title: String, tag: Int) -> some View {
-        Button {
-            withAnimation(.easeInOut(duration: 0.18)) {
-                selectedTab = tag
-            }
-        } label: {
-            Text(title)
-                .font(HarvestTheme.Typography.bodySmall)
-                .fontWeight(.semibold)
-                .foregroundStyle(
-                    selectedTab == tag
-                    ? HarvestTheme.Colors.textOnCream
-                    : HarvestTheme.Colors.harvestCream
-                )
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, 10)
-                .background {
-                    Capsule()
-                        .fill(selectedTab == tag ? HarvestTheme.Colors.harvestCream : previewSegmentSurface)
+                .sheet(isPresented: $viewModel.showDailyQuiz) {
+                    if let quiz = viewModel.dailyQuiz {
+                        DailyQuizPopup(quiz: quiz) { answer in
+                            if let userId = authViewModel.currentUserId {
+                                Task { await viewModel.submitQuizAnswer(userId: userId, answer: answer) }
+                            }
+                        }
+                        .presentationDetents([.large])
+                    }
                 }
+                .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+                .toolbarBackground(.visible, for: .navigationBar)
+                .toolbarColorScheme(.dark, for: .navigationBar)
         }
-        .buttonStyle(.plain)
     }
 
     private var chatView: some View {
