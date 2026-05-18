@@ -3,7 +3,7 @@ import UIKit
 
 struct MainTabView: View {
     let authViewModel: AuthViewModel
-    @State private var selection: Int = 0
+    @State private var selection: Int = 1
     @State private var showDifferentiation: Bool = !UserDefaults.standard.bool(forKey: "hasSeenDifferentiation")
 
     init(authViewModel: AuthViewModel) {
@@ -30,24 +30,24 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Gardener", systemImage: "leaf.fill", value: 0) {
+            Tab("Mindful Messages", systemImage: "bubble.left.fill", value: 0) {
+                MindfulMessagesView(authViewModel: authViewModel)
+            }
+
+            Tab("The Gardener", systemImage: "leaf.fill", value: 1) {
                 GardenerChatView(authViewModel: authViewModel)
             }
 
-            Tab("Discover", systemImage: "safari", value: 1) {
-                DiscoverView(authViewModel: authViewModel)
+            Tab("Values", systemImage: "heart.text.square.fill", value: 2) {
+                ValuesView(authViewModel: authViewModel)
             }
 
-            Tab("Matches", systemImage: "heart.fill", value: 2) {
-                MatchesView(authViewModel: authViewModel)
-            }
-
-            Tab("Chat", systemImage: "bubble.left.fill", value: 3) {
-                ChatListView(authViewModel: authViewModel)
-            }
-
-            Tab("Profile", systemImage: "person.fill", value: 4) {
+            Tab("Profile", systemImage: "person.fill", value: 3) {
                 ProfileView(authViewModel: authViewModel)
+            }
+
+            Tab("Swipe", systemImage: "safari", value: 4) {
+                DiscoverView(authViewModel: authViewModel)
             }
         }
         .tint(HarvestTheme.Colors.primary)
@@ -55,7 +55,7 @@ struct MainTabView: View {
             DifferentiationView {
                 UserDefaults.standard.set(true, forKey: "hasSeenDifferentiation")
                 showDifferentiation = false
-                selection = 0
+                selection = 1
             }
         }
     }
