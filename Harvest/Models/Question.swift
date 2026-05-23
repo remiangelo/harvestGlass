@@ -128,3 +128,35 @@ struct AxisScores: Equatable, Sendable {
         return dot / (magA * magB)
     }
 }
+
+enum AxisScoring {
+    /// Returns (needSideWeight, bringSideWeight) for a question with the given weighting.
+    static func weights(for weighting: QuestionWeighting) -> (need: Double, bring: Double) {
+        switch weighting {
+        case .need:  return (1.0, 0.5)
+        case .bring: return (0.5, 1.0)
+        case .both:  return (1.0, 1.0)
+        }
+    }
+
+    /// Build the user's normalized (need, bring) axis vectors from their answers.
+    static func computeVectors(
+        answers: [String: String],          // questionId -> optionId
+        questions: [Question]
+    ) -> (need: AxisScores, bring: AxisScores) {
+        var rawNeed = AxisScores()
+        var rawBring = AxisScores()
+
+        let byId = Dictionary(uniqueKeysWithValues: questions.map { ($0.id, $0) })
+
+        for (questionId, optionId) in answers {
+            guard let q = byId[questionId] else { continue }
+            guard let option = q.options.first(where: { $0.id == optionId }) else { continue }
+            let (nW, bW) = weights(for: q.weighting)
+            rawNeed.add(nW, to: option.axis)
+            rawBring.add(bW, to: option.axis)
+        }
+
+        return (rawNeed.normalized(), rawBring.normalized())
+    }
+}
