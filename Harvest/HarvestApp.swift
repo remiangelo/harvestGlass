@@ -1,7 +1,9 @@
 import SwiftUI
+import UserNotifications
 
 @main
 struct HarvestApp: App {
+    @UIApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var authViewModel = AuthViewModel()
 
     var body: some Scene {
@@ -21,6 +23,7 @@ struct HarvestApp: App {
             }
             .dismissKeyboardOnTap()
             .task {
+                UNUserNotificationCenter.current().delegate = NotificationService.shared
                 authViewModel.listenToAuthChanges()
                 await authViewModel.checkSession()
             }
