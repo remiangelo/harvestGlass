@@ -5,7 +5,11 @@ struct ProfileDetailView: View {
     let onSwipe: (SwipeAction) -> Void
     @State private var valuesBrought: [Value] = []
     @State private var valuesSought: [Value] = []
+    @State private var allQuestions: [Question] = []
+    @State private var otherAnswers: [String: String] = [:]
+
     private let valuesService = ValuesService()
+    private let questionsService = QuestionsService()
     @Environment(\.dismiss) private var dismiss
 
     var body: some View {
@@ -149,9 +153,21 @@ struct ProfileDetailView: View {
                             }
                         }
 
-                        if (profile.showValuesGraph ?? true),
-                           !valuesBrought.isEmpty || !valuesSought.isEmpty {
-                            ValuesRadarCard(brought: valuesBrought, sought: valuesSought)
+                        if (profile.showValuesGraph ?? true) {
+                            let side = ValuesViewModel.Side(
+                                rawValue: profile.profileGraphSide ?? "bring"
+                            ) ?? .bring
+                            let vectors = AxisScoring.computeVectors(
+                                answers: otherAnswers,
+                                questions: allQuestions
+                            )
+                            let scores = (side == .need) ? vectors.need : vectors.bring
+                            if !scores.isZero {
+                                ValuesRadarCard(
+                                    primary: scores,
+                                    primaryLabel: side == .need ? "I Need" : "I Bring"
+                                )
+                            }
                         }
                     }
                     .padding(.horizontal)
@@ -165,6 +181,8 @@ struct ProfileDetailView: View {
             .task {
                 valuesBrought = (try? await valuesService.getUserValuesBrought(userId: profile.id)) ?? []
                 valuesSought = (try? await valuesService.getUserValuesSought(userId: profile.id)) ?? []
+                allQuestions = (try? await questionsService.getAllQuestions()) ?? []
+                otherAnswers = (try? await questionsService.getUserAnswers(userId: profile.id)) ?? [:]
             }
 
             // Close button

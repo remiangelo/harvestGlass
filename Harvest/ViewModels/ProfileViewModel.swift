@@ -30,9 +30,16 @@ final class ProfileViewModel {
 
     var valuesBrought: [Value]?
     var valuesSought: [Value]?
+    var allQuestions: [Question] = []
+    var answers: [String: String] = [:]
 
     private let profileService = ProfileService()
     private let valuesService = ValuesService()
+    private let questionsService = QuestionsService()
+
+    var axisScores: (need: AxisScores, bring: AxisScores) {
+        AxisScoring.computeVectors(answers: answers, questions: allQuestions)
+    }
 
     func loadProfile(userId: String) async {
         isLoading = true
@@ -56,6 +63,20 @@ final class ProfileViewModel {
             } catch {
                 print("Warning: Failed to load values sought: \(error)")
                 valuesSought = []
+            }
+
+            do {
+                allQuestions = try await questionsService.getAllQuestions()
+            } catch {
+                print("Warning: Failed to load questions: \(error)")
+                allQuestions = []
+            }
+
+            do {
+                answers = try await questionsService.getUserAnswers(userId: userId)
+            } catch {
+                print("Warning: Failed to load answers: \(error)")
+                answers = [:]
             }
         } catch {
             self.error = error.localizedDescription

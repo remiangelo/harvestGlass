@@ -1,19 +1,33 @@
 import SwiftUI
 
 struct ValuesRadarCard: View {
-    let brought: [Value]
-    let sought: [Value]
+    let primary: AxisScores
+    let primaryLabel: String
+    let secondary: AxisScores?
+    let secondaryLabel: String?
+    let onEmptyTap: (() -> Void)?
 
-    private var axes: [String] {
-        let union = Set(brought.map(\.category)).union(sought.map(\.category))
-        return union.sorted()
+    init(
+        primary: AxisScores,
+        primaryLabel: String,
+        secondary: AxisScores? = nil,
+        secondaryLabel: String? = nil,
+        onEmptyTap: (() -> Void)? = nil
+    ) {
+        self.primary = primary
+        self.primaryLabel = primaryLabel
+        self.secondary = secondary
+        self.secondaryLabel = secondaryLabel
+        self.onEmptyTap = onEmptyTap
     }
 
-    private func count(in values: [Value], category: String) -> Int {
-        values.filter { $0.category == category }.count
-    }
-
-    private let maxPerAxis: Double = 5
+    private let axes: [ValueAxis] = [
+        .emotionalIntelligence,
+        .stability,
+        .integrity,
+        .connection,
+        .growth
+    ]
 
     var body: some View {
         GlassCard {
@@ -22,47 +36,88 @@ struct ValuesRadarCard: View {
                     .font(HarvestTheme.Typography.h4)
                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
-                if axes.isEmpty {
-                    Text("Pick a few values to see your map.")
-                        .font(HarvestTheme.Typography.bodySmall)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                        .frame(maxWidth: .infinity, minHeight: 240)
+                if primary.isZero && (secondary?.isZero ?? true) {
+                    emptyState
                 } else {
-                    GeometryReader { geo in
-                        let size = min(geo.size.width, geo.size.height)
-                        let center = CGPoint(x: geo.size.width / 2, y: size / 2)
-                        let radius = (size / 2) - 32
-
-                        Canvas { context, _ in
-                            drawGrid(context: context, center: center, radius: radius)
-                            drawAxisLabels(context: context, center: center, radius: radius)
-                            drawPolygon(
-                                context: context,
-                                center: center,
-                                radius: radius,
-                                counts: axes.map { count(in: sought, category: $0) },
-                                stroke: HarvestTheme.Colors.accent,
-                                fill: HarvestTheme.Colors.accent.opacity(0.3)
-                            )
-                            drawPolygon(
-                                context: context,
-                                center: center,
-                                radius: radius,
-                                counts: axes.map { count(in: brought, category: $0) },
-                                stroke: HarvestTheme.Colors.primary,
-                                fill: HarvestTheme.Colors.primary.opacity(0.3)
-                            )
-                        }
-                    }
-                    .frame(height: 280)
-
-                    HStack(spacing: HarvestTheme.Spacing.lg) {
-                        legendDot(color: HarvestTheme.Colors.primary, label: "I Bring")
-                        legendDot(color: HarvestTheme.Colors.accent, label: "I Seek")
-                    }
-                    .frame(maxWidth: .infinity)
+                    chart
+                    legend
                 }
             }
+        }
+    }
+
+    // MARK: - Subviews
+
+    private var emptyState: some View {
+        VStack(spacing: HarvestTheme.Spacing.sm) {
+            Image(systemName: "chart.dots.scatter")
+                .font(.system(size: 32))
+                .foregroundStyle(HarvestTheme.Colors.accent)
+            Text("Answer a few questions to map your values.")
+                .font(HarvestTheme.Typography.bodyRegular)
+                .multilineTextAlignment(.center)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+            if let onEmptyTap {
+                Button(action: onEmptyTap) {
+                    Text("Start")
+                        .font(HarvestTheme.Typography.buttonText)
+                        .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                        .padding(.horizontal, HarvestTheme.Spacing.lg)
+                        .padding(.vertical, HarvestTheme.Spacing.sm)
+                        .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
+                }
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 240)
+    }
+
+    private var chart: some View {
+        GeometryReader { geo in
+            let size = min(geo.size.width, geo.size.height)
+            let center = CGPoint(x: geo.size.width / 2, y: size / 2)
+            let radius = (size / 2) - 32
+
+            Canvas { context, _ in
+                drawGrid(context: context, center: center, radius: radius)
+                drawAxisLabels(context: context, center: center, radius: radius)
+                if let secondary, !secondary.isZero {
+                    drawPolygon(
+                        context: context,
+                        center: center,
+                        radius: radius,
+                        scores: secondary,
+                        stroke: HarvestTheme.Colors.accent,
+                        fill: HarvestTheme.Colors.accent.opacity(0.3)
+                    )
+                }
+                if !primary.isZero {
+                    drawPolygon(
+                        context: context,
+                        center: center,
+                        radius: radius,
+                        scores: primary,
+                        stroke: HarvestTheme.Colors.primary,
+                        fill: HarvestTheme.Colors.primary.opacity(0.3)
+                    )
+                }
+            }
+        }
+        .frame(height: 280)
+    }
+
+    @ViewBuilder
+    private var legend: some View {
+        if let secondary, !secondary.isZero, let secondaryLabel {
+            HStack(spacing: HarvestTheme.Spacing.lg) {
+                legendDot(color: HarvestTheme.Colors.primary, label: primaryLabel)
+                legendDot(color: HarvestTheme.Colors.accent, label: secondaryLabel)
+            }
+            .frame(maxWidth: .infinity)
+        } else {
+            HStack(spacing: HarvestTheme.Spacing.lg) {
+                legendDot(color: HarvestTheme.Colors.primary, label: primaryLabel)
+            }
+            .frame(maxWidth: .infinity)
         }
     }
 
@@ -75,9 +130,13 @@ struct ValuesRadarCard: View {
         }
     }
 
+    // MARK: - Geometry
+
     private func axisPoint(center: CGPoint, radius: Double, index: Int, magnitude: Double) -> CGPoint {
         let angle = (2 * .pi * Double(index) / Double(axes.count)) - .pi / 2
-        let r = radius * (magnitude / maxPerAxis)
+        // primary/secondary are normalized to sum ~1.0; clamp the radial range to [0, 1].
+        let clamped = min(max(magnitude, 0), 1)
+        let r = radius * clamped
         return CGPoint(
             x: center.x + CGFloat(r * cos(angle)),
             y: center.y + CGFloat(r * sin(angle))
@@ -86,29 +145,28 @@ struct ValuesRadarCard: View {
 
     private func drawGrid(context: GraphicsContext, center: CGPoint, radius: Double) {
         let gridColor = HarvestTheme.Colors.textSecondary.opacity(0.25)
-
-        for step in 1...5 {
+        let rings = [0.2, 0.4, 0.6, 0.8, 1.0]
+        for ring in rings {
             var path = Path()
             for i in 0..<axes.count {
-                let p = axisPoint(center: center, radius: radius, index: i, magnitude: Double(step))
+                let p = axisPoint(center: center, radius: radius, index: i, magnitude: ring)
                 if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
             }
             path.closeSubpath()
             context.stroke(path, with: .color(gridColor), lineWidth: 0.5)
         }
-
         for i in 0..<axes.count {
             var path = Path()
             path.move(to: center)
-            path.addLine(to: axisPoint(center: center, radius: radius, index: i, magnitude: maxPerAxis))
+            path.addLine(to: axisPoint(center: center, radius: radius, index: i, magnitude: 1.0))
             context.stroke(path, with: .color(gridColor), lineWidth: 0.5)
         }
     }
 
     private func drawAxisLabels(context: GraphicsContext, center: CGPoint, radius: Double) {
         for (i, axis) in axes.enumerated() {
-            let labelPoint = axisPoint(center: center, radius: radius + 18, index: i, magnitude: maxPerAxis)
-            let text = Text(axis.capitalized)
+            let labelPoint = axisPoint(center: center, radius: radius + 22, index: i, magnitude: 1.0)
+            let text = Text(axis.displayName)
                 .font(HarvestTheme.Typography.caption)
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
             context.draw(text, at: labelPoint, anchor: .center)
@@ -119,14 +177,18 @@ struct ValuesRadarCard: View {
         context: GraphicsContext,
         center: CGPoint,
         radius: Double,
-        counts: [Int],
+        scores: AxisScores,
         stroke: Color,
         fill: Color
     ) {
-        guard !counts.isEmpty else { return }
         var path = Path()
-        for (i, count) in counts.enumerated() {
-            let p = axisPoint(center: center, radius: radius, index: i, magnitude: Double(count))
+        for (i, axis) in axes.enumerated() {
+            let p = axisPoint(
+                center: center,
+                radius: radius,
+                index: i,
+                magnitude: scores.value(for: axis)
+            )
             if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
         }
         path.closeSubpath()
@@ -135,24 +197,28 @@ struct ValuesRadarCard: View {
     }
 }
 
-#Preview("Values Radar - mixed") {
+#Preview("Radar — needle on connection") {
+    var s = AxisScores(); s.connection = 1.0
+    return ValuesRadarCard(primary: s, primaryLabel: "I Need")
+        .padding()
+        .background(HarvestTheme.Colors.background)
+}
+
+#Preview("Radar — balanced") {
+    var s = AxisScores()
+    s.emotionalIntelligence = 0.2; s.stability = 0.2; s.integrity = 0.2
+    s.connection = 0.2; s.growth = 0.2
+    return ValuesRadarCard(primary: s, primaryLabel: "I Bring")
+        .padding()
+        .background(HarvestTheme.Colors.background)
+}
+
+#Preview("Radar — empty with action") {
     ValuesRadarCard(
-        brought: [
-            Value(id: "1", name: "Honesty", category: "communication", displayOrder: 0),
-            Value(id: "2", name: "Adventure", category: "lifestyle", displayOrder: 0),
-            Value(id: "3", name: "Family", category: "social", displayOrder: 0)
-        ],
-        sought: [
-            Value(id: "4", name: "Empathy", category: "communication", displayOrder: 0),
-            Value(id: "5", name: "Ambition", category: "lifestyle", displayOrder: 0)
-        ]
+        primary: AxisScores(),
+        primaryLabel: "I Need",
+        onEmptyTap: { print("start tapped") }
     )
     .padding()
     .background(HarvestTheme.Colors.background)
-}
-
-#Preview("Values Radar - empty") {
-    ValuesRadarCard(brought: [], sought: [])
-        .padding()
-        .background(HarvestTheme.Colors.background)
 }

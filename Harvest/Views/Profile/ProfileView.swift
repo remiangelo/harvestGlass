@@ -154,13 +154,20 @@ struct ProfileView: View {
                     }
                     .padding(.horizontal)
 
-                    if (viewModel.profile?.showValuesGraph ?? true),
-                       (viewModel.valuesBrought?.isEmpty == false || viewModel.valuesSought?.isEmpty == false) {
-                        ValuesRadarCard(
-                            brought: viewModel.valuesBrought ?? [],
-                            sought: viewModel.valuesSought ?? []
-                        )
-                        .padding(.horizontal)
+                    if (viewModel.profile?.showValuesGraph ?? true) {
+                        let side = ValuesViewModel.Side(
+                            rawValue: viewModel.profile?.profileGraphSide ?? "bring"
+                        ) ?? .bring
+                        let scores = (side == .need)
+                            ? viewModel.axisScores.need
+                            : viewModel.axisScores.bring
+                        if !scores.isZero {
+                            ValuesRadarCard(
+                                primary: scores,
+                                primaryLabel: side == .need ? "I Need" : "I Bring"
+                            )
+                            .padding(.horizontal)
+                        }
                     }
 
                     // Edit button

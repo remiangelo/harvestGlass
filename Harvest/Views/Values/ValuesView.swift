@@ -4,6 +4,7 @@ struct ValuesView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = ValuesViewModel()
     @State private var tipsViewModel = TipsViewModel()
+    @State private var showQuestionSheet = false
 
     private let chipSurface = Color(hex: "5F2039")
     private let chipSelected = Color(hex: "C67E95")
@@ -15,12 +16,14 @@ struct ValuesView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: HarvestTheme.Spacing.lg) {
-                    radarSection
-                    blurbSection
-                    bringSection
-                    seekSection
-                    displayTogglesSection
-                    tipsSection
+                    topModePicker
+
+                    switch viewModel.mode {
+                    case .main:
+                        mainContent
+                    case .tips:
+                        tipsSection
+                    }
                 }
                 .padding(.vertical)
             }
@@ -39,47 +42,115 @@ struct ValuesView: View {
                     await viewModel.load(userId: userId)
                 }
             }
+            .sheet(isPresented: $showQuestionSheet) {
+                QuestionSheetView(authViewModel: authViewModel, viewModel: viewModel)
+            }
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
             .toolbarColorScheme(.dark, for: .navigationBar)
         }
     }
 
-    // MARK: - Sections
+    // MARK: - Mode + Side pickers
 
-    @ViewBuilder
-    private var radarSection: some View {
-        if viewModel.valuesBrought.isEmpty && viewModel.valuesSought.isEmpty {
-            GlassCard {
-                VStack(spacing: HarvestTheme.Spacing.sm) {
-                    Image(systemName: "chart.dots.scatter")
-                        .font(.system(size: 32))
-                        .foregroundStyle(HarvestTheme.Colors.accent)
-                    Text("Take the questionnaire to see your values map.")
-                        .font(HarvestTheme.Typography.bodyRegular)
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                    NavigationLink {
-                        ValuesQuestionnaireView(authViewModel: authViewModel, initialTab: 0)
-                    } label: {
-                        Text("Start Questionnaire")
-                            .font(HarvestTheme.Typography.buttonText)
-                            .foregroundStyle(HarvestTheme.Colors.textOnCream)
-                            .padding(.horizontal, HarvestTheme.Spacing.lg)
-                            .padding(.vertical, HarvestTheme.Spacing.sm)
-                            .background {
-                                Capsule().fill(HarvestTheme.Colors.harvestCream)
+    private var topModePicker: some View {
+        Picker("", selection: $viewModel.mode) {
+            Text("Main").tag(ValuesViewModel.Mode.main)
+            Text("Tips").tag(ValuesViewModel.Mode.tips)
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+    }
+
+    private var sidePicker: some View {
+        Picker("", selection: $viewModel.side) {
+            Text("I Need").tag(ValuesViewModel.Side.need)
+            Text("I Bring").tag(ValuesViewModel.Side.bring)
+        }
+        .pickerStyle(.segmented)
+        .padding(.horizontal)
+    }
+
+    // MARK: - Main content
+
+    private var mainContent: some View {
+        VStack(spacing: HarvestTheme.Spacing.lg) {
+            sidePicker
+            radarCard
+            moreQuestionsButton
+            valuesPicker
+            blurbSection
+            displayTogglesSection
+        }
+    }
+
+    private var radarCard: some View {
+        ValuesRadarCard(
+            primary: viewModel.activeScores,
+            primaryLabel: viewModel.side == .need ? "I Need" : "I Bring",
+            onEmptyTap: { showQuestionSheet = true }
+        )
+        .padding(.horizontal)
+    }
+
+    private var moreQuestionsButton: some View {
+        Button {
+            showQuestionSheet = true
+        } label: {
+            HStack {
+                Image(systemName: "questionmark.circle.fill")
+                Text("More questions")
+            }
+            .font(HarvestTheme.Typography.buttonText)
+            .foregroundStyle(HarvestTheme.Colors.textOnCream)
+            .padding(.horizontal, HarvestTheme.Spacing.lg)
+            .padding(.vertical, HarvestTheme.Spacing.sm)
+            .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
+        }
+    }
+
+    private var valuesPicker: some View {
+        GlassCard {
+            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                Text(viewModel.side == .need ? "Values I Need" : "Values I Bring")
+                    .font(HarvestTheme.Typography.h4)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                Text("Pick up to 5.")
+                    .font(HarvestTheme.Typography.bodySmall)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+
+                let grouped = Dictionary(grouping: viewModel.allValues) { $0.category }
+                let sortedCategories = grouped.keys.sorted()
+
+                ForEach(sortedCategories, id: \.self) { category in
+                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
+                        Text(category.capitalized)
+                            .font(HarvestTheme.Typography.bodySmall)
+                            .fontWeight(.semibold)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                            ForEach(grouped[category] ?? [], id: \.id) { value in
+                                ChipView(
+                                    title: value.name,
+                                    isSelected: viewModel.activeValueIds.contains(value.id)
+                                ) {
+                                    if let userId = authViewModel.currentUserId {
+                                        Task { await viewModel.toggleValue(userId: userId, valueId: value.id) }
+                                    }
+                                }
                             }
+                        }
                     }
                 }
-                .frame(maxWidth: .infinity)
-                .padding(.vertical, HarvestTheme.Spacing.md)
+
+                if let err = viewModel.saveError {
+                    Text(err)
+                        .font(HarvestTheme.Typography.caption)
+                        .foregroundStyle(HarvestTheme.Colors.warning)
+                }
             }
-            .padding(.horizontal)
-        } else {
-            ValuesRadarCard(brought: viewModel.valuesBrought, sought: viewModel.valuesSought)
-                .padding(.horizontal)
         }
+        .padding(.horizontal)
     }
 
     private var blurbSection: some View {
@@ -114,9 +185,7 @@ struct ValuesView: View {
                                 .foregroundStyle(HarvestTheme.Colors.textOnCream)
                                 .padding(.horizontal, HarvestTheme.Spacing.md)
                                 .padding(.vertical, HarvestTheme.Spacing.sm)
-                                .background {
-                                    Capsule().fill(HarvestTheme.Colors.harvestCream)
-                                }
+                                .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
                         }
                         .disabled(viewModel.valuesBrought.isEmpty && viewModel.valuesSought.isEmpty)
                     }
@@ -126,55 +195,6 @@ struct ValuesView: View {
                     Text(error)
                         .font(HarvestTheme.Typography.caption)
                         .foregroundStyle(HarvestTheme.Colors.warning)
-                }
-            }
-        }
-        .padding(.horizontal)
-    }
-
-    private var bringSection: some View {
-        valuesSection(
-            title: "What I Bring",
-            values: viewModel.valuesBrought,
-            initialTab: 0
-        )
-    }
-
-    private var seekSection: some View {
-        valuesSection(
-            title: "What I Seek",
-            values: viewModel.valuesSought,
-            initialTab: 1
-        )
-    }
-
-    private func valuesSection(title: String, values: [Value], initialTab: Int) -> some View {
-        GlassCard {
-            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                HStack {
-                    Text(title)
-                        .font(HarvestTheme.Typography.h4)
-                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                    Spacer()
-                    NavigationLink {
-                        ValuesQuestionnaireView(authViewModel: authViewModel, initialTab: initialTab)
-                    } label: {
-                        Text("Edit")
-                            .font(HarvestTheme.Typography.buttonText)
-                            .foregroundStyle(HarvestTheme.Colors.accent)
-                    }
-                }
-
-                if values.isEmpty {
-                    Text("None selected yet.")
-                        .font(HarvestTheme.Typography.bodySmall)
-                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                } else {
-                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                        ForEach(values) { value in
-                            ChipView(title: value.name)
-                        }
-                    }
                 }
             }
         }
@@ -201,6 +221,21 @@ struct ValuesView: View {
                           isOn: Binding(get: { viewModel.profile?.showValuesGraph ?? true },
                                         set: { setToggle(.graph, $0) }))
 
+                if viewModel.profile?.showValuesGraph ?? true {
+                    HStack {
+                        Text("Graph side")
+                            .font(HarvestTheme.Typography.bodyRegular)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        Spacer()
+                        Picker("", selection: graphSideBinding) {
+                            Text("Need").tag(ValuesViewModel.Side.need)
+                            Text("Bring").tag(ValuesViewModel.Side.bring)
+                        }
+                        .pickerStyle(.segmented)
+                        .frame(maxWidth: 160)
+                    }
+                }
+
                 if let error = viewModel.toggleError {
                     Text(error)
                         .font(HarvestTheme.Typography.caption)
@@ -209,6 +244,18 @@ struct ValuesView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    private var graphSideBinding: Binding<ValuesViewModel.Side> {
+        Binding(
+            get: {
+                ValuesViewModel.Side(rawValue: viewModel.profile?.profileGraphSide ?? "bring") ?? .bring
+            },
+            set: { newSide in
+                guard let userId = authViewModel.currentUserId else { return }
+                Task { await viewModel.setGraphSide(userId: userId, side: newSide) }
+            }
+        )
     }
 
     private func toggleRow(label: String, isOn: Binding<Bool>) -> some View {
@@ -255,24 +302,18 @@ struct ValuesView: View {
                                 Image(systemName: tip.icon)
                                     .font(.title3)
                                     .foregroundStyle(HarvestTheme.Colors.harvestCream)
-
                                 Text(tip.title)
                                     .font(HarvestTheme.Typography.h4)
                                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
-
                                 Spacer()
-
                                 Text(tip.category.rawValue)
                                     .font(HarvestTheme.Typography.caption)
                                     .fontWeight(.semibold)
                                     .foregroundStyle(HarvestTheme.Colors.textOnCream)
                                     .padding(.horizontal, HarvestTheme.Spacing.sm)
                                     .padding(.vertical, 6)
-                                    .background {
-                                        Capsule().fill(HarvestTheme.Colors.harvestCream)
-                                    }
+                                    .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
                             }
-
                             Text(tip.body)
                                 .font(HarvestTheme.Typography.bodySmall)
                                 .foregroundStyle(HarvestTheme.Colors.textSecondary.opacity(0.92))
@@ -287,7 +328,6 @@ struct ValuesView: View {
                     .font(HarvestTheme.Typography.h3)
                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     .padding(.horizontal)
-
                 ForEach(TipsViewModel.faqs) { faq in
                     tipsCard(padding: HarvestTheme.Spacing.sm) {
                         DisclosureGroup {

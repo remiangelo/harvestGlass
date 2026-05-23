@@ -52,13 +52,6 @@ struct ProfileEditView: View {
         ("Prefer not to say", "prefer_not_to_say")
     ]
 
-    private var valuesBroughtCount: Int {
-        viewModel.valuesBrought?.count ?? 0
-    }
-
-    private var valuesSoughtCount: Int {
-        viewModel.valuesSought?.count ?? 0
-    }
 
     var body: some View {
         ScrollView {
@@ -146,27 +139,6 @@ struct ProfileEditView: View {
                         pickerRow(title: "Spiritual Orientation", selection: $viewModel.editSpiritualOrientation, options: spiritualOptions)
                         dividerRow()
                         pickerRow(title: "Children", selection: $viewModel.editChildrenStatus, options: childrenOptions)
-                    }
-                }
-
-                sectionTitle("Values")
-                GlassCard(style: .light) {
-                    VStack(spacing: 0) {
-                        NavigationLink {
-                            ValuesQuestionnaireView(authViewModel: authViewModel, initialTab: 0)
-                        } label: {
-                            navRow(title: "What I Bring", subtitle: valuesBroughtCount > 0 ? "\(valuesBroughtCount) selected" : "Select up to 5")
-                        }
-                        .buttonStyle(.plain)
-
-                        dividerRow()
-
-                        NavigationLink {
-                            ValuesQuestionnaireView(authViewModel: authViewModel, initialTab: 1)
-                        } label: {
-                            navRow(title: "What I Seek", subtitle: valuesSoughtCount > 0 ? "\(valuesSoughtCount) selected" : "Select up to 5")
-                        }
-                        .buttonStyle(.plain)
                     }
                 }
 
