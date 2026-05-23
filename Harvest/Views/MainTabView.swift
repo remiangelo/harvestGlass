@@ -5,6 +5,7 @@ struct MainTabView: View {
     let authViewModel: AuthViewModel
     @State private var selection: Int = 1
     @State private var showDifferentiation: Bool = !UserDefaults.standard.bool(forKey: "hasSeenDifferentiation")
+    @State private var pendingChatDeepLink: String?
 
     init(authViewModel: AuthViewModel) {
         self.authViewModel = authViewModel
@@ -31,7 +32,10 @@ struct MainTabView: View {
     var body: some View {
         TabView(selection: $selection) {
             Tab("Mindful Messages", systemImage: "bubble.left.fill", value: 0) {
-                MindfulMessagesView(authViewModel: authViewModel)
+                MindfulMessagesView(
+                    authViewModel: authViewModel,
+                    pendingChatDeepLink: $pendingChatDeepLink
+                )
             }
 
             Tab("The Gardener", systemImage: "leaf.fill", value: 1) {
@@ -51,12 +55,29 @@ struct MainTabView: View {
             }
         }
         .tint(HarvestTheme.Colors.primary)
+        .onReceive(NotificationCenter.default.publisher(for: .harvestDeepLink)) { note in
+            guard let link = note.userInfo?["deepLink"] as? String else { return }
+            handleDeepLink(link)
+        }
         .fullScreenCover(isPresented: $showDifferentiation) {
             DifferentiationView {
                 UserDefaults.standard.set(true, forKey: "hasSeenDifferentiation")
                 showDifferentiation = false
                 selection = 1
             }
+        }
+    }
+    private func handleDeepLink(_ link: String) {
+        if link.hasPrefix("chat:") {
+            let conversationId = String(link.dropFirst("chat:".count))
+            selection = 0
+            pendingChatDeepLink = conversationId
+        } else if link.hasPrefix("match:") {
+            selection = 0
+        } else if link == "likes" {
+            selection = 0
+        } else if link == "gardener" {
+            selection = 1
         }
     }
 }

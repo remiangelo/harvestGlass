@@ -2,6 +2,13 @@ import SwiftUI
 
 struct MindfulMessagesView: View {
     let authViewModel: AuthViewModel
+    @Binding var pendingChatDeepLink: String?
+
+    init(authViewModel: AuthViewModel, pendingChatDeepLink: Binding<String?> = .constant(nil)) {
+        self.authViewModel = authViewModel
+        self._pendingChatDeepLink = pendingChatDeepLink
+    }
+
     @State private var viewModel = MindfulMessagesViewModel()
     @State private var searchText = ""
     @State private var activeChatRoute: ChatRoute?
@@ -105,6 +112,23 @@ struct MindfulMessagesView: View {
             }
             .task {
                 await refresh()
+            }
+            .task(id: pendingChatDeepLink) {
+                guard let conversationId = pendingChatDeepLink else { return }
+                // Make sure the inbox is loaded before we try to route into it.
+                await refresh()
+                if let row = unifiedMessages.first(where: { $0.conversationId == conversationId }) {
+                    await MainActor.run {
+                        activeChatRoute = ChatRoute(
+                            conversationId: row.conversationId,
+                            partnerUserId: row.profile.id,
+                            matchId: row.matchId
+                        )
+                    }
+                }
+                await MainActor.run {
+                    pendingChatDeepLink = nil
+                }
             }
             .onAppear {
                 Task { await refresh() }
