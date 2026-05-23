@@ -11,7 +11,18 @@ final class NotificationService: NSObject, @preconcurrency UNUserNotificationCen
     private var currentUserId: String? {
         supabase.auth.currentUser?.id.uuidString
     }
-    private var lastPersistedToken: String?
+    private let tokenDefaultsKey = "harvest.notif.lastApnsToken"
+
+    private var lastPersistedToken: String? {
+        get { UserDefaults.standard.string(forKey: tokenDefaultsKey) }
+        set {
+            if let newValue {
+                UserDefaults.standard.set(newValue, forKey: tokenDefaultsKey)
+            } else {
+                UserDefaults.standard.removeObject(forKey: tokenDefaultsKey)
+            }
+        }
+    }
 
     private override init() {
         super.init()
