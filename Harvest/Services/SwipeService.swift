@@ -110,29 +110,35 @@ struct SwipeService {
             return Array(profilesWithUsablePhotos.prefix(20))
         }
 
-        // Get current user's profile and values for compatibility calculation
+        // Get current user's profile for compatibility ranking
         guard let currentUser = try? await profileService.getProfile(userId: userId) else {
             return profiles // Fallback to unranked if can't get current user
         }
 
-        let currentUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: userId)) ?? []
-        let currentUserValuesSought = (try? await valuesService.getUserValuesSought(userId: userId)) ?? []
+        let questionsService = QuestionsService()
+        let questions = (try? await questionsService.getAllQuestions()) ?? []
+        let currentUserAnswers = (try? await questionsService.getUserAnswers(userId: userId)) ?? [:]
+        let currentUserAxisScores = AxisScoring.computeVectors(
+            answers: currentUserAnswers,
+            questions: questions
+        )
 
-        // Fetch values for all candidate profiles
-        var otherUsersValues: [String: (brought: [Value], sought: [Value])] = [:]
+        // Fetch axis scores for all candidate profiles
+        var otherUsersAxisScores: [String: (need: AxisScores, bring: AxisScores)] = [:]
         for profile in profiles {
-            let brought = (try? await valuesService.getUserValuesBrought(userId: profile.id)) ?? []
-            let sought = (try? await valuesService.getUserValuesSought(userId: profile.id)) ?? []
-            otherUsersValues[profile.id] = (brought: brought, sought: sought)
+            let answers = (try? await questionsService.getUserAnswers(userId: profile.id)) ?? [:]
+            otherUsersAxisScores[profile.id] = AxisScoring.computeVectors(
+                answers: answers,
+                questions: questions
+            )
         }
 
         // Rank profiles by compatibility
         let rankedProfiles = compatibilityService.rankProfiles(
             currentUser: currentUser,
             profiles: profiles,
-            currentUserValuesBrought: currentUserValuesBrought,
-            currentUserValuesSought: currentUserValuesSought,
-            otherUsersValues: otherUsersValues
+            currentUserAxisScores: currentUserAxisScores,
+            otherUsersAxisScores: otherUsersAxisScores
         )
 
         // Return top 20 by compatibility
@@ -148,18 +154,19 @@ struct SwipeService {
             throw NSError(domain: "SwipeService", code: -1, userInfo: [NSLocalizedDescriptionKey: "Other user profile not found"])
         }
 
-        let currentUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: currentUserId)) ?? []
-        let currentUserValuesSought = (try? await valuesService.getUserValuesSought(userId: currentUserId)) ?? []
-        let otherUserValuesBrought = (try? await valuesService.getUserValuesBrought(userId: otherUserId)) ?? []
-        let otherUserValuesSought = (try? await valuesService.getUserValuesSought(userId: otherUserId)) ?? []
+        let questionsService = QuestionsService()
+        let questions = (try? await questionsService.getAllQuestions()) ?? []
+        let myAnswers = (try? await questionsService.getUserAnswers(userId: currentUserId)) ?? [:]
+        let theirAnswers = (try? await questionsService.getUserAnswers(userId: otherUserId)) ?? [:]
+
+        let mine = AxisScoring.computeVectors(answers: myAnswers, questions: questions)
+        let theirs = AxisScoring.computeVectors(answers: theirAnswers, questions: questions)
 
         return compatibilityService.calculateCompatibility(
             currentUser: currentUser,
             otherUser: otherUser,
-            currentUserValuesBrought: currentUserValuesBrought,
-            currentUserValuesSought: currentUserValuesSought,
-            otherUserValuesBrought: otherUserValuesBrought,
-            otherUserValuesSought: otherUserValuesSought
+            currentUserAxisScores: mine,
+            otherUserAxisScores: theirs
         )
     }
 

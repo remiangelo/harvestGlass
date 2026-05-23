@@ -6,15 +6,12 @@ struct CompatibilityService {
     func calculateCompatibility(
         currentUser: UserProfile,
         otherUser: UserProfile,
-        currentUserValuesBrought: [Value] = [],
-        currentUserValuesSought: [Value] = [],
-        otherUserValuesBrought: [Value] = [],
-        otherUserValuesSought: [Value] = []
+        currentUserAxisScores: (need: AxisScores, bring: AxisScores)? = nil,
+        otherUserAxisScores: (need: AxisScores, bring: AxisScores)? = nil
     ) -> CompatibilityScore {
         var totalScore = 0.0
         var breakdown: [String: Double] = [:]
 
-        // 1. Shared Interests/Hobbies (40 points max)
         let interestsScore = calculateInterestsScore(
             userHobbies: currentUser.hobbies ?? [],
             otherHobbies: otherUser.hobbies ?? []
@@ -22,17 +19,13 @@ struct CompatibilityService {
         breakdown["interests"] = interestsScore
         totalScore += interestsScore
 
-        // 2. Values Alignment (30 points max)
         let valuesScore = calculateValuesScore(
-            userBrought: currentUserValuesBrought,
-            userSought: currentUserValuesSought,
-            otherBrought: otherUserValuesBrought,
-            otherSought: otherUserValuesSought
+            currentUserAxisScores: currentUserAxisScores,
+            otherUserAxisScores: otherUserAxisScores
         )
         breakdown["values"] = valuesScore
         totalScore += valuesScore
 
-        // 3. Goals Alignment (15 points max)
         let goalsScore = calculateGoalsScore(
             userGoals: currentUser.goalsList,
             otherGoals: otherUser.goalsList
@@ -40,19 +33,15 @@ struct CompatibilityService {
         breakdown["goals"] = goalsScore
         totalScore += goalsScore
 
-        // 4. Age Compatibility (10 points max)
         let ageScore: Double
         if let userAge = currentUser.age, let otherAge = otherUser.age {
             ageScore = calculateAgeScore(userAge: userAge, otherAge: otherAge)
         } else {
-            ageScore = 5.0 // Neutral score if age not provided
+            ageScore = 5.0
         }
         breakdown["age"] = ageScore
         totalScore += ageScore
 
-        // 5. Distance Bonus (5 points max)
-        // Note: Would need location data to calculate actual distance
-        // For now, give full points as placeholder
         breakdown["distance"] = 5.0
         totalScore += 5.0
 
@@ -89,33 +78,19 @@ struct CompatibilityService {
     // MARK: - Values Scoring
 
     private func calculateValuesScore(
-        userBrought: [Value],
-        userSought: [Value],
-        otherBrought: [Value],
-        otherSought: [Value]
+        currentUserAxisScores: (need: AxisScores, bring: AxisScores)?,
+        otherUserAxisScores: (need: AxisScores, bring: AxisScores)?
     ) -> Double {
-        guard !userSought.isEmpty, !otherBrought.isEmpty else {
-            return 15.0 // Neutral score if values not filled
+        guard let me = currentUserAxisScores,
+              let them = otherUserAxisScores,
+              !me.need.isZero, !me.bring.isZero,
+              !them.need.isZero, !them.bring.isZero else {
+            return 15.0
         }
-
-        let userSoughtIds = Set(userSought.map { $0.id })
-        let otherBroughtIds = Set(otherBrought.map { $0.id })
-
-        // How many values I seek does the other person bring?
-        let matchCount = userSoughtIds.intersection(otherBroughtIds).count
-        let matchRatio = Double(matchCount) / Double(userSoughtIds.count)
-
-        // Reverse: How many values they seek do I bring?
-        let otherSoughtIds = Set(otherSought.map { $0.id })
-        let userBroughtIds = Set(userBrought.map { $0.id })
-        let reverseMatchCount = otherSoughtIds.intersection(userBroughtIds).count
-        let reverseMatchRatio = otherSoughtIds.isEmpty ? 0 : Double(reverseMatchCount) / Double(otherSoughtIds.count)
-
-        // Average both directions
-        let averageMatch = (matchRatio + reverseMatchRatio) / 2.0
-
-        // Scale to 0-30 points
-        return averageMatch * 30.0
+        let avgCosine =
+            (AxisScores.cosine(me.need, them.bring) + AxisScores.cosine(me.bring, them.need)) / 2.0
+        // Cosine on non-negative vectors is in [0, 1] -> scale to 0...30
+        return max(0, avgCosine) * 30.0
     }
 
     // MARK: - Goals Scoring
@@ -170,28 +145,22 @@ struct CompatibilityService {
     func rankProfiles(
         currentUser: UserProfile,
         profiles: [UserProfile],
-        currentUserValuesBrought: [Value],
-        currentUserValuesSought: [Value],
-        otherUsersValues: [String: (brought: [Value], sought: [Value])]
+        currentUserAxisScores: (need: AxisScores, bring: AxisScores)?,
+        otherUsersAxisScores: [String: (need: AxisScores, bring: AxisScores)]
     ) -> [(profile: UserProfile, score: CompatibilityScore)] {
         var scoredProfiles: [(profile: UserProfile, score: CompatibilityScore)] = []
 
         for profile in profiles {
-            let otherValues = otherUsersValues[profile.id] ?? (brought: [], sought: [])
-
+            let otherAxis = otherUsersAxisScores[profile.id]
             let score = calculateCompatibility(
                 currentUser: currentUser,
                 otherUser: profile,
-                currentUserValuesBrought: currentUserValuesBrought,
-                currentUserValuesSought: currentUserValuesSought,
-                otherUserValuesBrought: otherValues.brought,
-                otherUserValuesSought: otherValues.sought
+                currentUserAxisScores: currentUserAxisScores,
+                otherUserAxisScores: otherAxis
             )
-
             scoredProfiles.append((profile: profile, score: score))
         }
 
-        // Sort by total score descending
         return scoredProfiles.sorted { $0.score.total > $1.score.total }
     }
 }

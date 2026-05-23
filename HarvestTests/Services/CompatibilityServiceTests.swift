@@ -114,73 +114,74 @@ final class CompatibilityServiceTests: XCTestCase {
         XCTAssertEqual(score.interestsScore, 20)
     }
 
-    // MARK: - Values Scoring Tests
+    // MARK: - Values Scoring (axis-vector based)
 
-    func testValuesScore_PerfectMatch() {
-        let value1 = MockSupabaseClient.createTestValue(id: "v1", name: "Honesty")
-        let value2 = MockSupabaseClient.createTestValue(id: "v2", name: "Loyalty")
+    private func balancedScores() -> (need: AxisScores, bring: AxisScores) {
+        var s = AxisScores()
+        s.emotionalIntelligence = 0.2
+        s.stability             = 0.2
+        s.integrity             = 0.2
+        s.connection            = 0.2
+        s.growth                = 0.2
+        return (s, s)
+    }
 
+    private func connectionFocused() -> (need: AxisScores, bring: AxisScores) {
+        var s = AxisScores()
+        s.connection = 1.0
+        return (s, s)
+    }
+
+    private func growthFocused() -> (need: AxisScores, bring: AxisScores) {
+        var s = AxisScores()
+        s.growth = 1.0
+        return (s, s)
+    }
+
+    func testValuesScore_neutralWhenMissing() {
         let user1 = MockSupabaseClient.createTestUser(id: "user1")
         let user2 = MockSupabaseClient.createTestUser(id: "user2")
+        let score = service.calculateCompatibility(currentUser: user1, otherUser: user2)
+        // 15 = neutral fallback for the 30-point values sub-score
+        XCTAssertEqual(score.valuesScore, 15)
+    }
 
-        // User1 seeks what User2 brings, and vice versa
+    func testValuesScore_identicalVectorsIsMax() {
+        let user1 = MockSupabaseClient.createTestUser(id: "user1")
+        let user2 = MockSupabaseClient.createTestUser(id: "user2")
+        let axis = connectionFocused()
         let score = service.calculateCompatibility(
             currentUser: user1,
             otherUser: user2,
-            currentUserValuesBrought: [value1],
-            currentUserValuesSought: [value2],
-            otherUserValuesBrought: [value2],
-            otherUserValuesSought: [value1]
+            currentUserAxisScores: axis,
+            otherUserAxisScores: axis
         )
-
-        // Perfect bidirectional match should give maximum values score (30)
         XCTAssertEqual(score.valuesScore, 30)
     }
 
-    func testValuesScore_NoMatch() {
-        let value1 = MockSupabaseClient.createTestValue(id: "v1", name: "Honesty")
-        let value2 = MockSupabaseClient.createTestValue(id: "v2", name: "Loyalty")
-        let value3 = MockSupabaseClient.createTestValue(id: "v3", name: "Adventure")
-        let value4 = MockSupabaseClient.createTestValue(id: "v4", name: "Stability")
-
+    func testValuesScore_orthogonalVectorsIsZero() {
         let user1 = MockSupabaseClient.createTestUser(id: "user1")
         let user2 = MockSupabaseClient.createTestUser(id: "user2")
-
-        // No overlap between what they seek and bring
         let score = service.calculateCompatibility(
             currentUser: user1,
             otherUser: user2,
-            currentUserValuesBrought: [value1],
-            currentUserValuesSought: [value2],
-            otherUserValuesBrought: [value3],
-            otherUserValuesSought: [value4]
+            currentUserAxisScores: connectionFocused(),
+            otherUserAxisScores: growthFocused()
         )
-
-        // No match should give 0 values score
         XCTAssertEqual(score.valuesScore, 0)
     }
 
-    func testValuesScore_PartialMatch() {
-        let value1 = MockSupabaseClient.createTestValue(id: "v1", name: "Honesty")
-        let value2 = MockSupabaseClient.createTestValue(id: "v2", name: "Loyalty")
-        let value3 = MockSupabaseClient.createTestValue(id: "v3", name: "Adventure")
-
+    func testValuesScore_balancedVsBalancedIsMax() {
         let user1 = MockSupabaseClient.createTestUser(id: "user1")
         let user2 = MockSupabaseClient.createTestUser(id: "user2")
-
-        // User1 seeks value2, User2 brings value2 (50% match one direction)
         let score = service.calculateCompatibility(
             currentUser: user1,
             otherUser: user2,
-            currentUserValuesBrought: [value1],
-            currentUserValuesSought: [value2],
-            otherUserValuesBrought: [value2, value3],
-            otherUserValuesSought: [value3]
+            currentUserAxisScores: balancedScores(),
+            otherUserAxisScores: balancedScores()
         )
-
-        // Partial match should give between 0 and 30
-        XCTAssertGreaterThan(score.valuesScore, 0)
-        XCTAssertLessThan(score.valuesScore, 30)
+        // Identical balanced vectors -> cosine = 1 -> 30
+        XCTAssertEqual(score.valuesScore, 30)
     }
 
     // MARK: - Goals Scoring Tests
@@ -301,8 +302,6 @@ final class CompatibilityServiceTests: XCTestCase {
     func testTotalScore_ExcellentMatch() {
         let sharedHobbies = ["Reading", "Hiking", "Cooking"]
         let sharedGoals = ["Long-term relationship", "Marriage"]
-        let value1 = MockSupabaseClient.createTestValue(id: "v1", name: "Honesty")
-        let value2 = MockSupabaseClient.createTestValue(id: "v2", name: "Loyalty")
 
         let user1 = MockSupabaseClient.createTestUser(
             id: "user1",
@@ -319,15 +318,11 @@ final class CompatibilityServiceTests: XCTestCase {
 
         let score = service.calculateCompatibility(
             currentUser: user1,
-            otherUser: user2,
-            currentUserValuesBrought: [value1],
-            currentUserValuesSought: [value2],
-            otherUserValuesBrought: [value2],
-            otherUserValuesSought: [value1]
+            otherUser: user2
         )
 
         // Excellent match should score 80+
-        // Interests: 40, Values: 30, Goals: 15, Age: 7, Distance: 5 = 97
+        // Interests: 40, Values: 15 (neutral fallback), Goals: 15, Age: 7, Distance: 5 = 82
         XCTAssertGreaterThanOrEqual(score.total, 80)
         XCTAssertEqual(score.compatibilityLevel, "Excellent Match")
     }
@@ -373,9 +368,8 @@ final class CompatibilityServiceTests: XCTestCase {
         let ranked = service.rankProfiles(
             currentUser: user1,
             profiles: [user4, user2, user3], // Intentionally unsorted
-            currentUserValuesBrought: [],
-            currentUserValuesSought: [],
-            otherUsersValues: [:]
+            currentUserAxisScores: nil,
+            otherUsersAxisScores: [:]
         )
 
         // Should be sorted high to low
