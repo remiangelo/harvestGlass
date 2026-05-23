@@ -60,3 +60,71 @@ struct UserQuestionAnswer: Codable, Sendable, Equatable {
         case optionId = "option_id"
     }
 }
+
+struct AxisScores: Equatable, Sendable {
+    var emotionalIntelligence: Double = 0
+    var stability: Double = 0
+    var integrity: Double = 0
+    var connection: Double = 0
+    var growth: Double = 0
+
+    var sum: Double {
+        emotionalIntelligence + stability + integrity + connection + growth
+    }
+
+    var isZero: Bool { sum == 0 }
+
+    func value(for axis: ValueAxis) -> Double {
+        switch axis {
+        case .emotionalIntelligence: return emotionalIntelligence
+        case .stability:             return stability
+        case .integrity:             return integrity
+        case .connection:            return connection
+        case .growth:                return growth
+        }
+    }
+
+    mutating func add(_ delta: Double, to axis: ValueAxis) {
+        switch axis {
+        case .emotionalIntelligence: emotionalIntelligence += delta
+        case .stability:             stability += delta
+        case .integrity:             integrity += delta
+        case .connection:            connection += delta
+        case .growth:                growth += delta
+        }
+    }
+
+    func normalized() -> AxisScores {
+        let total = sum
+        guard total > 0 else { return self }
+        var n = AxisScores()
+        n.emotionalIntelligence = emotionalIntelligence / total
+        n.stability             = stability / total
+        n.integrity             = integrity / total
+        n.connection            = connection / total
+        n.growth                = growth / total
+        return n
+    }
+
+    /// Standard cosine similarity in [-1, 1]; returns 0 when either is a zero vector.
+    static func cosine(_ a: AxisScores, _ b: AxisScores) -> Double {
+        let dot =
+            a.emotionalIntelligence * b.emotionalIntelligence +
+            a.stability * b.stability +
+            a.integrity * b.integrity +
+            a.connection * b.connection +
+            a.growth * b.growth
+        let magA = (a.emotionalIntelligence * a.emotionalIntelligence +
+                    a.stability * a.stability +
+                    a.integrity * a.integrity +
+                    a.connection * a.connection +
+                    a.growth * a.growth).squareRoot()
+        let magB = (b.emotionalIntelligence * b.emotionalIntelligence +
+                    b.stability * b.stability +
+                    b.integrity * b.integrity +
+                    b.connection * b.connection +
+                    b.growth * b.growth).squareRoot()
+        guard magA > 0, magB > 0 else { return 0 }
+        return dot / (magA * magB)
+    }
+}
