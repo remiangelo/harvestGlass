@@ -10,6 +10,7 @@ enum OnboardingStep: Int, CaseIterable {
     case photos
     case goals
     case values
+    case reflections
     case genderIdentity
     case interestedIn
     case location
@@ -29,6 +30,10 @@ final class OnboardingViewModel {
     var selectedValuesBrought: Set<String> = []
     var selectedValuesSought: Set<String> = []
     var isLoadingValues = false
+    var allQuestions: [Question] = []
+    var reflectionAnswers: [String: String] = [:]   // questionId -> optionId
+    var currentReflectionIndex: Int = 0
+    var isLoadingQuestions = false
     var gender = ""
     var interestedIn: Set<String> = []
     var location = ""
@@ -41,6 +46,7 @@ final class OnboardingViewModel {
 
     private let profileService = ProfileService()
     private let valuesService = ValuesService()
+    private let questionsService = QuestionsService()
 
     var age: Int {
         Calendar.current.dateComponents([.year], from: birthDate, to: Date()).year ?? 0
@@ -57,6 +63,8 @@ final class OnboardingViewModel {
         case .photos: return !photoUrls.isEmpty
         case .goals: return !selectedGoals.isEmpty
         case .values: return !selectedValuesBrought.isEmpty && !selectedValuesSought.isEmpty
+        case .reflections:
+            return !allQuestions.isEmpty && reflectionAnswers.count >= allQuestions.count
         case .genderIdentity: return !gender.isEmpty
         case .interestedIn: return !interestedIn.isEmpty
         case .location: return resolvedLocation != nil
@@ -76,8 +84,23 @@ final class OnboardingViewModel {
         }
     }
 
+    func loadQuestionsIfNeeded() async {
+        guard allQuestions.isEmpty, !isLoadingQuestions else { return }
+        isLoadingQuestions = true
+        defer { isLoadingQuestions = false }
+        do {
+            allQuestions = try await questionsService.getAllQuestions()
+        } catch {
+            self.error = "Failed to load questions: \(error.localizedDescription)"
+        }
+    }
+
     var progress: Double {
         let total = Double(OnboardingStep.allCases.count - 1)
+        if currentStep == .reflections, !allQuestions.isEmpty {
+            let subProgress = Double(currentReflectionIndex) / Double(allQuestions.count)
+            return (Double(currentStep.rawValue) + subProgress) / total
+        }
         return Double(currentStep.rawValue) / total
     }
 
@@ -203,6 +226,15 @@ final class OnboardingViewModel {
                 try await valuesService.saveUserValuesSought(userId: userId, valueIds: Array(selectedValuesSought))
             } catch {
                 print("Warning: Failed to save values during onboarding: \(error)")
+            }
+
+            do {
+                try await questionsService.saveAnswers(
+                    userId: userId,
+                    answers: reflectionAnswers
+                )
+            } catch {
+                print("Warning: Failed to save reflection answers during onboarding: \(error)")
             }
 
             return savedProfile

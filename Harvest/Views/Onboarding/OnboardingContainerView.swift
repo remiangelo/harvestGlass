@@ -25,6 +25,8 @@ struct OnboardingContainerView: View {
                         GoalsStepView(viewModel: viewModel)
                     case .values:
                         ValuesStepView(viewModel: viewModel)
+                    case .reflections:
+                        ReflectionsStepView(viewModel: viewModel)
                     case .genderIdentity:
                         GenderStepView(viewModel: viewModel)
                     case .interestedIn:
@@ -40,7 +42,7 @@ struct OnboardingContainerView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
 
                 // Navigation buttons
-                if viewModel.currentStep != .complete {
+                if viewModel.currentStep != .complete && viewModel.currentStep != .reflections {
                     HStack(spacing: HarvestTheme.Spacing.md) {
                         if viewModel.currentStep != .age {
                             GlassButton(title: "Back", icon: "chevron.left", style: .primary) {
