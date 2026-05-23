@@ -30,6 +30,11 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var showValuesBlurb: Bool?
     var showValuesGraph: Bool?
     var profileGraphSide: String?
+    var notifMessagesEnabled: Bool?
+    var notifMatchesEnabled: Bool?
+    var notifLikesEnabled: Bool?
+    var notifGardenerLocalEnabled: Bool?
+    var notifGardenerLocalHour: Int?
 
     enum CodingKeys: String, CodingKey {
         case id, email, nickname, age, bio, location, gender, preferences, goals, hobbies, photos
@@ -51,6 +56,11 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case showValuesBlurb = "show_values_blurb"
         case showValuesGraph = "show_values_graph"
         case profileGraphSide = "profile_graph_side"
+        case notifMessagesEnabled = "notif_messages_enabled"
+        case notifMatchesEnabled = "notif_matches_enabled"
+        case notifLikesEnabled = "notif_likes_enabled"
+        case notifGardenerLocalEnabled = "notif_gardener_local_enabled"
+        case notifGardenerLocalHour = "notif_gardener_local_hour"
     }
 
     var displayName: String {
