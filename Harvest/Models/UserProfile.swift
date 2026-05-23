@@ -29,6 +29,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var showValuesSought: Bool?
     var showValuesBlurb: Bool?
     var showValuesGraph: Bool?
+    var profileGraphSide: String?
 
     enum CodingKeys: String, CodingKey {
         case id, email, nickname, age, bio, location, gender, preferences, goals, hobbies, photos
@@ -49,6 +50,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case showValuesSought = "show_values_sought"
         case showValuesBlurb = "show_values_blurb"
         case showValuesGraph = "show_values_graph"
+        case profileGraphSide = "profile_graph_side"
     }
 
     var displayName: String {
