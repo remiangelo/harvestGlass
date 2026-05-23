@@ -5,6 +5,7 @@ struct CompleteView: View {
     let authViewModel: AuthViewModel
 
     @State private var showConfetti = false
+    @AppStorage("notifications_prompted_at_onboarding") private var notificationsPrompted = false
 
     var body: some View {
         VStack(spacing: HarvestTheme.Spacing.xl) {
@@ -38,6 +39,47 @@ struct CompleteView: View {
                 .animation(.easeIn.delay(0.6), value: showConfetti)
 
             Spacer()
+
+            if !notificationsPrompted {
+                GlassCard {
+                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                        HStack(spacing: HarvestTheme.Spacing.sm) {
+                            Image(systemName: "bell.badge.fill")
+                                .font(.title3)
+                                .foregroundStyle(HarvestTheme.Colors.accent)
+                            Text("Stay in the loop")
+                                .font(HarvestTheme.Typography.h4)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        }
+                        Text("We'll let you know about new matches, messages, and likes — and a gentle daily reflection from your Gardener.")
+                            .font(HarvestTheme.Typography.bodySmall)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        HStack {
+                            Button("Maybe later") {
+                                notificationsPrompted = true
+                            }
+                            .font(HarvestTheme.Typography.buttonText)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            Spacer()
+                            Button {
+                                Task {
+                                    await NotificationService.shared.requestPermissionAndRegister()
+                                    await NotificationService.shared.scheduleGardenerLocalNotification(hour: 9, enabled: true)
+                                    notificationsPrompted = true
+                                }
+                            } label: {
+                                Text("Turn on")
+                                    .font(HarvestTheme.Typography.buttonText)
+                                    .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                                    .padding(.horizontal, HarvestTheme.Spacing.lg)
+                                    .padding(.vertical, HarvestTheme.Spacing.sm)
+                                    .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
+                            }
+                        }
+                    }
+                }
+                .padding(.horizontal, HarvestTheme.Spacing.lg)
+            }
 
             GlassButton(title: "Meet The Gardener", icon: "leaf.fill", style: .primary) {
                 Task {

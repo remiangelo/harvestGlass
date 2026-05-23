@@ -30,6 +30,7 @@ final class AuthViewModel {
                 currentUserId = session.user.id.uuidString.lowercased()
                 isAuthenticated = true
                 await loadProfile()
+                await registerForPushIfReady()
             }
         } catch {
             isAuthenticated = false
@@ -45,6 +46,7 @@ final class AuthViewModel {
             currentUserId = session.user.id.uuidString.lowercased()
             isAuthenticated = true
             await loadProfile()
+            await registerForPushIfReady()
         } catch {
             self.error = error.localizedDescription
         }
@@ -69,6 +71,7 @@ final class AuthViewModel {
 
             isAuthenticated = true
             await loadProfile()
+            await registerForPushIfReady()
         } catch {
             self.error = error.localizedDescription
         }
@@ -77,6 +80,9 @@ final class AuthViewModel {
     }
 
     func logout() async {
+        if let userId = currentUserId {
+            await NotificationService.shared.unregisterCurrentDevice(userId: userId)
+        }
         do {
             try await authService.signOut()
         } catch {
@@ -96,6 +102,15 @@ final class AuthViewModel {
         }
     }
 
+    /// Called from each post-sign-in path to re-register the device with APNs
+    /// (refreshes the token for the new user_id). Safe to call repeatedly:
+    /// `requestPermissionAndRegister` is idempotent.
+    private func registerForPushIfReady() async {
+        if isAuthenticated, !needsOnboarding {
+            await NotificationService.shared.requestPermissionAndRegister()
+        }
+    }
+
     func listenToAuthChanges() {
         Task {
             for await (event, session) in authService.authStateChanges() {
@@ -105,8 +120,12 @@ final class AuthViewModel {
                         currentUserId = user.id.uuidString.lowercased()
                         isAuthenticated = true
                         await loadProfile()
+                        await registerForPushIfReady()
                     }
                 case .signedOut:
+                    if let userId = currentUserId {
+                        await NotificationService.shared.unregisterCurrentDevice(userId: userId)
+                    }
                     isAuthenticated = false
                     currentUserId = nil
                     profile = nil
