@@ -8,6 +8,7 @@ struct ChatDetailView: View {
     var onConversationRemoved: (() async -> Void)? = nil
 
     @State private var viewModel = ChatViewModel()
+    @State private var showProfile = false
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isMessageFieldFocused: Bool
 
@@ -118,9 +119,25 @@ struct ChatDetailView: View {
         .onTapGesture {
             isMessageFieldFocused = false
         }
-        .navigationTitle(viewModel.partnerProfile?.displayName ?? "Chat")
         .navigationBarTitleDisplayMode(.inline)
         .toolbar {
+            ToolbarItem(placement: .principal) {
+                if let profile = viewModel.partnerProfile {
+                    Button {
+                        showProfile = true
+                    } label: {
+                        HStack(spacing: HarvestTheme.Spacing.xs) {
+                            avatar(for: profile)
+                            Text(profile.displayName)
+                                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        }
+                    }
+                    .buttonStyle(.plain)
+                } else {
+                    Text("Chat")
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                }
+            }
             ToolbarItem(placement: .topBarTrailing) {
                 Menu {
                     Button {
@@ -172,6 +189,13 @@ struct ChatDetailView: View {
         }
         .onDisappear {
             viewModel.unsubscribe()
+        }
+        .fullScreenCover(isPresented: $showProfile) {
+            if let profile = viewModel.partnerProfile {
+                ProfileDetailView(profile: profile) { _ in
+                    showProfile = false
+                }
+            }
         }
         .sheet(isPresented: $viewModel.showMindfulWarning) {
             if let analysis = viewModel.mindfulAnalysis {
@@ -260,5 +284,22 @@ struct ChatDetailView: View {
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
+    }
+
+    @ViewBuilder
+    private func avatar(for profile: UserProfile) -> some View {
+        if let url = profile.primaryPhoto.flatMap(URL.init(string:)) {
+            AsyncImage(url: url) { image in
+                image.resizable().scaledToFill()
+            } placeholder: {
+                Circle().fill(HarvestTheme.Colors.divider)
+            }
+            .frame(width: 28, height: 28)
+            .clipShape(Circle())
+        } else {
+            Image(systemName: "person.circle.fill")
+                .font(.system(size: 28))
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+        }
     }
 }
