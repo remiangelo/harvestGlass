@@ -158,15 +158,50 @@ struct ValuesService {
         }
     }
 
-    func calculateCompatibility(userId: String, otherUserId: String) async throws -> (score: Double, matchingValues: [String]) {
-        let sought = try await getUserValuesSought(userId: userId)
-        let brought = try await getUserValuesBrought(userId: otherUserId)
+    /// New signature: returns nil if either user has fewer than 5 total answers.
+    /// On success, returns radar-based score and the axes that are in the top 2
+    /// on both sides of the pairing (may be empty).
+    func calculateCompatibility(
+        userId: String,
+        otherUserId: String
+    ) async throws -> (score: Double, sharedTopAxes: [ValueAxis])? {
+        let questionsService = QuestionsService()
 
-        let soughtNames = Set(sought.map(\.name))
-        let broughtNames = Set(brought.map(\.name))
-        let matching = soughtNames.intersection(broughtNames)
+        async let myAnswersTask = questionsService.getUserAnswers(userId: userId)
+        async let theirAnswersTask = questionsService.getUserAnswers(userId: otherUserId)
+        async let questionsTask = questionsService.getAllQuestions()
 
-        let score = sought.isEmpty ? 0.0 : (Double(matching.count) / Double(sought.count)) * 100
-        return (score, Array(matching))
+        let myAnswers = try await myAnswersTask
+        let theirAnswers = try await theirAnswersTask
+        let questions = try await questionsTask
+
+        let minAnswers = 5
+        guard myAnswers.count >= minAnswers, theirAnswers.count >= minAnswers else {
+            return nil
+        }
+
+        let mine = AxisScoring.computeVectors(answers: myAnswers, questions: questions)
+        let theirs = AxisScoring.computeVectors(answers: theirAnswers, questions: questions)
+
+        let needMatch = AxisScores.cosine(mine.need, theirs.bring)
+        let bringMatch = AxisScores.cosine(mine.bring, theirs.need)
+        let score = (needMatch + bringMatch) / 2.0 * 100
+
+        let myNeedTop = Self.topAxes(in: mine.need, count: 2)
+        let theirBringTop = Self.topAxes(in: theirs.bring, count: 2)
+        let myBringTop = Self.topAxes(in: mine.bring, count: 2)
+        let theirNeedTop = Self.topAxes(in: theirs.need, count: 2)
+
+        let shared = Set(myNeedTop).intersection(theirBringTop)
+            .union(Set(myBringTop).intersection(theirNeedTop))
+
+        return (score, Array(shared))
+    }
+
+    private static func topAxes(in scores: AxisScores, count: Int) -> [ValueAxis] {
+        ValueAxis.allCases
+            .sorted { scores.value(for: $0) > scores.value(for: $1) }
+            .prefix(count)
+            .map { $0 }
     }
 }
