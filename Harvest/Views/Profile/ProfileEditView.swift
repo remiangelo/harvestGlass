@@ -56,7 +56,7 @@ struct ProfileEditView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
-                sectionTitle("Photos")
+                SectionHeader(title: "Photos")
                 GlassCard(style: .light) {
                     VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                         ProfilePhotoGrid(
@@ -82,7 +82,7 @@ struct ProfileEditView: View {
                     }
                 }
 
-                sectionTitle("Basic Info")
+                SectionHeader(title: "Basic Info")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         textFieldRow(title: "Nickname", placeholder: "Nickname", text: $viewModel.editNickname)
@@ -113,15 +113,16 @@ struct ProfileEditView: View {
                     }
                 }
 
-                sectionTitle("About Me")
+                SectionHeader(title: "About Me")
                 GlassCard(style: .light) {
                     TextEditor(text: $viewModel.editBio)
                         .scrollContentBackground(.hidden)
-                        .frame(minHeight: 120)
+                        .frame(minHeight: 140)
+                        .padding(.vertical, HarvestTheme.Spacing.xs)
                         .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 }
 
-                sectionTitle("Lifestyle & Intentions")
+                SectionHeader(title: "Lifestyle & Intentions")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         pickerRow(
@@ -142,7 +143,7 @@ struct ProfileEditView: View {
                     }
                 }
 
-                sectionTitle("Interests")
+                SectionHeader(title: "Interests")
                 GlassCard(style: .light) {
                     NavigationLink {
                         InterestPickerView(selectedInterests: $viewModel.editHobbies)
@@ -156,6 +157,7 @@ struct ProfileEditView: View {
                 }
             }
             .padding()
+            .padding(.top, HarvestTheme.Spacing.sm)
         }
         .scrollDismissesKeyboard(.interactively)
         .dismissKeyboardOnTap()
@@ -185,12 +187,6 @@ struct ProfileEditView: View {
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.dark, for: .navigationBar)
-    }
-
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(HarvestTheme.Typography.h4)
-            .foregroundStyle(HarvestTheme.Colors.textPrimary)
     }
 
     private func dividerRow() -> some View {
@@ -232,12 +228,12 @@ struct ProfileEditView: View {
                 HStack(spacing: 6) {
                     Text(selectedLabel(for: selection.wrappedValue, options: options))
                         .lineLimit(1)
-                        .minimumScaleFactor(0.72)
+                        .minimumScaleFactor(0.7)
                     Image(systemName: "chevron.up.chevron.down")
                         .font(.caption.weight(.semibold))
                 }
                 .foregroundStyle(HarvestTheme.Colors.formAccent)
-                .frame(width: 150, alignment: .trailing)
+                .frame(maxWidth: .infinity, alignment: .trailing)
             }
         }
         .padding(.vertical, HarvestTheme.Spacing.sm)
