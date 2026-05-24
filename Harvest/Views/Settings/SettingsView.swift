@@ -25,7 +25,7 @@ struct SettingsView: View {
     var body: some View {
         ScrollView {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.lg) {
-                sectionTitle("Account")
+                SectionHeader(title: "Account")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         row(title: "Email", trailing: authViewModel.profile?.email ?? "")
@@ -48,7 +48,7 @@ struct SettingsView: View {
                     }
                 }
 
-                sectionTitle("Notifications")
+                SectionHeader(title: "Notifications")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         toggleRow(
@@ -103,7 +103,6 @@ struct SettingsView: View {
                                     }
                                     .pickerStyle(.menu)
                                 }
-                                .padding(.horizontal, HarvestTheme.Spacing.md)
                                 .padding(.vertical, HarvestTheme.Spacing.sm)
                             }
                         }
@@ -117,7 +116,7 @@ struct SettingsView: View {
                     }
                 }
 
-                sectionTitle("Privacy")
+                SectionHeader(title: "Privacy")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         toggleRow("Show Location", isOn: $showLocation)
@@ -137,7 +136,7 @@ struct SettingsView: View {
                     }
                 }
 
-                sectionTitle("Legal")
+                SectionHeader(title: "Legal")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         navRow("Privacy Policy") { PrivacyPolicyView() }
@@ -148,7 +147,7 @@ struct SettingsView: View {
                     }
                 }
 
-                sectionTitle("Safety")
+                SectionHeader(title: "Safety")
                 GlassCard(style: .light) {
                     VStack(spacing: 0) {
                         navRow("Safety Dashboard") { SafetyDashboardView(authViewModel: authViewModel) }
@@ -160,49 +159,51 @@ struct SettingsView: View {
                     }
                 }
 
-                sectionTitle("Support")
+                SectionHeader(title: "Support")
                 GlassCard(style: .light) {
-                    navRow("Help Center") { HelpCenterView(authViewModel: authViewModel) }
-                }
-
-                sectionTitle("About")
-                GlassCard(style: .light) {
-                    row(title: "Version", trailing: "1.0.0")
-                }
-
-                GlassCard(style: .light) {
-                    Button {
-                        showLogoutAlert = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("Log Out")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(HarvestTheme.Colors.formAccent)
-                            Spacer()
-                        }
-                        .padding(.vertical, HarvestTheme.Spacing.sm)
+                    VStack(spacing: 0) {
+                        navRow("Help Center") { HelpCenterView(authViewModel: authViewModel) }
+                        dividerRow()
+                        row(title: "Version", trailing: "1.0.0")
                     }
-                    .buttonStyle(.plain)
                 }
 
                 GlassCard(style: .light) {
-                    Button {
-                        showDeleteAlert = true
-                    } label: {
-                        HStack {
-                            Spacer()
-                            Text("Delete Account")
-                                .fontWeight(.semibold)
-                                .foregroundStyle(HarvestTheme.Colors.formAccent)
-                            Spacer()
+                    VStack(spacing: 0) {
+                        Button {
+                            showLogoutAlert = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("Log Out")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(HarvestTheme.Colors.formAccent)
+                                Spacer()
+                            }
+                            .padding(.vertical, HarvestTheme.Spacing.sm)
                         }
-                        .padding(.vertical, HarvestTheme.Spacing.sm)
+                        .buttonStyle(.plain)
+
+                        dividerRow()
+
+                        Button {
+                            showDeleteAlert = true
+                        } label: {
+                            HStack {
+                                Spacer()
+                                Text("Delete Account")
+                                    .fontWeight(.semibold)
+                                    .foregroundStyle(HarvestTheme.Colors.formAccent)
+                                Spacer()
+                            }
+                            .padding(.vertical, HarvestTheme.Spacing.sm)
+                        }
+                        .buttonStyle(.plain)
                     }
-                    .buttonStyle(.plain)
                 }
             }
             .padding()
+            .padding(.top, HarvestTheme.Spacing.sm)
         }
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
         .navigationTitle("Settings")
@@ -365,12 +366,6 @@ struct SettingsView: View {
         return f.string(from: date)
     }
 
-    private func sectionTitle(_ title: String) -> some View {
-        Text(title)
-            .font(HarvestTheme.Typography.h4)
-            .foregroundStyle(HarvestTheme.Colors.textSecondary)
-    }
-
     private func dividerRow() -> some View {
         Divider().overlay(HarvestTheme.Colors.formBorder)
     }
@@ -390,7 +385,7 @@ struct SettingsView: View {
         Toggle(title, isOn: isOn)
             .tint(HarvestTheme.Colors.formAccent)
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
-            .padding(.vertical, HarvestTheme.Spacing.xs)
+            .padding(.vertical, HarvestTheme.Spacing.sm)
     }
 
     private func navRow<Destination: View>(_ title: String, @ViewBuilder destination: @escaping () -> Destination) -> some View {
