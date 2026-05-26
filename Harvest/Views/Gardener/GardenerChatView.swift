@@ -10,7 +10,7 @@ struct GardenerChatView: View {
             chatView
                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                 .background(HarvestTheme.Colors.background.ignoresSafeArea())
-                .navigationTitle("The Gardener")
+                .navigationTitle("Gardener")
                 .navigationBarTitleDisplayMode(.inline)
                 .toolbar {
                     ToolbarItem(placement: .topBarLeading) {

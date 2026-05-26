@@ -79,7 +79,7 @@ struct MindfulMessagesView: View {
             .dismissKeyboardOnTap()
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
-            .navigationTitle("Mindful Messages")
+            .navigationTitle("Letters")
             .navigationBarTitleDisplayMode(.inline)
             .navigationDestination(item: $activeChatRoute) { route in
                 ChatDetailView(

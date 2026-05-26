@@ -31,14 +31,14 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Mindful Messages", systemImage: "bubble.left.fill", value: 0) {
+            Tab("Letters", systemImage: "bubble.left.fill", value: 0) {
                 MindfulMessagesView(
                     authViewModel: authViewModel,
                     pendingChatDeepLink: $pendingChatDeepLink
                 )
             }
 
-            Tab("The Gardener", systemImage: "leaf.fill", value: 1) {
+            Tab("Gardener", systemImage: "leaf.fill", value: 1) {
                 GardenerChatView(authViewModel: authViewModel)
             }
 
