@@ -173,7 +173,7 @@ struct DiscoverView: View {
                 .font(.system(size: 60))
                 .foregroundStyle(HarvestTheme.Colors.textTertiary)
 
-            Text("No more values-aligned matches right now")
+            Text("You're all caught up")
                 .font(HarvestTheme.Typography.h3)
                 .multilineTextAlignment(.center)
 
