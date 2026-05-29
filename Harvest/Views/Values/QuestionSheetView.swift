@@ -6,7 +6,7 @@ struct QuestionSheetView: View {
 
     @Environment(\.dismiss) private var dismiss
 
-    private var queue: [Question] { viewModel.unansweredQuestionsForActiveSide }
+    private var queue: [Question] { viewModel.unansweredQuestions }
     private var current: Question? { queue.first }
 
     var body: some View {
@@ -21,7 +21,7 @@ struct QuestionSheetView: View {
             .padding(.horizontal, HarvestTheme.Spacing.lg)
             .padding(.vertical, HarvestTheme.Spacing.lg)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
-            .navigationTitle(viewModel.side == .need ? "More about what you need" : "More about what you bring")
+            .navigationTitle("More questions")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {

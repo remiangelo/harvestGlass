@@ -75,6 +75,9 @@ struct ValuesView: View {
 
     private var mainContent: some View {
         VStack(spacing: HarvestTheme.Spacing.lg) {
+            if viewModel.showRetakeBanner {
+                retakeBanner
+            }
             sidePicker
             radarCard
             moreQuestionsButton
@@ -82,6 +85,42 @@ struct ValuesView: View {
             blurbSection
             displayTogglesSection
         }
+    }
+
+    private var retakeBanner: some View {
+        Button {
+            showQuestionSheet = true
+        } label: {
+            HStack(alignment: .top, spacing: HarvestTheme.Spacing.md) {
+                Image(systemName: "sparkles")
+                    .font(.title2)
+                    .foregroundStyle(HarvestTheme.Colors.harvestCream)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Your values questionnaire has been updated")
+                        .font(HarvestTheme.Typography.h4)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        .multilineTextAlignment(.leading)
+                    Text("Answer 10 quick questions so we can find new matches for you.")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .multilineTextAlignment(.leading)
+                }
+                Spacer(minLength: 0)
+                Image(systemName: "chevron.right")
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+            }
+            .padding(HarvestTheme.Spacing.md)
+            .background {
+                RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                    .fill(HarvestTheme.Colors.glassFillStrong)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                            .stroke(HarvestTheme.Colors.harvestCream.opacity(0.4), lineWidth: 1)
+                    }
+            }
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal)
     }
 
     private var radarCard: some View {
@@ -98,8 +137,10 @@ struct ValuesView: View {
             showQuestionSheet = true
         } label: {
             HStack {
-                Image(systemName: "questionmark.circle.fill")
-                Text("More questions")
+                Image(systemName: viewModel.remainingQuestionCount == 0 ? "checkmark.seal.fill" : "questionmark.circle.fill")
+                Text(viewModel.remainingQuestionCount == 0
+                     ? "All caught up"
+                     : "More questions (\(viewModel.remainingQuestionCount) left)")
             }
             .font(HarvestTheme.Typography.buttonText)
             .foregroundStyle(HarvestTheme.Colors.textOnCream)
@@ -107,39 +148,32 @@ struct ValuesView: View {
             .padding(.vertical, HarvestTheme.Spacing.sm)
             .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
         }
+        .disabled(viewModel.remainingQuestionCount == 0)
     }
 
     private var valuesPicker: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                Text(viewModel.side == .need ? "Values I Need" : "Values I Bring")
-                    .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                Text("Pick up to 5.")
+                HStack {
+                    Text(viewModel.side == .need ? "Values I Need" : "Values I Bring")
+                        .font(HarvestTheme.Typography.h4)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    Spacer()
+                    Text("\(viewModel.activeValueIds.count) / 3")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                }
+                Text("Pick your top 3.")
                     .font(HarvestTheme.Typography.bodySmall)
                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
 
-                let grouped = Dictionary(grouping: viewModel.allValues) { $0.category }
-                let sortedCategories = grouped.keys.sorted()
-
-                ForEach(sortedCategories, id: \.self) { category in
-                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
-                        Text(category.capitalized)
-                            .font(HarvestTheme.Typography.bodySmall)
-                            .fontWeight(.semibold)
-                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                        FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                            ForEach(grouped[category] ?? [], id: \.id) { value in
-                                ChipView(
-                                    title: value.name,
-                                    isSelected: viewModel.activeValueIds.contains(value.id)
-                                ) {
-                                    if let userId = authViewModel.currentUserId {
-                                        Task { await viewModel.toggleValue(userId: userId, valueId: value.id) }
-                                    }
-                                }
-                            }
-                        }
+                ValueChipGrid(
+                    values: viewModel.allValues,
+                    selectedIds: viewModel.activeValueIds,
+                    maxSelection: 3
+                ) { value in
+                    if let userId = authViewModel.currentUserId {
+                        Task { await viewModel.toggleValue(userId: userId, valueId: value.id) }
                     }
                 }
 
@@ -211,9 +245,6 @@ struct ValuesView: View {
                 toggleRow(label: "Values I Bring",
                           isOn: Binding(get: { viewModel.profile?.showValuesBrought ?? true },
                                         set: { setToggle(.brought, $0) }))
-                toggleRow(label: "Values I Seek",
-                          isOn: Binding(get: { viewModel.profile?.showValuesSought ?? true },
-                                        set: { setToggle(.sought, $0) }))
                 toggleRow(label: "Generated Blurb",
                           isOn: Binding(get: { viewModel.profile?.showValuesBlurb ?? true },
                                         set: { setToggle(.blurb, $0) }))

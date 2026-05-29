@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SwipeCardView: View {
     let profile: UserProfile
+    let currentProfile: UserProfile?
     let isTopCard: Bool
     let onSwipe: (SwipeAction) -> Void
 
@@ -53,7 +54,7 @@ struct SwipeCardView: View {
                 }
             }
             .fullScreenCover(isPresented: $showProfileDetail) {
-                ProfileDetailView(profile: profile, onSwipe: onSwipe)
+                ProfileDetailView(profile: profile, currentProfile: currentProfile, onSwipe: onSwipe)
             }
         }
     }

@@ -131,10 +131,11 @@ struct AxisScores: Equatable, Sendable {
 
 enum AxisScoring {
     /// Returns (needSideWeight, bringSideWeight) for a question with the given weighting.
+    /// Pure NEED and pure BRING questions contribute to one side only. BOTH splits evenly.
     static func weights(for weighting: QuestionWeighting) -> (need: Double, bring: Double) {
         switch weighting {
-        case .need:  return (1.0, 0.5)
-        case .bring: return (0.5, 1.0)
+        case .need:  return (2.0, 0.0)
+        case .bring: return (0.0, 2.0)
         case .both:  return (1.0, 1.0)
         }
     }

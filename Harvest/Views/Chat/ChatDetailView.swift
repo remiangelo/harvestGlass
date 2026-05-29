@@ -192,7 +192,7 @@ struct ChatDetailView: View {
         }
         .fullScreenCover(isPresented: $showProfile) {
             if let profile = viewModel.partnerProfile {
-                ProfileDetailView(profile: profile) { _ in
+                ProfileDetailView(profile: profile, currentProfile: authViewModel.profile) { _ in
                     showProfile = false
                 }
             }

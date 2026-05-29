@@ -89,7 +89,12 @@ final class OnboardingViewModel {
         isLoadingQuestions = true
         defer { isLoadingQuestions = false }
         do {
+            // Onboarding only presents the first 10 questions; deep-dive Q11-Q35
+            // is reached via the "More questions" button in the Values tab.
             allQuestions = try await questionsService.getAllQuestions()
+                .sorted { $0.displayOrder < $1.displayOrder }
+                .prefix(10)
+                .map { $0 }
         } catch {
             self.error = "Failed to load questions: \(error.localizedDescription)"
         }

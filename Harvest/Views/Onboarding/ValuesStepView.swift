@@ -4,7 +4,7 @@ struct ValuesStepView: View {
     let viewModel: OnboardingViewModel
     @State private var selectedTab = 0
 
-    private let maxSelections = 5
+    private let maxSelections = 3
 
     private var isBroughtMode: Bool { selectedTab == 0 }
     private var currentSet: Set<String> {
@@ -48,27 +48,14 @@ struct ValuesStepView: View {
                 Spacer()
             } else {
                 ScrollView {
-                    let grouped = Dictionary(grouping: viewModel.allValues) { $0.category }
-                    let sortedCategories = grouped.keys.sorted()
-
-                    VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
-                        ForEach(sortedCategories, id: \.self) { category in
-                            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
-                                Text(category.capitalized)
-                                    .font(HarvestTheme.Typography.h4)
-                                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
-
-                                FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                                    ForEach(grouped[category] ?? [], id: \.id) { value in
-                                        ChipView(
-                                            title: value.name,
-                                            isSelected: currentSet.contains(value.id),
-                                            lightStyle: true
-                                        ) {
-                                            toggle(valueId: value.id)
-                                        }
-                                    }
-                                }
+                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                        ForEach(viewModel.allValues, id: \.id) { value in
+                            ChipView(
+                                title: value.name,
+                                isSelected: currentSet.contains(value.id),
+                                lightStyle: true
+                            ) {
+                                toggle(valueId: value.id)
                             }
                         }
                     }

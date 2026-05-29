@@ -48,7 +48,12 @@ final class ValuesViewModel {
         Set((side == .need ? valuesSought : valuesBrought).map(\.id))
     }
 
-    private let maxValueSelections = 5
+    private let maxValueSelections = 3
+
+    var answeredQuestionCount: Int { answers.count }
+    var totalQuestionCount: Int { allQuestions.count }
+    var remainingQuestionCount: Int { max(0, totalQuestionCount - answeredQuestionCount) }
+    var showRetakeBanner: Bool { answeredQuestionCount < 10 }
 
     // MARK: - Load
 
@@ -147,14 +152,8 @@ final class ValuesViewModel {
         }
     }
 
-    var unansweredQuestionsForActiveSide: [Question] {
-        let relevant = allQuestions.filter { q in
-            switch side {
-            case .need:  return q.weighting == .need  || q.weighting == .both
-            case .bring: return q.weighting == .bring || q.weighting == .both
-            }
-        }
-        return relevant
+    var unansweredQuestions: [Question] {
+        allQuestions
             .filter { answers[$0.id] == nil }
             .sorted { $0.displayOrder < $1.displayOrder }
     }
@@ -190,12 +189,11 @@ final class ValuesViewModel {
     // MARK: - Display toggles
 
     enum DisplayToggle {
-        case brought, sought, blurb, graph
+        case brought, blurb, graph
 
         var column: String {
             switch self {
             case .brought: return "show_values_brought"
-            case .sought:  return "show_values_sought"
             case .blurb:   return "show_values_blurb"
             case .graph:   return "show_values_graph"
             }
@@ -222,7 +220,6 @@ final class ValuesViewModel {
     private func applyToggleLocally(key: DisplayToggle, isOn: Bool) {
         switch key {
         case .brought: profile?.showValuesBrought = isOn
-        case .sought:  profile?.showValuesSought = isOn
         case .blurb:   profile?.showValuesBlurb = isOn
         case .graph:   profile?.showValuesGraph = isOn
         }

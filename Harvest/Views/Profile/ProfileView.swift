@@ -43,6 +43,16 @@ struct ProfileView: View {
                                 Spacer()
                             }
 
+                            // Values I Bring — shown directly under name/age
+                            if (viewModel.profile?.showValuesBrought ?? true),
+                               let values = viewModel.valuesBrought, !values.isEmpty {
+                                FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                                    ForEach(values) { value in
+                                        ChipView(title: value.name)
+                                    }
+                                }
+                            }
+
                             if let location = viewModel.profile?.location, !location.isEmpty {
                                 HStack(spacing: 4) {
                                     Image(systemName: "location.fill")
@@ -117,39 +127,6 @@ struct ProfileView: View {
                                 }
                             }
 
-                            // Values I Bring
-                            if (viewModel.profile?.showValuesBrought ?? true),
-                               let values = viewModel.valuesBrought, !values.isEmpty {
-                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                                    Text("Values I Bring")
-                                        .font(HarvestTheme.Typography.bodySmall)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
-
-                                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                                        ForEach(values) { value in
-                                            ChipView(title: value.name)
-                                        }
-                                    }
-                                }
-                            }
-
-                            // Values I Seek
-                            if (viewModel.profile?.showValuesSought ?? true),
-                               let values = viewModel.valuesSought, !values.isEmpty {
-                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                                    Text("Values I Seek")
-                                        .font(HarvestTheme.Typography.bodySmall)
-                                        .fontWeight(.semibold)
-                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
-
-                                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                                        ForEach(values) { value in
-                                            ChipView(title: value.name)
-                                        }
-                                    }
-                                }
-                            }
                         }
                     }
                     .padding(.horizontal)

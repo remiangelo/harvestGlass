@@ -96,7 +96,7 @@ struct MindfulMessagesView: View {
                 )
             }
             .fullScreenCover(item: $selectedInboundLike) { inboundLike in
-                ProfileDetailView(profile: inboundLike.profile) { action in
+                ProfileDetailView(profile: inboundLike.profile, currentProfile: authViewModel.profile) { action in
                     guard let currentUserId = authViewModel.currentUserId else { return }
                     Task {
                         await viewModel.respondToInboundLike(

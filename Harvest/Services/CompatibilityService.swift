@@ -163,6 +163,75 @@ struct CompatibilityService {
 
         return scoredProfiles.sorted { $0.score.total > $1.score.total }
     }
+
+    // MARK: - Value-pick overlap
+
+    /// Intersection of value picks between two users on each side.
+    /// `theyBringForMyNeeds`: which of their Bring picks satisfy my Need picks.
+    /// `iBringForTheirNeeds`: which of my Bring picks satisfy their Need picks.
+    struct ValueOverlap: Sendable {
+        let theyBringForMyNeeds: [Value]
+        let iBringForTheirNeeds: [Value]
+    }
+
+    func valueOverlap(
+        myNeeds: [Value],
+        myBrings: [Value],
+        theirNeeds: [Value],
+        theirBrings: [Value]
+    ) -> ValueOverlap {
+        let myNeedIds = Set(myNeeds.map(\.id))
+        let theirNeedIds = Set(theirNeeds.map(\.id))
+        let theyForMe = theirBrings.filter { myNeedIds.contains($0.id) }
+        let meForThem = myBrings.filter { theirNeedIds.contains($0.id) }
+        return ValueOverlap(
+            theyBringForMyNeeds: theyForMe,
+            iBringForTheirNeeds: meForThem
+        )
+    }
+
+    // MARK: - Compatibility blurb
+
+    /// One- or two-sentence blurb summarizing how two users align on the 5 axes
+    /// plus how their selected value picks line up. Template-driven, no LLM.
+    func compatibilityBlurb(
+        otherName: String,
+        bringCosine: Double,
+        needCosine: Double,
+        topSharedAxis: ValueAxis?,
+        overlap: ValueOverlap,
+        myNeedsCount: Int
+    ) -> String {
+        let strongAlignment = (bringCosine + needCosine) / 2.0 >= 0.6
+        let theyForMe = overlap.theyBringForMyNeeds.count
+
+        if let axis = topSharedAxis, strongAlignment, theyForMe > 0 {
+            return "You and \(otherName) share a strong foundation around \(axis.displayName) — and what they bring lines up with \(theyForMe) of your \(myNeedsCount) needs."
+        }
+        if let axis = topSharedAxis, strongAlignment {
+            return "You and \(otherName) share a strong foundation around \(axis.displayName)."
+        }
+        if theyForMe > 0 {
+            return "\(otherName) brings \(theyForMe) of your \(myNeedsCount) selected needs."
+        }
+        return "Your value patterns differ — sometimes that's where growth starts."
+    }
+
+    /// Returns the axis where the lower of (myBring[i], theirNeed[i]) is highest,
+    /// representing the strongest mutual alignment between bring and need.
+    func topSharedAxis(
+        myBring: AxisScores,
+        theirNeed: AxisScores
+    ) -> ValueAxis? {
+        let pairs: [(ValueAxis, Double)] = ValueAxis.allCases.map { axis in
+            let mine = myBring.value(for: axis)
+            let theirs = theirNeed.value(for: axis)
+            return (axis, min(mine, theirs))
+        }
+        let top = pairs.max { $0.1 < $1.1 }
+        guard let top, top.1 > 0 else { return nil }
+        return top.0
+    }
 }
 
 // MARK: - Models

@@ -2,11 +2,12 @@ import SwiftUI
 
 struct ProfileDetailView: View {
     let profile: UserProfile
+    let currentProfile: UserProfile?
     let onSwipe: (SwipeAction) -> Void
     @State private var valuesBrought: [Value] = []
-    @State private var valuesSought: [Value] = []
     @State private var allQuestions: [Question] = []
     @State private var otherAnswers: [String: String] = [:]
+    @State private var showCompatibility = false
 
     private let valuesService = ValuesService()
     private let questionsService = QuestionsService()
@@ -55,6 +56,15 @@ struct ProfileDetailView: View {
                             Spacer()
                         }
 
+                        // Values I Bring — shown directly under name/age
+                        if (profile.showValuesBrought ?? true), !valuesBrought.isEmpty {
+                            FlowLayout(spacing: HarvestTheme.Spacing.xs) {
+                                ForEach(valuesBrought) { value in
+                                    ChipView(title: value.name)
+                                }
+                            }
+                        }
+
                         // Location
                         if let location = profile.location, !location.isEmpty {
                             HStack(spacing: 4) {
@@ -77,6 +87,17 @@ struct ProfileDetailView: View {
                                         .font(HarvestTheme.Typography.bodyRegular)
                                         .foregroundStyle(HarvestTheme.Colors.textSecondary)
                                 }
+                            }
+                        }
+
+                        // See Compatibility (only when current user's profile is available)
+                        if currentProfile != nil {
+                            GlassButton(
+                                title: "See Compatibility",
+                                icon: "chart.dots.scatter",
+                                style: .secondary
+                            ) {
+                                showCompatibility = true
                             }
                         }
 
@@ -125,34 +146,6 @@ struct ProfileDetailView: View {
                                 }
                             }
                         }
-                        if (profile.showValuesBrought ?? true), !valuesBrought.isEmpty {
-                            GlassCard {
-                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                                    Text("Values I Bring")
-                                        .font(HarvestTheme.Typography.h4)
-                                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                                        ForEach(valuesBrought) { value in
-                                            ChipView(title: value.name)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
-                        if (profile.showValuesSought ?? true), !valuesSought.isEmpty {
-                            GlassCard {
-                                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                                    Text("Values I Seek")
-                                        .font(HarvestTheme.Typography.h4)
-                                    FlowLayout(spacing: HarvestTheme.Spacing.xs) {
-                                        ForEach(valuesSought) { value in
-                                            ChipView(title: value.name)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-
                         if (profile.showValuesGraph ?? true) {
                             let side = ValuesViewModel.Side(
                                 rawValue: profile.profileGraphSide ?? "bring"
@@ -180,9 +173,16 @@ struct ProfileDetailView: View {
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .task {
                 valuesBrought = (try? await valuesService.getUserValuesBrought(userId: profile.id)) ?? []
-                valuesSought = (try? await valuesService.getUserValuesSought(userId: profile.id)) ?? []
                 allQuestions = (try? await questionsService.getAllQuestions()) ?? []
                 otherAnswers = (try? await questionsService.getUserAnswers(userId: profile.id)) ?? [:]
+            }
+            .sheet(isPresented: $showCompatibility) {
+                if let currentProfile {
+                    CompatibilityView(
+                        currentProfile: currentProfile,
+                        otherProfile: profile
+                    )
+                }
             }
 
             // Close button

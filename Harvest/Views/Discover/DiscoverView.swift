@@ -83,6 +83,7 @@ struct DiscoverView: View {
             ) { index, profile in
                 SwipeCardView(
                     profile: profile,
+                    currentProfile: authViewModel.profile,
                     isTopCard: index == viewModel.currentIndex,
                     onSwipe: { action in
                         if let userId = authViewModel.currentUserId {
