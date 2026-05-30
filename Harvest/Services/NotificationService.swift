@@ -4,7 +4,7 @@ import UserNotifications
 import Supabase
 
 @MainActor
-final class NotificationService: NSObject, @preconcurrency UNUserNotificationCenterDelegate {
+final class NotificationService: NSObject, UNUserNotificationCenterDelegate {
     static let shared = NotificationService()
 
     private var supabase: SupabaseClient { SupabaseManager.shared.client }

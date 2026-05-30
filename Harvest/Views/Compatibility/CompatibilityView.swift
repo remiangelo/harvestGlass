@@ -96,7 +96,7 @@ struct CompatibilityView: View {
         secondaryLabel: String
     ) -> some View {
         VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-            SectionHeader(title)
+            SectionHeader(title: title)
             ValuesRadarCard(
                 primary: primary,
                 primaryLabel: primaryLabel,
@@ -166,7 +166,7 @@ struct CompatibilityView: View {
         )
         return GlassCard {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
-                SectionHeader("Value overlap")
+                SectionHeader(title: "Value overlap")
 
                 overlapRow(
                     count: overlap.theyBringForMyNeeds.count,

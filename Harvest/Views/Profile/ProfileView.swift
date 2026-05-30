@@ -94,13 +94,7 @@ struct ProfileView: View {
                                     VStack(spacing: HarvestTheme.Spacing.xs) {
                                         ForEach(Array(lifestyleDetails.enumerated()), id: \.offset) { _, detail in
                                             VStack(alignment: .leading, spacing: 2) {
-                                                (
-                                                    Text("\(detail.label): ")
-                                                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                                                    +
-                                                    Text(detail.value)
-                                                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                                                )
+                                                Text("\(Text("\(detail.label): ").foregroundStyle(HarvestTheme.Colors.textSecondary))\(Text(detail.value).foregroundStyle(HarvestTheme.Colors.textPrimary))")
                                                 .font(HarvestTheme.Typography.bodySmall)
                                                 .fixedSize(horizontal: false, vertical: true)
                                                 .frame(maxWidth: .infinity, alignment: .leading)
