@@ -14,15 +14,17 @@ struct ValueChipGrid: View {
     ]
 
     var body: some View {
-        LazyVGrid(columns: columns, alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-            ForEach(values) { value in
-                ChipView(
-                    title: value.name,
-                    isSelected: selectedIds.contains(value.id)
-                ) {
-                    handleTap(value)
+        GlassEffectContainer(spacing: HarvestTheme.Spacing.sm) {
+            LazyVGrid(columns: columns, alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                ForEach(values) { value in
+                    ChipView(
+                        title: value.name,
+                        isSelected: selectedIds.contains(value.id)
+                    ) {
+                        handleTap(value)
+                    }
+                    .modifier(ShakeEffect(animatableData: shakingId == value.id ? 1 : 0))
                 }
-                .modifier(ShakeEffect(animatableData: shakingId == value.id ? 1 : 0))
             }
         }
     }

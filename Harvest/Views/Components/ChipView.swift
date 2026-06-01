@@ -7,35 +7,42 @@ struct ChipView: View {
     var onTap: (() -> Void)?
 
     var body: some View {
+        if lightStyle {
+            lightChip
+        } else {
+            Button {
+                onTap?()
+            } label: {
+                Text(title)
+            }
+            .buttonStyle(.harvestGlass(.chip(selected: isSelected)))
+        }
+    }
+
+    // Light chips live on cream/white form surfaces, so they keep the
+    // solid-capsule treatment for contrast rather than translucent glass.
+    private var lightChip: some View {
         Button {
             onTap?()
         } label: {
             Text(title)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundStyle(foregroundColor)
+                .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                 .padding(.horizontal, HarvestTheme.Spacing.md)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
                 .background {
                     if isSelected {
-                        Capsule().fill(lightStyle ? HarvestTheme.Colors.formAccent : HarvestTheme.Colors.redSurface)
+                        Capsule().fill(HarvestTheme.Colors.formAccent)
                     } else {
                         Capsule()
-                            .fill(lightStyle ? HarvestTheme.Colors.formSurface : HarvestTheme.Colors.glassFillStrong)
+                            .fill(HarvestTheme.Colors.formSurface)
                             .overlay {
-                                Capsule()
-                                    .stroke(lightStyle ? HarvestTheme.Colors.formBorder : HarvestTheme.Colors.border, lineWidth: 1)
+                                Capsule().stroke(HarvestTheme.Colors.formBorder, lineWidth: 1)
                             }
                     }
                 }
         }
         .buttonStyle(.plain)
-    }
-
-    private var foregroundColor: Color {
-        if isSelected {
-            return lightStyle ? HarvestTheme.Colors.textOnCream : HarvestTheme.Colors.textOnRedPrimary
-        }
-        return lightStyle ? HarvestTheme.Colors.textPrimary : HarvestTheme.Colors.textPrimary
     }
 }

@@ -6,11 +6,11 @@ struct ValuesView: View {
     @State private var tipsViewModel = TipsViewModel()
     @State private var showQuestionSheet = false
 
-    private let chipSurface = Color(hex: "5F2039")
-    private let chipSelected = Color(hex: "C67E95")
-    private let chipBorder = HarvestTheme.Colors.harvestCream.opacity(0.2)
-    private let cardSurface = Color(hex: "5A1B33")
-    private let cardBorder = HarvestTheme.Colors.harvestCream.opacity(0.16)
+    private let chipSurface = HarvestTheme.Colors.wineCard
+    private let chipSelected = HarvestTheme.Colors.rose
+    private let chipBorder = HarvestTheme.Colors.rose.opacity(0.25)
+    private let cardSurface = HarvestTheme.Colors.wineCard
+    private let cardBorder = HarvestTheme.Colors.rose.opacity(0.22)
 
     var body: some View {
         NavigationStack {
@@ -94,7 +94,7 @@ struct ValuesView: View {
             HStack(alignment: .top, spacing: HarvestTheme.Spacing.md) {
                 Image(systemName: "sparkles")
                     .font(.title2)
-                    .foregroundStyle(HarvestTheme.Colors.harvestCream)
+                    .foregroundStyle(HarvestTheme.Colors.accent)
                 VStack(alignment: .leading, spacing: 2) {
                     Text("Your values questionnaire has been updated")
                         .font(HarvestTheme.Typography.h4)
@@ -115,7 +115,7 @@ struct ValuesView: View {
                     .fill(HarvestTheme.Colors.glassFillStrong)
                     .overlay {
                         RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                            .stroke(HarvestTheme.Colors.harvestCream.opacity(0.4), lineWidth: 1)
+                            .stroke(HarvestTheme.Colors.rose.opacity(0.3), lineWidth: 1)
                     }
             }
         }
@@ -142,12 +142,8 @@ struct ValuesView: View {
                      ? "All caught up"
                      : "More questions (\(viewModel.remainingQuestionCount) left)")
             }
-            .font(HarvestTheme.Typography.buttonText)
-            .foregroundStyle(HarvestTheme.Colors.textOnCream)
-            .padding(.horizontal, HarvestTheme.Spacing.lg)
-            .padding(.vertical, HarvestTheme.Spacing.sm)
-            .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
         }
+        .buttonStyle(.harvestGlass(.primary))
         .disabled(viewModel.remainingQuestionCount == 0)
     }
 
@@ -207,7 +203,7 @@ struct ValuesView: View {
                 HStack {
                     Spacer()
                     if viewModel.isGeneratingBlurb {
-                        ProgressView().tint(HarvestTheme.Colors.accent)
+                        ProgressView().tint(HarvestTheme.Colors.primary)
                     } else {
                         Button {
                             if let userId = authViewModel.currentUserId {
@@ -215,12 +211,8 @@ struct ValuesView: View {
                             }
                         } label: {
                             Text(viewModel.profile?.valuesBlurb?.isEmpty == false ? "Regenerate" : "Generate")
-                                .font(HarvestTheme.Typography.buttonText)
-                                .foregroundStyle(HarvestTheme.Colors.textOnCream)
-                                .padding(.horizontal, HarvestTheme.Spacing.md)
-                                .padding(.vertical, HarvestTheme.Spacing.sm)
-                                .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
                         }
+                        .buttonStyle(.harvestGlass(.primary))
                         .disabled(viewModel.valuesBrought.isEmpty && viewModel.valuesSought.isEmpty)
                     }
                 }
@@ -295,7 +287,7 @@ struct ValuesView: View {
                 .font(HarvestTheme.Typography.bodyRegular)
                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
         }
-        .tint(HarvestTheme.Colors.accent)
+        .tint(HarvestTheme.Colors.primary)
     }
 
     private func setToggle(_ key: ValuesViewModel.DisplayToggle, _ value: Bool) {
@@ -332,7 +324,7 @@ struct ValuesView: View {
                             HStack(spacing: HarvestTheme.Spacing.sm) {
                                 Image(systemName: tip.icon)
                                     .font(.title3)
-                                    .foregroundStyle(HarvestTheme.Colors.harvestCream)
+                                    .foregroundStyle(HarvestTheme.Colors.accent)
                                 Text(tip.title)
                                     .font(HarvestTheme.Typography.h4)
                                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
@@ -340,10 +332,10 @@ struct ValuesView: View {
                                 Text(tip.category.rawValue)
                                     .font(HarvestTheme.Typography.caption)
                                     .fontWeight(.semibold)
-                                    .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                                    .foregroundStyle(HarvestTheme.Colors.accent)
                                     .padding(.horizontal, HarvestTheme.Spacing.sm)
                                     .padding(.vertical, 6)
-                                    .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
+                                    .background { Capsule().fill(HarvestTheme.Colors.accentSoft) }
                             }
                             Text(tip.body)
                                 .font(HarvestTheme.Typography.bodySmall)
@@ -372,7 +364,7 @@ struct ValuesView: View {
                                 .fontWeight(.medium)
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         }
-                        .tint(HarvestTheme.Colors.harvestCream)
+                        .tint(HarvestTheme.Colors.primary)
                     }
                 }
             }
@@ -385,7 +377,7 @@ struct ValuesView: View {
             Text(title)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnCream : HarvestTheme.Colors.harvestCream)
+                .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                 .padding(.horizontal, HarvestTheme.Spacing.md)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
                 .background {

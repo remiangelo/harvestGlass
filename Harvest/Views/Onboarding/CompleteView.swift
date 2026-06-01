@@ -69,12 +69,8 @@ struct CompleteView: View {
                                 }
                             } label: {
                                 Text("Turn on")
-                                    .font(HarvestTheme.Typography.buttonText)
-                                    .foregroundStyle(HarvestTheme.Colors.textOnCream)
-                                    .padding(.horizontal, HarvestTheme.Spacing.lg)
-                                    .padding(.vertical, HarvestTheme.Spacing.sm)
-                                    .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
                             }
+                            .buttonStyle(.harvestGlass(.primary))
                         }
                     }
                 }

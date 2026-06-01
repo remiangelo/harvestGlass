@@ -12,19 +12,11 @@ struct GlassButton: View {
         case destructive
     }
 
-    private var foregroundColor: Color {
+    private var glassKind: HarvestGlassButtonStyle.Kind {
         switch style {
-        case .primary: return HarvestTheme.Colors.textOnRedPrimary
-        case .secondary: return HarvestTheme.Colors.textPrimary
-        case .destructive: return HarvestTheme.Colors.textOnRedAccent
-        }
-    }
-
-    private var backgroundColor: Color {
-        switch style {
-        case .primary: return HarvestTheme.Colors.redSurface
-        case .secondary: return HarvestTheme.Colors.formSurfaceStrong
-        case .destructive: return HarvestTheme.Colors.redSurface
+        case .primary: return .primary
+        case .secondary: return .secondary
+        case .destructive: return .destructive
         }
     }
 
@@ -35,19 +27,9 @@ struct GlassButton: View {
                     Image(systemName: icon)
                 }
                 Text(title)
-                    .font(HarvestTheme.Typography.buttonText)
             }
-            .foregroundStyle(foregroundColor)
             .frame(maxWidth: .infinity)
-            .padding(.vertical, 14)
-            .background {
-                RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                    .fill(backgroundColor)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                            .stroke(HarvestTheme.Colors.border, lineWidth: style == .secondary ? 1 : 0)
-                    }
-            }
         }
+        .buttonStyle(.harvestGlass(glassKind))
     }
 }

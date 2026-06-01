@@ -79,7 +79,7 @@ struct GardenerChatView: View {
                         if viewModel.isSending {
                             HStack {
                                 ProgressView()
-                                    .tint(HarvestTheme.Colors.accent)
+                                    .tint(HarvestTheme.Colors.primary)
                                 Text("Thinking...")
                                     .font(HarvestTheme.Typography.caption)
                                     .foregroundStyle(HarvestTheme.Colors.textTertiary)

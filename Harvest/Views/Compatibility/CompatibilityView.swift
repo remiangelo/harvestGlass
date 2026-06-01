@@ -28,7 +28,7 @@ struct CompatibilityView: View {
                 VStack(spacing: HarvestTheme.Spacing.lg) {
                     if isLoading {
                         ProgressView()
-                            .tint(HarvestTheme.Colors.accent)
+                            .tint(HarvestTheme.Colors.primary)
                             .frame(maxWidth: .infinity, minHeight: 200)
                     } else if let loadError {
                         errorView(loadError)

@@ -12,14 +12,14 @@ struct MainTabView: View {
 
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(hex: "5B1E35")
-        appearance.shadowColor = UIColor(hex: "7A3452")?.withAlphaComponent(0.45)
+        appearance.backgroundColor = UIColor(hex: "150A0F")
+        appearance.shadowColor = UIColor(hex: "FB2E63")?.withAlphaComponent(0.18)
 
         let itemAppearance = UITabBarItemAppearance()
-        itemAppearance.normal.iconColor = UIColor(hex: "F0D5C8")
-        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(hex: "F0D5C8") ?? .white]
-        itemAppearance.selected.iconColor = UIColor(hex: "F0D5C8")
-        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(hex: "F0D5C8") ?? .white]
+        itemAppearance.normal.iconColor = UIColor(hex: "9A7E88")
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(hex: "9A7E88") ?? .white]
+        itemAppearance.selected.iconColor = UIColor(hex: "FFFFFF")
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(hex: "FFFFFF") ?? .white]
 
         appearance.stackedLayoutAppearance = itemAppearance
         appearance.inlineLayoutAppearance = itemAppearance

@@ -2,11 +2,11 @@ import SwiftUI
 
 struct TipsView: View {
     @State private var viewModel = TipsViewModel()
-    private let chipSurface = Color(hex: "5F2039")
-    private let chipSelected = Color(hex: "C67E95")
-    private let chipBorder = HarvestTheme.Colors.harvestCream.opacity(0.2)
-    private let cardSurface = Color(hex: "5A1B33")
-    private let cardBorder = HarvestTheme.Colors.harvestCream.opacity(0.16)
+    private let chipSurface = HarvestTheme.Colors.wineCard
+    private let chipSelected = HarvestTheme.Colors.rose
+    private let chipBorder = HarvestTheme.Colors.rose.opacity(0.25)
+    private let cardSurface = HarvestTheme.Colors.wineCard
+    private let cardBorder = HarvestTheme.Colors.rose.opacity(0.22)
 
     var body: some View {
         ScrollView {
@@ -41,7 +41,7 @@ struct TipsView: View {
                                 HStack(spacing: HarvestTheme.Spacing.sm) {
                                     Image(systemName: tip.icon)
                                         .font(.title3)
-                                        .foregroundStyle(HarvestTheme.Colors.harvestCream)
+                                        .foregroundStyle(HarvestTheme.Colors.accent)
 
                                     Text(tip.title)
                                         .font(HarvestTheme.Typography.h4)
@@ -52,12 +52,12 @@ struct TipsView: View {
                                     Text(tip.category.rawValue)
                                         .font(HarvestTheme.Typography.caption)
                                         .fontWeight(.semibold)
-                                        .foregroundStyle(HarvestTheme.Colors.textOnCream)
+                                        .foregroundStyle(HarvestTheme.Colors.accent)
                                         .padding(.horizontal, HarvestTheme.Spacing.sm)
                                         .padding(.vertical, 6)
                                         .background {
                                             Capsule()
-                                                .fill(HarvestTheme.Colors.harvestCream)
+                                                .fill(HarvestTheme.Colors.accentSoft)
                                         }
                                 }
 
@@ -90,7 +90,7 @@ struct TipsView: View {
                                     .fontWeight(.medium)
                                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
                             }
-                            .tint(HarvestTheme.Colors.harvestCream)
+                            .tint(HarvestTheme.Colors.accent)
                         }
                     }
                 }
@@ -105,7 +105,7 @@ struct TipsView: View {
             Text(title)
                 .font(HarvestTheme.Typography.bodySmall)
                 .fontWeight(isSelected ? .semibold : .regular)
-                .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnCream : HarvestTheme.Colors.harvestCream)
+                .foregroundStyle(isSelected ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                 .padding(.horizontal, HarvestTheme.Spacing.md)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
                 .background {

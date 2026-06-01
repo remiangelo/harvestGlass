@@ -93,12 +93,8 @@ struct QuestionSheetView: View {
                 dismiss()
             } label: {
                 Text("Done")
-                    .font(HarvestTheme.Typography.buttonText)
-                    .foregroundStyle(HarvestTheme.Colors.textOnCream)
-                    .padding(.horizontal, HarvestTheme.Spacing.lg)
-                    .padding(.vertical, HarvestTheme.Spacing.sm)
-                    .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
             }
+            .buttonStyle(.harvestGlass(.primary))
         }
         .frame(maxWidth: .infinity)
     }

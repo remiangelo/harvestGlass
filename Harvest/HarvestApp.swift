@@ -21,6 +21,7 @@ struct HarvestApp: App {
                     LoginView(authViewModel: authViewModel)
                 }
             }
+            .tint(HarvestTheme.Colors.rose)
             .dismissKeyboardOnTap()
             .task {
                 UNUserNotificationCenter.current().delegate = NotificationService.shared

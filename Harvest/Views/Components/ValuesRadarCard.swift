@@ -60,12 +60,8 @@ struct ValuesRadarCard: View {
             if let onEmptyTap {
                 Button(action: onEmptyTap) {
                     Text("Start")
-                        .font(HarvestTheme.Typography.buttonText)
-                        .foregroundStyle(HarvestTheme.Colors.textOnCream)
-                        .padding(.horizontal, HarvestTheme.Spacing.lg)
-                        .padding(.vertical, HarvestTheme.Spacing.sm)
-                        .background { Capsule().fill(HarvestTheme.Colors.harvestCream) }
                 }
+                .buttonStyle(.harvestGlass(.primary))
             }
         }
         .frame(maxWidth: .infinity, minHeight: 240)
