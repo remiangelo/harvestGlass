@@ -8,10 +8,19 @@ struct ProfileDetailView: View {
     @State private var allQuestions: [Question] = []
     @State private var otherAnswers: [String: String] = [:]
     @State private var showCompatibility = false
+    @State private var showReportSheet = false
+    @State private var showBlockConfirm = false
 
     private let valuesService = ValuesService()
     private let questionsService = QuestionsService()
+    private let matchService = MatchService()
     @Environment(\.dismiss) private var dismiss
+
+    /// Moderation actions are shown only when viewing someone else's profile while signed in.
+    private var canModerate: Bool {
+        guard let currentProfile else { return false }
+        return currentProfile.id != profile.id
+    }
 
     var body: some View {
         ZStack(alignment: .top) {
@@ -150,7 +159,7 @@ struct ProfileDetailView: View {
                             let side = ValuesViewModel.Side(
                                 rawValue: profile.profileGraphSide ?? "bring"
                             ) ?? .bring
-                            let vectors = AxisScoring.computeVectors(
+                            let vectors = AxisScoring.computeRawVectors(
                                 answers: otherAnswers,
                                 questions: allQuestions
                             )
@@ -184,9 +193,37 @@ struct ProfileDetailView: View {
                     )
                 }
             }
+            .sheet(isPresented: $showReportSheet) {
+                if let reporterId = currentProfile?.id {
+                    ReportUserView(reporterId: reporterId, reportedUserId: profile.id) { category, description in
+                        Task {
+                            try? await matchService.reportUser(
+                                reporterId: reporterId,
+                                reportedUserId: profile.id,
+                                category: category,
+                                description: description
+                            )
+                        }
+                    }
+                }
+            }
+            .confirmationDialog(
+                "Block \(profile.displayName)?",
+                isPresented: $showBlockConfirm,
+                titleVisibility: .visible
+            ) {
+                Button("Block & Report", role: .destructive) { blockProfile() }
+                Button("Cancel", role: .cancel) {}
+            } message: {
+                Text("They won't be able to see you or contact you, their content is removed from your feed, and we'll review this report within 24 hours.")
+            }
 
-            // Close button
+            // Top bar: moderation menu (leading) + close (trailing)
             HStack {
+                if canModerate {
+                    moderationMenu
+                        .padding()
+                }
                 Spacer()
                 Button {
                     dismiss()
@@ -207,6 +244,45 @@ struct ProfileDetailView: View {
                 Spacer()
                 actionButtons
                     .padding(.bottom, HarvestTheme.Spacing.lg)
+            }
+        }
+    }
+
+    private var moderationMenu: some View {
+        Menu {
+            Button {
+                showReportSheet = true
+            } label: {
+                Label("Report", systemImage: "flag")
+            }
+            Button(role: .destructive) {
+                showBlockConfirm = true
+            } label: {
+                Label("Block", systemImage: "hand.raised")
+            }
+        } label: {
+            Image(systemName: "ellipsis")
+                .font(.system(size: 16, weight: .bold))
+                .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                .frame(width: 32, height: 32)
+                .background(HarvestTheme.Colors.blackSurface)
+                .clipShape(Circle())
+                .shadow(radius: 4)
+        }
+    }
+
+    private func blockProfile() {
+        guard let currentId = currentProfile?.id else { return }
+        Task {
+            try? await matchService.blockUser(
+                userId: currentId,
+                blockedUserId: profile.id,
+                reason: "Blocked from profile",
+                description: "User blocked while browsing profiles — filed for moderator review."
+            )
+            await MainActor.run {
+                onSwipe(.nope) // drop them from the deck instantly
+                dismiss()
             }
         }
     }

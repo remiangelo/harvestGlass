@@ -40,11 +40,12 @@ struct CommunityGuidelinesView: View {
                 websites for commercial purposes.
                 """)
 
-                section(title: "Reporting", body: """
-                If you encounter behavior that violates these guidelines, please report it immediately \
-                using the report feature in the chat menu. Our safety team reviews all reports and \
-                takes appropriate action, which may include warnings, temporary suspensions, or \
-                permanent bans.
+                section(title: "Reporting & Blocking", body: """
+                If you encounter behavior that violates these guidelines, please report or block the \
+                user immediately using the ••• menu on their profile or in a chat. Blocking instantly \
+                removes the person from your feed and notifies our safety team. We review all reports \
+                within 24 hours and take appropriate action, which may include content removal, \
+                warnings, temporary suspensions, or permanent bans.
                 """)
 
                 section(title: "Consequences", body: """

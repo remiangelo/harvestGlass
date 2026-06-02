@@ -1,23 +1,35 @@
 import SwiftUI
 
 struct ValuesRadarCard: View {
+    let title: String
+    let subtitle: String?
     let primary: AxisScores
     let primaryLabel: String
+    let primaryColor: Color
     let secondary: AxisScores?
     let secondaryLabel: String?
+    let secondaryColor: Color
     let onEmptyTap: (() -> Void)?
 
     init(
+        title: String = "Your Values Map",
+        subtitle: String? = nil,
         primary: AxisScores,
         primaryLabel: String,
+        primaryColor: Color = HarvestTheme.Colors.primary,
         secondary: AxisScores? = nil,
         secondaryLabel: String? = nil,
+        secondaryColor: Color = HarvestTheme.Colors.accent,
         onEmptyTap: (() -> Void)? = nil
     ) {
+        self.title = title
+        self.subtitle = subtitle
         self.primary = primary
         self.primaryLabel = primaryLabel
+        self.primaryColor = primaryColor
         self.secondary = secondary
         self.secondaryLabel = secondaryLabel
+        self.secondaryColor = secondaryColor
         self.onEmptyTap = onEmptyTap
     }
 
@@ -32,9 +44,16 @@ struct ValuesRadarCard: View {
     var body: some View {
         GlassCard {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
-                Text("Your Values Map")
-                    .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(title)
+                        .font(HarvestTheme.Typography.h4)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    if let subtitle {
+                        Text(subtitle)
+                            .font(HarvestTheme.Typography.bodySmall)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    }
+                }
 
                 if primary.isZero && (secondary?.isZero ?? true) {
                     emptyState
@@ -82,8 +101,8 @@ struct ValuesRadarCard: View {
                         center: center,
                         radius: radius,
                         scores: secondary,
-                        stroke: HarvestTheme.Colors.accent,
-                        fill: HarvestTheme.Colors.accent.opacity(0.3)
+                        stroke: secondaryColor,
+                        fill: secondaryColor.opacity(0.3)
                     )
                 }
                 if !primary.isZero {
@@ -92,10 +111,12 @@ struct ValuesRadarCard: View {
                         center: center,
                         radius: radius,
                         scores: primary,
-                        stroke: HarvestTheme.Colors.primary,
-                        fill: HarvestTheme.Colors.primary.opacity(0.3)
+                        stroke: primaryColor,
+                        fill: primaryColor.opacity(0.3)
                     )
                 }
+                // Drawn last so the tier numbers stay legible over the polygons.
+                drawRingNumbers(context: context, center: center, radius: radius)
             }
         }
         .frame(height: 280)
@@ -105,13 +126,13 @@ struct ValuesRadarCard: View {
     private var legend: some View {
         if let secondary, !secondary.isZero, let secondaryLabel {
             HStack(spacing: HarvestTheme.Spacing.lg) {
-                legendDot(color: HarvestTheme.Colors.primary, label: primaryLabel)
-                legendDot(color: HarvestTheme.Colors.accent, label: secondaryLabel)
+                legendDot(color: primaryColor, label: primaryLabel)
+                legendDot(color: secondaryColor, label: secondaryLabel)
             }
             .frame(maxWidth: .infinity)
         } else {
             HStack(spacing: HarvestTheme.Spacing.lg) {
-                legendDot(color: HarvestTheme.Colors.primary, label: primaryLabel)
+                legendDot(color: primaryColor, label: primaryLabel)
             }
             .frame(maxWidth: .infinity)
         }
@@ -130,7 +151,7 @@ struct ValuesRadarCard: View {
 
     private func axisPoint(center: CGPoint, radius: Double, index: Int, magnitude: Double) -> CGPoint {
         let angle = (2 * .pi * Double(index) / Double(axes.count)) - .pi / 2
-        // primary/secondary are normalized to sum ~1.0; clamp the radial range to [0, 1].
+        // `magnitude` is already a radius fraction in [0, 1] (a tier ring position); clamp defensively.
         let clamped = min(max(magnitude, 0), 1)
         let r = radius * clamped
         return CGPoint(
@@ -141,7 +162,8 @@ struct ValuesRadarCard: View {
 
     private func drawGrid(context: GraphicsContext, center: CGPoint, radius: Double) {
         let gridColor = HarvestTheme.Colors.textSecondary.opacity(0.25)
-        let rings = [0.2, 0.4, 0.6, 0.8, 1.0]
+        // Four rings, one per ValuesTier (1st → outer).
+        let rings = [0.25, 0.5, 0.75, 1.0]
         for ring in rings {
             var path = Path()
             for i in 0..<axes.count {
@@ -156,6 +178,18 @@ struct ValuesRadarCard: View {
             path.move(to: center)
             path.addLine(to: axisPoint(center: center, radius: radius, index: i, magnitude: 1.0))
             context.stroke(path, with: .color(gridColor), lineWidth: 0.5)
+        }
+    }
+
+    private func drawRingNumbers(context: GraphicsContext, center: CGPoint, radius: Double) {
+        // Tier numbers (1…4) stacked up the centre line, just left of the top spoke.
+        for tier in ValuesTier.allCases {
+            let y = center.y - radius * tier.radiusFraction
+            let point = CGPoint(x: center.x - 12, y: y)
+            let text = Text("\(tier.rawValue)")
+                .font(HarvestTheme.Typography.caption)
+                .foregroundStyle(HarvestTheme.Colors.textTertiary)
+            context.draw(text, at: point, anchor: .center)
         }
     }
 
@@ -179,11 +213,13 @@ struct ValuesRadarCard: View {
     ) {
         var path = Path()
         for (i, axis) in axes.enumerated() {
+            // Translate the raw category score into its visual tier ring position.
+            let tierMagnitude = ValuesTier(rawScore: scores.value(for: axis)).radiusFraction
             let p = axisPoint(
                 center: center,
                 radius: radius,
                 index: i,
-                magnitude: scores.value(for: axis)
+                magnitude: tierMagnitude
             )
             if i == 0 { path.move(to: p) } else { path.addLine(to: p) }
         }
@@ -193,17 +229,20 @@ struct ValuesRadarCard: View {
     }
 }
 
-#Preview("Radar — needle on connection") {
-    var s = AxisScores(); s.connection = 1.0
+#Preview("Radar — connection is a core value") {
+    // Raw scores (0–28). connection 22 → Core Value (outer ring), the rest land lower.
+    var s = AxisScores()
+    s.emotionalIntelligence = 8; s.stability = 3; s.integrity = 14
+    s.connection = 22; s.growth = 12
     return ValuesRadarCard(primary: s, primaryLabel: "I Need")
         .padding()
         .background(HarvestTheme.Colors.background)
 }
 
-#Preview("Radar — balanced") {
+#Preview("Radar — balanced (raw scores)") {
     var s = AxisScores()
-    s.emotionalIntelligence = 0.2; s.stability = 0.2; s.integrity = 0.2
-    s.connection = 0.2; s.growth = 0.2
+    s.emotionalIntelligence = 12; s.stability = 12; s.integrity = 12
+    s.connection = 12; s.growth = 12
     return ValuesRadarCard(primary: s, primaryLabel: "I Bring")
         .padding()
         .background(HarvestTheme.Colors.background)

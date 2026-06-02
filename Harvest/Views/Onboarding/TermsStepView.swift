@@ -3,6 +3,9 @@ import SwiftUI
 struct TermsStepView: View {
     let viewModel: OnboardingViewModel
 
+    @State private var showTerms = false
+    @State private var showGuidelines = false
+
     var body: some View {
         VStack(spacing: HarvestTheme.Spacing.xl) {
             Spacer()
@@ -21,11 +24,29 @@ struct TermsStepView: View {
 
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                     bulletPoint("Treat others with respect and kindness")
-                    bulletPoint("Not share inappropriate content")
                     bulletPoint("Be honest in your profile information")
                     bulletPoint("Report any suspicious or harmful behavior")
                     bulletPoint("Be at least 18 years old")
                 }
+
+                // Apple 1.2: the agreement must make zero tolerance explicit.
+                HStack(alignment: .top, spacing: HarvestTheme.Spacing.sm) {
+                    Image(systemName: "exclamationmark.shield.fill")
+                        .foregroundStyle(HarvestTheme.Colors.primary)
+                    Text("There is zero tolerance for objectionable content or abusive behavior. Violations result in content removal and account termination, reviewed within 24 hours.")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                }
+                .padding(.top, HarvestTheme.Spacing.xs)
+
+                HStack(spacing: HarvestTheme.Spacing.md) {
+                    Button("Terms of Service") { showTerms = true }
+                    Button("Community Guidelines") { showGuidelines = true }
+                }
+                .font(HarvestTheme.Typography.bodySmall)
+                .fontWeight(.semibold)
+                .tint(HarvestTheme.Colors.primary)
+                .padding(.top, HarvestTheme.Spacing.xs)
             }
             .padding(HarvestTheme.Spacing.lg)
             .background(HarvestTheme.Colors.formSurface)
@@ -46,14 +67,22 @@ struct TermsStepView: View {
                             viewModel.termsAccepted ? AnyShapeStyle(HarvestTheme.Colors.primary) : AnyShapeStyle(HarvestTheme.Colors.textSecondary.opacity(0.55))
                         )
 
-                    Text("I agree to the Terms & Conditions")
+                    Text("I agree to the Terms, Community Guidelines, and zero-tolerance policy")
                         .font(HarvestTheme.Typography.bodyRegular)
                         .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                        .multilineTextAlignment(.leading)
                 }
+                .padding(.horizontal, HarvestTheme.Spacing.lg)
             }
             .buttonStyle(.plain)
 
             Spacer()
+        }
+        .sheet(isPresented: $showTerms) {
+            NavigationStack { TermsOfServiceView() }
+        }
+        .sheet(isPresented: $showGuidelines) {
+            NavigationStack { CommunityGuidelinesView() }
         }
     }
 

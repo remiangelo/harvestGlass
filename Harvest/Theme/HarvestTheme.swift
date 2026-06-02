@@ -17,6 +17,7 @@ enum HarvestTheme {
         static let roseLight = Color(hex: "FF5C8A")   // lighter accent / 2nd series
         static let roseDeep = Color(hex: "E01248")    // gradient end (redder)
         static let roseBloom = Color(hex: "F0466E")   // softer pink (labels)
+        static let amber = Color(hex: "F5872E")       // warm orange — 2nd radar series ("Them")
 
         // Legacy brand tokens — kept defined so older views compile,
         // but no longer the semantic accent/text.

@@ -15,6 +15,7 @@ final class DiscoverViewModel {
 
     private let swipeService = SwipeService()
     private let profileService = ProfileService()
+    private let matchService = MatchService()
     private let filterService = FilterService()
     private let rateLimitService = RateLimitService()
     private let subscriptionService = SubscriptionService()
@@ -44,9 +45,15 @@ final class DiscoverViewModel {
 
         do {
             let swipedIds = try await swipeService.getSwipeHistory(userId: userId)
+            let blockedIds = (try? await matchService.getBlockedUserIds(for: userId)) ?? []
             let filters = try? await filterService.getFilters(userId: userId)
             let existingIds = Set(profiles.map(\.id))
-            let excludeIds = Array(Set(swipedIds).union(locallyExcludedProfileIds).union(append ? existingIds : []))
+            let excludeIds = Array(
+                Set(swipedIds)
+                    .union(blockedIds)
+                    .union(locallyExcludedProfileIds)
+                    .union(append ? existingIds : [])
+            )
             let fetchedProfiles = try await swipeService.getDiscoverProfiles(userId: userId, excludeIds: excludeIds, filters: filters)
 
             if append {

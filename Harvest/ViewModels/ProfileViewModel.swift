@@ -37,8 +37,9 @@ final class ProfileViewModel {
     private let valuesService = ValuesService()
     private let questionsService = QuestionsService()
 
+    // Raw per-category scores — the radar maps these into visual tiers.
     var axisScores: (need: AxisScores, bring: AxisScores) {
-        AxisScoring.computeVectors(answers: answers, questions: allQuestions)
+        AxisScoring.computeRawVectors(answers: answers, questions: allQuestions)
     }
 
     func loadProfile(userId: String) async {
@@ -102,6 +103,13 @@ final class ProfileViewModel {
 
         guard !editPhotoUrls.isEmpty else {
             error = "You need at least one photo on your profile."
+            return false
+        }
+
+        // Apple 1.2: filter objectionable user-generated profile text before saving.
+        if MindfulMessagingService.containsObjectionableContent(editNickname) ||
+            MindfulMessagingService.containsObjectionableContent(editBio) {
+            error = "Your profile contains language that violates our zero-tolerance policy. Please remove it and try again."
             return false
         }
 

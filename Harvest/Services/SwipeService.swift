@@ -77,6 +77,8 @@ struct SwipeService {
             .from("users")
             .select()
             .neq("id", value: userId)
+            // Banned users (ejected via the moderation admin panel) never appear in the feed.
+            .or("is_banned.is.null,is_banned.eq.false")
 
         for excludeId in excludeIds {
             query = query.neq("id", value: excludeId)

@@ -32,12 +32,13 @@ final class ValuesViewModel {
 
     // MARK: - Derived state
 
+    // Raw per-category scores — the radar maps these into visual tiers.
     var needScores: AxisScores {
-        AxisScoring.computeVectors(answers: answers, questions: allQuestions).need
+        AxisScoring.computeRawVectors(answers: answers, questions: allQuestions).need
     }
 
     var bringScores: AxisScores {
-        AxisScoring.computeVectors(answers: answers, questions: allQuestions).bring
+        AxisScoring.computeRawVectors(answers: answers, questions: allQuestions).bring
     }
 
     var activeScores: AxisScores {

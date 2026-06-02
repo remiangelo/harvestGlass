@@ -59,7 +59,9 @@ final class OnboardingViewModel {
     var canProceed: Bool {
         switch currentStep {
         case .age: return isAgeValid
-        case .nickname: return !nickname.trimmingCharacters(in: .whitespaces).isEmpty
+        case .nickname:
+            let trimmed = nickname.trimmingCharacters(in: .whitespaces)
+            return !trimmed.isEmpty && !MindfulMessagingService.containsObjectionableContent(trimmed)
         case .photos: return !photoUrls.isEmpty
         case .goals: return !selectedGoals.isEmpty
         case .values: return !selectedValuesBrought.isEmpty && !selectedValuesSought.isEmpty

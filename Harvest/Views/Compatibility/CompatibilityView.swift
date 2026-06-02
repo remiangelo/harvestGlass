@@ -4,9 +4,12 @@ struct CompatibilityView: View {
     let currentProfile: UserProfile
     let otherProfile: UserProfile
 
+    private enum Perspective: Hashable { case yours, theirs }
+
     @Environment(\.dismiss) private var dismiss
     @State private var isLoading = true
     @State private var loadError: String?
+    @State private var perspective: Perspective = .yours
 
     @State private var myNeedScores = AxisScores()
     @State private var myBringScores = AxisScores()
@@ -33,27 +36,22 @@ struct CompatibilityView: View {
                     } else if let loadError {
                         errorView(loadError)
                     } else {
-                        radarSection(
-                            title: "What you both bring",
-                            primary: myBringScores,
-                            secondary: theirBringScores,
-                            primaryLabel: "You bring",
-                            secondaryLabel: "\(otherProfile.displayName) brings"
-                        )
+                        perspectiveToggle
+
+                        overlayRadar
+                            .padding(.horizontal)
+
+                        ValuesPresenceGuide()
+                            .padding(.horizontal)
+
+                        ValuesAlignmentInfoFooter()
+                            .padding(.horizontal)
 
                         chipSection(
                             primaryLabel: "You bring",
                             primaryChips: myBrings,
                             secondaryLabel: "\(otherProfile.displayName) brings",
                             secondaryChips: theirBrings
-                        )
-
-                        radarSection(
-                            title: "What you both need",
-                            primary: myNeedScores,
-                            secondary: theirNeedScores,
-                            primaryLabel: "You need",
-                            secondaryLabel: "\(otherProfile.displayName) needs"
                         )
 
                         chipSection(
@@ -71,7 +69,7 @@ struct CompatibilityView: View {
             }
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
-            .navigationTitle("Compatibility")
+            .navigationTitle("Values Alignment")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
@@ -88,23 +86,32 @@ struct CompatibilityView: View {
 
     // MARK: - Sections
 
-    private func radarSection(
-        title: String,
-        primary: AxisScores,
-        secondary: AxisScores,
-        primaryLabel: String,
-        secondaryLabel: String
-    ) -> some View {
-        VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-            SectionHeader(title: title)
-            ValuesRadarCard(
-                primary: primary,
-                primaryLabel: primaryLabel,
-                secondary: secondary,
-                secondaryLabel: secondaryLabel
-            )
+    private var perspectiveToggle: some View {
+        Picker("Perspective", selection: $perspective) {
+            Text("Your Values").tag(Perspective.yours)
+            Text("Their Values").tag(Perspective.theirs)
         }
+        .pickerStyle(.segmented)
         .padding(.horizontal)
+    }
+
+    /// One overlay radar. pink = the "need" side, amber = the "bring" side, so an
+    /// amber shape filling the pink one always reads as "what's brought meets what's needed."
+    private var overlayRadar: some View {
+        let isYours = perspective == .yours
+        let name = otherProfile.displayName
+        return ValuesRadarCard(
+            title: isYours ? "Your Values Map" : "Their Values Map",
+            subtitle: isYours
+                ? "Overlay of what you need and what they bring."
+                : "Overlay of what they need and what you bring.",
+            primary: isYours ? myNeedScores : theirNeedScores,
+            primaryLabel: isYours ? "You (What I Need)" : "\(name) (What They Need)",
+            primaryColor: HarvestTheme.Colors.rose,
+            secondary: isYours ? theirBringScores : myBringScores,
+            secondaryLabel: isYours ? "\(name) (What They Bring)" : "You (What You Bring)",
+            secondaryColor: HarvestTheme.Colors.amber
+        )
     }
 
     private func chipSection(
@@ -278,8 +285,10 @@ struct CompatibilityView: View {
         let theirAnswers = (try? await theirAnswersTask) ?? [:]
         let allQuestions = (try? await questionsTask) ?? []
 
-        let mine = AxisScoring.computeVectors(answers: myAnswers, questions: allQuestions)
-        let theirs = AxisScoring.computeVectors(answers: theirAnswers, questions: allQuestions)
+        // Raw per-category scores: the radar tiers them for display, and cosine
+        // (used for the blurb / matching) is scale-invariant so raw is fine here too.
+        let mine = AxisScoring.computeRawVectors(answers: myAnswers, questions: allQuestions)
+        let theirs = AxisScoring.computeRawVectors(answers: theirAnswers, questions: allQuestions)
 
         myNeedScores = mine.need
         myBringScores = mine.bring

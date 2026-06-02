@@ -96,7 +96,14 @@ final class AuthViewModel {
     func loadProfile() async {
         guard let userId = currentUserId else { return }
         do {
-            profile = try await profileService.getProfile(userId: userId)
+            let loaded = try await profileService.getProfile(userId: userId)
+            // Eject banned users: a moderator ban (via the admin panel) signs them out.
+            if loaded?.isBanned == true {
+                await logout()
+                error = "Your account has been suspended for violating our Community Guidelines."
+                return
+            }
+            profile = loaded
         } catch {
             // Profile may not exist yet
         }

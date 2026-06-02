@@ -37,7 +37,7 @@ struct QuestionSheetView: View {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
                 Text(q.prompt)
                     .font(HarvestTheme.Typography.h4)
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .foregroundStyle(HarvestTheme.Colors.roseLight)
 
                 ForEach(q.options) { option in
                     Button {
@@ -52,7 +52,7 @@ struct QuestionSheetView: View {
                     } label: {
                         HStack(alignment: .top) {
                             Image(systemName: "circle")
-                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                .foregroundStyle(HarvestTheme.Colors.roseLight)
                             Text(option.label)
                                 .font(HarvestTheme.Typography.bodyRegular)
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
@@ -61,14 +61,10 @@ struct QuestionSheetView: View {
                         }
                         .padding(HarvestTheme.Spacing.md)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                        .background {
-                            RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                .fill(HarvestTheme.Colors.formBackground)
-                                .overlay {
-                                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                                        .stroke(HarvestTheme.Colors.divider, lineWidth: 1)
-                                }
-                        }
+                        .glassEffect(
+                            .regular.tint(HarvestTheme.Colors.roseLight.opacity(0.55)).interactive(),
+                            in: RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                        )
                     }
                     .buttonStyle(.plain)
                 }

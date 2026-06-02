@@ -131,6 +131,22 @@ struct MindfulMessagingService {
         UserDefaults.standard.set(enabled, forKey: "mindful_messaging_enabled")
     }
 
+    /// Lightweight synchronous filter for clearly objectionable user-generated text
+    /// (profanity, slurs, violent or sexually explicit language). Used to screen
+    /// profile fields (nickname, bio) before they're saved. Word-boundary matched so
+    /// innocuous substrings (e.g. "class" containing "ass") don't trip it.
+    static func containsObjectionableContent(_ text: String) -> Bool {
+        let lower = text.lowercased()
+        let terms = aggressive.union(sexualPressure)
+        for term in terms {
+            let pattern = "\\b\(NSRegularExpression.escapedPattern(for: term))\\b"
+            if lower.range(of: pattern, options: .regularExpression) != nil {
+                return true
+            }
+        }
+        return false
+    }
+
     func analyzeMessage(_ text: String) async -> MindfulAnalysis {
         let keywordResult = keywordAnalysis(text)
         if keywordResult.needsReview {

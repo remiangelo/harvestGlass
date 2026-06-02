@@ -140,8 +140,10 @@ enum AxisScoring {
         }
     }
 
-    /// Build the user's normalized (need, bring) axis vectors from their answers.
-    static func computeVectors(
+    /// Build the user's RAW (un-normalized) (need, bring) axis vectors — the actual
+    /// per-category point totals (0–28 possible per axis). The matching algorithm and
+    /// the radar's tiered display both work from these raw scores.
+    static func computeRawVectors(
         answers: [String: String],          // questionId -> optionId
         questions: [Question]
     ) -> (need: AxisScores, bring: AxisScores) {
@@ -158,6 +160,85 @@ enum AxisScoring {
             rawBring.add(bW, to: option.axis)
         }
 
-        return (rawNeed.normalized(), rawBring.normalized())
+        return (rawNeed, rawBring)
+    }
+
+    /// Build the user's normalized (need, bring) axis vectors from their answers.
+    static func computeVectors(
+        answers: [String: String],          // questionId -> optionId
+        questions: [Question]
+    ) -> (need: AxisScores, bring: AxisScores) {
+        let raw = computeRawVectors(answers: answers, questions: questions)
+        return (raw.need.normalized(), raw.bring.normalized())
+    }
+}
+
+/// Visual display tier for the values radar.
+///
+/// The matching algorithm always works from raw category scores; the radar maps
+/// each raw score (0–28 possible) into one of four tiers so the chart communicates
+/// the *shape* of a values profile rather than plotting raw points. Tier names are
+/// not shown on the chart (yet) — this is purely a visualization mapping.
+enum ValuesTier: Int, CaseIterable, Sendable {
+    case lowPresence = 1       // raw 0–5   → 1st ring
+    case growingPresence = 2   // raw 6–10  → 2nd ring
+    case strongPresence = 3    // raw 11–17 → 3rd ring
+    case coreValue = 4         // raw 18–28 → outer ring
+
+    init(rawScore: Double) {
+        switch rawScore {
+        case ..<6:  self = .lowPresence
+        case ..<11: self = .growingPresence
+        case ..<18: self = .strongPresence
+        default:    self = .coreValue
+        }
+    }
+
+    var displayName: String {
+        switch self {
+        case .lowPresence:     return "Low Presence"
+        case .growingPresence: return "Growing Presence"
+        case .strongPresence:  return "Strong Presence"
+        case .coreValue:       return "Core Value"
+        }
+    }
+
+    /// "Level N" label.
+    var levelLabel: String { "Level \(rawValue)" }
+
+    /// Human-readable raw score range for this tier.
+    var rangeLabel: String {
+        switch self {
+        case .lowPresence:     return "0 – 5"
+        case .growingPresence: return "6 – 10"
+        case .strongPresence:  return "11 – 17"
+        case .coreValue:       return "18 – 28"
+        }
+    }
+
+    /// "Nth ring" label.
+    var ringLabel: String {
+        switch self {
+        case .lowPresence:     return "1st ring"
+        case .growingPresence: return "2nd ring"
+        case .strongPresence:  return "3rd ring"
+        case .coreValue:       return "4th ring"
+        }
+    }
+
+    /// Growth-metaphor SF Symbol (sprout → leaf → tree → harvest).
+    /// Level 4 has no "apple fruit" SF Symbol; swap in a custom asset later if desired.
+    var iconName: String {
+        switch self {
+        case .lowPresence:     return "leaf"
+        case .growingPresence: return "leaf.fill"
+        case .strongPresence:  return "tree.fill"
+        case .coreValue:       return "tree.circle.fill"
+        }
+    }
+
+    /// Position on the radar as a fraction of the full radius (1st…outer ring).
+    var radiusFraction: Double {
+        Double(rawValue) / Double(ValuesTier.allCases.count)
     }
 }

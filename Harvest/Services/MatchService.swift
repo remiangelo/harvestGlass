@@ -42,7 +42,7 @@ struct MatchService {
             .execute()
     }
 
-    func blockUser(userId: String, blockedUserId: String) async throws {
+    func blockUser(userId: String, blockedUserId: String, reason: String = "Blocked", description: String = "User blocked — auto-filed for moderator review.") async throws {
         try await client
             .from("user_blocks")
             .insert([
@@ -50,6 +50,15 @@ struct MatchService {
                 "blocked_id": blockedUserId
             ])
             .execute()
+
+        // Apple 1.2: blocking must also notify the developer of the inappropriate
+        // content so it can be reviewed/actioned within 24h. File a report alongside.
+        try? await reportUser(
+            reporterId: userId,
+            reportedUserId: blockedUserId,
+            category: reason,
+            description: description
+        )
 
         let existingMatches: [Match] = try await client
             .from("matches")
@@ -274,7 +283,9 @@ struct MatchService {
         return !latestMessage.isSentBy(currentUserId)
     }
 
-    private func getBlockedUserIds(for userId: String) async throws -> Set<String> {
+    /// Every user id that is in a block relationship with `userId` (either direction),
+    /// so callers can exclude them from feeds/decks instantly. Lowercased.
+    func getBlockedUserIds(for userId: String) async throws -> Set<String> {
         struct UserBlockRow: Decodable {
             let blockerId: String?
             let blockedId: String?
