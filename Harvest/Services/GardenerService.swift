@@ -172,7 +172,7 @@ struct GardenerService {
         // Best-effort client purge of this user's expired messages (a server cron
         // also covers users who never reopen the chat — see migration
         // 20260604130000_gardener_chat_ttl.sql).
-        try? await client
+        _ = try? await client
             .from("gardener_chat_history")
             .delete()
             .eq("user_id", value: userId)
