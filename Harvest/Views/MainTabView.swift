@@ -31,7 +31,7 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Letters", systemImage: "bubble.left.fill", value: 0) {
+            Tab("Chat", systemImage: "bubble.left.fill", value: 0) {
                 MindfulMessagesView(
                     authViewModel: authViewModel,
                     pendingChatDeepLink: $pendingChatDeepLink

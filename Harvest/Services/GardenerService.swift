@@ -166,10 +166,24 @@ struct GardenerService {
     }
 
     func getChatHistory(userId: String) async throws -> [GardenerMessage] {
+        // The Gardener chat is ephemeral: each message is removed 24h after it was sent.
+        let cutoff = ISO8601DateFormatter().string(from: Date().addingTimeInterval(-24 * 60 * 60))
+
+        // Best-effort client purge of this user's expired messages (a server cron
+        // also covers users who never reopen the chat — see migration
+        // 20260604130000_gardener_chat_ttl.sql).
+        try? await client
+            .from("gardener_chat_history")
+            .delete()
+            .eq("user_id", value: userId)
+            .lt("created_at", value: cutoff)
+            .execute()
+
         let rows: [GardenerChatHistoryRow] = try await client
             .from("gardener_chat_history")
             .select()
             .eq("user_id", value: userId)
+            .gte("created_at", value: cutoff)
             .order("created_at", ascending: true)
             .execute()
             .value
