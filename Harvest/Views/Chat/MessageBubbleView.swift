@@ -4,7 +4,20 @@ struct MessageBubbleView: View {
     let message: Message
     let isSent: Bool
 
+    @State private var revealed = false
+    private let mindful = MindfulMessagingService()
+
+    /// Non-nil when an incoming message should be blurred for this recipient.
+    /// Respects the recipient's own mindful-messaging toggle.
+    private var flag: MindfulMessagingService.MindfulAnalysis? {
+        guard !isSent, mindful.isEnabled else { return nil }
+        return mindful.localFlag(for: message.content ?? "")
+    }
+
     var body: some View {
+        let isBlurred = flag != nil && !revealed
+        let bubble = RoundedRectangle(cornerRadius: 18, style: .continuous)
+
         HStack {
             if isSent { Spacer(minLength: 60) }
 
@@ -14,18 +27,25 @@ struct MessageBubbleView: View {
                     .foregroundStyle(isSent ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
+                    .frame(minWidth: isBlurred ? 150 : nil, minHeight: isBlurred ? 44 : nil, alignment: .leading)
+                    .blur(radius: isBlurred ? 7 : 0)
                     .background {
                         if isSent {
-                            BubbleShape(isSent: true)
-                                .fill(HarvestTheme.Colors.outgoingMessageSurface)
+                            bubble.fill(HarvestTheme.Colors.outgoingMessageSurface)
                         } else {
-                            BubbleShape(isSent: false)
+                            bubble
                                 .fill(HarvestTheme.Colors.glassFill)
-                                .overlay {
-                                    BubbleShape(isSent: false)
-                                        .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                                }
+                                .overlay { bubble.stroke(HarvestTheme.Colors.border, lineWidth: 1) }
                         }
+                    }
+                    .overlay {
+                        if isBlurred {
+                            blurOverlay
+                        }
+                    }
+                    .contentShape(bubble)
+                    .onTapGesture {
+                        if isBlurred { withAnimation(.easeInOut(duration: 0.2)) { revealed = true } }
                     }
 
                 HStack(spacing: 4) {
@@ -48,48 +68,40 @@ struct MessageBubbleView: View {
         }
     }
 
+    private var blurOverlay: some View {
+        VStack(spacing: 2) {
+            Image(systemName: "eye.slash.fill")
+                .font(.caption)
+            Text(hint)
+                .font(.system(size: 11, weight: .semibold))
+                .multilineTextAlignment(.center)
+            Text("Tap to reveal")
+                .font(.system(size: 10))
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+        }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .padding(.horizontal, HarvestTheme.Spacing.sm)
+    }
+
+    /// Recipient-facing hint about why a message is hidden.
+    private var hint: String {
+        switch flag?.category {
+        case "aggressive":           return "May contain hostile language"
+        case "sexual_pressure":      return "May contain explicit content"
+        case "manipulative":         return "May contain manipulative language"
+        case "possessive":           return "May contain controlling language"
+        case "pressuring":           return "May contain pressuring language"
+        case "excessive_intensity":  return "Very intense message"
+        case "personal_info", "phone_number": return "May contain personal info"
+        default:                     return "Possibly sensitive content"
+        }
+    }
+
     private func formatMessageTime(_ isoString: String) -> String {
         let formatter = ISO8601DateFormatter()
         guard let date = formatter.date(from: isoString) else { return "" }
         let timeFormatter = DateFormatter()
         timeFormatter.timeStyle = .short
         return timeFormatter.string(from: date)
-    }
-}
-
-struct BubbleShape: Shape, InsettableShape {
-    let isSent: Bool
-
-    func path(in rect: CGRect) -> Path {
-        let radius: CGFloat = 16
-        let tailSize: CGFloat = 6
-
-        var path = Path()
-
-        if isSent {
-            path.addRoundedRect(
-                in: CGRect(x: rect.minX, y: rect.minY, width: rect.width - tailSize, height: rect.height),
-                cornerSize: CGSize(width: radius, height: radius)
-            )
-            // Tail on right
-            path.move(to: CGPoint(x: rect.maxX - tailSize, y: rect.maxY - radius))
-            path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.maxX - tailSize - 8, y: rect.maxY))
-        } else {
-            path.addRoundedRect(
-                in: CGRect(x: rect.minX + tailSize, y: rect.minY, width: rect.width - tailSize, height: rect.height),
-                cornerSize: CGSize(width: radius, height: radius)
-            )
-            // Tail on left
-            path.move(to: CGPoint(x: rect.minX + tailSize, y: rect.maxY - radius))
-            path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-            path.addLine(to: CGPoint(x: rect.minX + tailSize + 8, y: rect.maxY))
-        }
-
-        return path
-    }
-
-    func inset(by amount: CGFloat) -> some InsettableShape {
-        self
     }
 }

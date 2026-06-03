@@ -202,19 +202,21 @@ struct ValuesView: View {
 
                 HStack {
                     Spacer()
-                    if viewModel.isGeneratingBlurb {
-                        ProgressView().tint(HarvestTheme.Colors.primary)
-                    } else {
-                        Button {
-                            if let userId = authViewModel.currentUserId {
-                                Task { await viewModel.generateBlurb(userId: userId) }
+                    Button {
+                        if let userId = authViewModel.currentUserId {
+                            Task { await viewModel.generateBlurb(userId: userId) }
+                        }
+                    } label: {
+                        HStack(spacing: HarvestTheme.Spacing.sm) {
+                            if viewModel.isGeneratingBlurb {
+                                ProgressView()
+                                    .tint(HarvestTheme.Colors.textOnRedPrimary)
                             }
-                        } label: {
                             Text(viewModel.profile?.valuesBlurb?.isEmpty == false ? "Regenerate" : "Generate")
                         }
-                        .buttonStyle(.harvestGlass(.primary))
-                        .disabled(viewModel.valuesBrought.isEmpty && viewModel.valuesSought.isEmpty)
                     }
+                    .buttonStyle(.harvestGlass(.primary))
+                    .disabled(viewModel.isGeneratingBlurb || (viewModel.valuesBrought.isEmpty && viewModel.valuesSought.isEmpty))
                 }
 
                 if let error = viewModel.blurbError {

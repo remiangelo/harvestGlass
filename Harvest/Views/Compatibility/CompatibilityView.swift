@@ -47,16 +47,18 @@ struct CompatibilityView: View {
                         ValuesAlignmentInfoFooter()
                             .padding(.horizontal)
 
+                        // Pair each side with its complement: what you need vs what
+                        // they bring, and what you bring vs what they need.
                         chipSection(
-                            primaryLabel: "You bring",
-                            primaryChips: myBrings,
+                            primaryLabel: "You need",
+                            primaryChips: myNeeds,
                             secondaryLabel: "\(otherProfile.displayName) brings",
                             secondaryChips: theirBrings
                         )
 
                         chipSection(
-                            primaryLabel: "You need",
-                            primaryChips: myNeeds,
+                            primaryLabel: "You bring",
+                            primaryChips: myBrings,
                             secondaryLabel: "\(otherProfile.displayName) needs",
                             secondaryChips: theirNeeds
                         )

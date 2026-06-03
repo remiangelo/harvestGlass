@@ -21,6 +21,7 @@ struct HarvestApp: App {
                     LoginView(authViewModel: authViewModel)
                 }
             }
+            .preferredColorScheme(.dark)
             .tint(HarvestTheme.Colors.rose)
             .dismissKeyboardOnTap()
             .task {

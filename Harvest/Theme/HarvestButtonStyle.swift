@@ -32,6 +32,8 @@ struct HarvestGlassButtonStyle: ButtonStyle {
                     Capsule().stroke(HarvestTheme.Colors.rose.opacity(0.3), lineWidth: 1)
                 }
             }
+            // Make the whole padded pill tappable, not just the text/icon glyphs.
+            .contentShape(Capsule())
             .scaleEffect(pressed ? 0.96 : 1)
             .brightness(pressed ? -0.03 : 0)
             .animation(.spring(response: 0.3, dampingFraction: 0.65), value: pressed)

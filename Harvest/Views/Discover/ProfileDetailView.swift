@@ -3,6 +3,7 @@ import SwiftUI
 struct ProfileDetailView: View {
     let profile: UserProfile
     let currentProfile: UserProfile?
+    var showSwipeActions: Bool = true
     let onSwipe: (SwipeAction) -> Void
     @State private var valuesBrought: [Value] = []
     @State private var allQuestions: [Question] = []
@@ -166,8 +167,9 @@ struct ProfileDetailView: View {
                             let scores = (side == .need) ? vectors.need : vectors.bring
                             if !scores.isZero {
                                 ValuesRadarCard(
+                                    title: "\(profile.displayName)'s Values Map",
                                     primary: scores,
-                                    primaryLabel: side == .need ? "I Need" : "I Bring"
+                                    primaryLabel: side == .need ? "Needs" : "Brings"
                                 )
                             }
                         }
@@ -239,11 +241,13 @@ struct ProfileDetailView: View {
                 .padding()
             }
 
-            // Action buttons
-            VStack {
-                Spacer()
-                actionButtons
-                    .padding(.bottom, HarvestTheme.Spacing.lg)
+            // Swipe actions — hidden once you're already matched (e.g. opened from a chat)
+            if showSwipeActions {
+                VStack {
+                    Spacer()
+                    actionButtons
+                        .padding(.bottom, HarvestTheme.Spacing.lg)
+                }
             }
         }
     }

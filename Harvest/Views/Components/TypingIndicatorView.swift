@@ -16,12 +16,10 @@ struct TypingIndicatorView: View {
             .padding(.horizontal, HarvestTheme.Spacing.md)
             .padding(.vertical, HarvestTheme.Spacing.sm + 4)
             .background {
-                BubbleShape(isSent: false)
+                let bubble = RoundedRectangle(cornerRadius: 18, style: .continuous)
+                bubble
                     .fill(HarvestTheme.Colors.glassFill)
-                    .overlay {
-                        BubbleShape(isSent: false)
-                            .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                    }
+                    .overlay { bubble.stroke(HarvestTheme.Colors.border, lineWidth: 1) }
             }
 
             Spacer(minLength: 60)

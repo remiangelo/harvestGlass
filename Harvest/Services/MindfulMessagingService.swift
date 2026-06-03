@@ -147,6 +147,14 @@ struct MindfulMessagingService {
         return false
     }
 
+    /// Synchronous, on-device keyword flag for an *incoming* message. Returns the
+    /// keyword analysis when the message should be blurred for the recipient, else nil.
+    /// Callers gate on `isEnabled` (the recipient's own mindful-messaging toggle).
+    func localFlag(for text: String) -> MindfulAnalysis? {
+        let result = keywordAnalysis(text)
+        return result.needsReview ? result : nil
+    }
+
     func analyzeMessage(_ text: String) async -> MindfulAnalysis {
         let keywordResult = keywordAnalysis(text)
         if keywordResult.needsReview {
