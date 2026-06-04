@@ -82,7 +82,7 @@ struct ValuesView: View {
             radarCard
             moreQuestionsButton
             valuesPicker
-            blurbSection
+            // blurbSection — temporarily disabled (Generate Blurb caused issues)
             displayTogglesSection
         }
     }

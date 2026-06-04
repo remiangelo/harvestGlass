@@ -14,6 +14,8 @@ struct MindfulMessagesView: View {
     @State private var activeChatRoute: ChatRoute?
     @State private var selectedInboundLike: InboundLikeWithProfile?
 
+    private let mindful = MindfulMessagingService()
+
     private var newMatches: [MatchThread] {
         viewModel.matchThreads.filter { $0.conversation == nil }
     }
@@ -302,10 +304,7 @@ struct MindfulMessagesView: View {
                     }
                 }
 
-                Text(row.lastMessagePreview ?? "Tap to start chatting")
-                    .font(HarvestTheme.Typography.bodySmall)
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                    .lineLimit(2)
+                previewLine(for: row)
             }
         }
         .padding(.vertical, 6)
@@ -315,6 +314,36 @@ struct MindfulMessagesView: View {
                 .fill(row.hasReplyHighlight
                       ? HarvestTheme.Colors.primary.opacity(0.12)
                       : HarvestTheme.Colors.glassFillStrong)
+        }
+    }
+
+    /// Inbox preview line. Masks the last message when it trips the mindful-messaging
+    /// filter so harmful content can't be read straight from the list — mirrors the
+    /// in-chat blur-on-receive. Gated on the recipient's own mindful-messaging toggle.
+    @ViewBuilder
+    private func previewLine(for row: InboxRow) -> some View {
+        if let preview = row.lastMessagePreview, !preview.isEmpty {
+            if mindful.isEnabled, mindful.localFlag(for: preview) != nil {
+                HStack(spacing: 4) {
+                    Image(systemName: "eye.slash.fill")
+                        .font(.system(size: 11))
+                    Text("Sensitive message — open to review")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .italic()
+                        .lineLimit(1)
+                }
+                .foregroundStyle(HarvestTheme.Colors.textTertiary)
+            } else {
+                Text(preview)
+                    .font(HarvestTheme.Typography.bodySmall)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .lineLimit(2)
+            }
+        } else {
+            Text("Tap to start chatting")
+                .font(HarvestTheme.Typography.bodySmall)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .lineLimit(2)
         }
     }
 
