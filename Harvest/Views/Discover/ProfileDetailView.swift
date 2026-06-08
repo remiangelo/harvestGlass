@@ -4,6 +4,7 @@ struct ProfileDetailView: View {
     let profile: UserProfile
     let currentProfile: UserProfile?
     var showSwipeActions: Bool = true
+    var authViewModel: AuthViewModel? = nil
     let onSwipe: (SwipeAction) -> Void
     @State private var valuesBrought: [Value] = []
     @State private var allQuestions: [Question] = []
@@ -11,6 +12,7 @@ struct ProfileDetailView: View {
     @State private var showCompatibility = false
     @State private var showReportSheet = false
     @State private var showBlockConfirm = false
+    @State private var showSendSeed = false
 
     private let valuesService = ValuesService()
     private let questionsService = QuestionsService()
@@ -220,6 +222,18 @@ struct ProfileDetailView: View {
                 Text("They won't be able to see you or contact you, their content is removed from your feed, and we'll review this report within 24 hours.")
             }
 
+            // Send a Seed sheet
+            Color.clear
+                .sheet(isPresented: $showSendSeed) {
+                    if let authVM = authViewModel {
+                        SendSeedSheet(
+                            authViewModel: authVM,
+                            recipientId: profile.id,
+                            recipientName: profile.nickname ?? profile.displayName
+                        )
+                    }
+                }
+
             // Top bar: moderation menu (leading) + close (trailing)
             HStack {
                 if canModerate {
@@ -285,68 +299,24 @@ struct ProfileDetailView: View {
                 description: "User blocked while browsing profiles — filed for moderator review."
             )
             await MainActor.run {
-                onSwipe(.nope) // drop them from the deck instantly
                 dismiss()
             }
         }
     }
 
     private var actionButtons: some View {
-        HStack(spacing: HarvestTheme.Spacing.xl) {
-            Button {
-                onSwipe(.nope)
-                dismiss()
-            } label: {
-                Image(systemName: "xmark")
-                    .font(.title)
-                    .fontWeight(.bold)
-                    .foregroundStyle(HarvestTheme.Colors.nope)
-                    .frame(width: 60, height: 60)
-                    .background {
-                        Circle()
-                            .fill(HarvestTheme.Colors.blackSurface)
-                            .overlay {
-                                Circle()
-                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                            }
-                    }
-            }
-
-            Button {
-                onSwipe(.superLike)
-                dismiss()
-            } label: {
-                Image(systemName: "star.fill")
-                    .font(.title2)
-                    .foregroundStyle(HarvestTheme.Colors.superLike)
-                    .frame(width: 48, height: 48)
-                    .background {
-                        Circle()
-                            .fill(HarvestTheme.Colors.blackSurface)
-                            .overlay {
-                                Circle()
-                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                            }
-                    }
-            }
-
-            Button {
-                onSwipe(.like)
-                dismiss()
-            } label: {
-                Image(systemName: "heart.fill")
-                    .font(.title)
-                    .foregroundStyle(HarvestTheme.Colors.like)
-                    .frame(width: 60, height: 60)
-                    .background {
-                        Circle()
-                            .fill(HarvestTheme.Colors.blackSurface)
-                            .overlay {
-                                Circle()
-                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                            }
-                    }
-            }
+        Button {
+            showSendSeed = true
+        } label: {
+            Label("Send a Seed", systemImage: "leaf.fill")
+                .font(.headline)
+                .foregroundStyle(HarvestTheme.Colors.textOnBlack)
+                .padding(.horizontal, HarvestTheme.Spacing.xl)
+                .padding(.vertical, HarvestTheme.Spacing.md)
+                .background {
+                    Capsule()
+                        .fill(HarvestTheme.Colors.primary)
+                }
         }
     }
 }
