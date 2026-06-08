@@ -21,7 +21,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 interface SendPushRequest {
   recipient_user_id: string;
-  type: "message" | "match" | "like";
+  type: "message" | "match" | "like" | "seed";
   payload: {
     title: string;
     body: string;
