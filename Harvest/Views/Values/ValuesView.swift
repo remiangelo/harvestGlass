@@ -29,7 +29,7 @@ struct ValuesView: View {
             }
             .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .background(HarvestTheme.Colors.background.ignoresSafeArea())
-            .navigationTitle("Values")
+            .navigationTitle("Your relational soil")
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
@@ -64,8 +64,8 @@ struct ValuesView: View {
 
     private var sidePicker: some View {
         Picker("", selection: $viewModel.side) {
-            Text("I Need").tag(ValuesViewModel.Side.need)
-            Text("I Bring").tag(ValuesViewModel.Side.bring)
+            Text("What I Need").tag(ValuesViewModel.Side.need)
+            Text("What I Bring").tag(ValuesViewModel.Side.bring)
         }
         .pickerStyle(.segmented)
         .padding(.horizontal)
@@ -126,7 +126,7 @@ struct ValuesView: View {
     private var radarCard: some View {
         ValuesRadarCard(
             primary: viewModel.activeScores,
-            primaryLabel: viewModel.side == .need ? "I Need" : "I Bring",
+            primaryLabel: viewModel.side == .need ? "What I Need" : "What I Bring",
             onEmptyTap: { showQuestionSheet = true }
         )
         .padding(.horizontal)
@@ -151,7 +151,7 @@ struct ValuesView: View {
         GlassCard {
             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                 HStack {
-                    Text(viewModel.side == .need ? "Values I Need" : "Values I Bring")
+                    Text(viewModel.side == .need ? "What I Need" : "What I Bring")
                         .font(HarvestTheme.Typography.h4)
                         .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     Spacer()
@@ -236,7 +236,7 @@ struct ValuesView: View {
                     .font(HarvestTheme.Typography.h4)
                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
-                toggleRow(label: "Values I Bring",
+                toggleRow(label: "What I Bring",
                           isOn: Binding(get: { viewModel.profile?.showValuesBrought ?? true },
                                         set: { setToggle(.brought, $0) }))
                 toggleRow(label: "Generated Blurb",
