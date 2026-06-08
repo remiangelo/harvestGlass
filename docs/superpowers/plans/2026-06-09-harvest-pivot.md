@@ -767,7 +767,7 @@ struct SeedsView: View {
 
     @State private var vm = SeedsViewModel()
 
-    private var userId: String { authViewModel.userId ?? "" }
+    private var userId: String { authViewModel.currentUserId ?? "" }
 
     var body: some View {
         NavigationStack {
@@ -857,7 +857,7 @@ private struct SeedRow: View {
 ```
 
 - [ ] **Step 2: Xcode verification checklist**
-  - Verify `authViewModel.userId` exists (used elsewhere); if the property differs, use the codebase's accessor for the current user id.
+  - Verify `authViewModel.currentUserId` exists (used elsewhere); if the property differs, use the codebase's accessor for the current user id.
   - Verify `ChatDetailView`'s initializer signature matches `init(authViewModel:conversationId:)`; adjust to the real signature found in `Harvest/Views/Chat/ChatDetailView.swift`.
   - Requests segment lists received/sent; accept routes into the chat; decline removes the row.
 
@@ -922,7 +922,7 @@ struct SendSeedSheet: View {
     }
 
     private func send() async {
-        guard let senderId = authViewModel.userId else { return }
+        guard let senderId = authViewModel.currentUserId else { return }
         isSending = true
         defer { isSending = false }
         do {
@@ -1454,7 +1454,7 @@ import SwiftUI
 struct FieldView: View {
     let authViewModel: AuthViewModel
     @State private var vm = FieldViewModel()
-    private var userId: String { authViewModel.userId ?? "" }
+    private var userId: String { authViewModel.currentUserId ?? "" }
 
     var body: some View {
         NavigationStack {
@@ -1601,7 +1601,7 @@ struct CommunityChatView: View {
 
     @State private var vm = CommunityChatViewModel()
     @State private var showPrompts = false
-    private var userId: String { authViewModel.userId ?? "" }
+    private var userId: String { authViewModel.currentUserId ?? "" }
 
     var body: some View {
         VStack(spacing: 0) {
