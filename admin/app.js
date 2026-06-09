@@ -65,47 +65,47 @@ function render(rows) {
 function reportCard(r) {
   const photos = Array.isArray(r.reported_photos) ? r.reported_photos.filter(Boolean) : [];
   const photoHtml = photos.length
-    ? `<div class=”photos”>${photos.slice(0, 3).map((u) => `<img src=”${escape(u)}” alt=”” />`).join(“”)}</div>`
-    : `<div class=”photos”><div class=”no-photo”>no photo</div></div>`;
+    ? `<div class="photos">${photos.slice(0, 3).map((u) => `<img src="${escape(u)}" alt="" />`).join("")}</div>`
+    : `<div class="photos"><div class="no-photo">no photo</div></div>`;
 
-  const reviewed = r.status !== “pending”;
+  const reviewed = r.status !== "pending";
   const statusPill = reviewed
-    ? `<span class=”pill done”>${escape(r.action_taken || “reviewed”)}</span>`
-    : “”;
-  const bannedPill = r.reported_is_banned ? `<span class=”pill banned”>banned</span>` : “”;
+    ? `<span class="pill done">${escape(r.action_taken || "reviewed")}</span>`
+    : "";
+  const bannedPill = r.reported_is_banned ? `<span class="pill banned">banned</span>` : "";
 
-  const isMessage = r.target_type === “community_message”;
+  const isMessage = r.target_type === "community_message";
   const messageBlock = isMessage
-    ? `<div class=”desc”>In <b>${escape(r.target_community_name || “a room”)}</b>: “${escape(r.target_message_content || “(removed)”)}”</div>`
-    : “”;
+    ? `<div class="desc">In <b>${escape(r.target_community_name || "a room")}</b>: "${escape(r.target_message_content || "(removed)")}"</div>`
+    : "";
 
   const actions = reviewed
-    ? “”
+    ? ""
     : isMessage
-    ? `<div class=”actions”>
-         <button class=”ghost” data-action=”dismiss” data-id=”${r.id}” data-reported=”${escape(r.reported_id)}”>Dismiss</button>
-         <button data-action=”remove-msg” data-id=”${r.id}” data-msg=”${escape(r.target_id)}”>Remove message</button>
-         <button data-action=”ban-room” data-id=”${r.id}” data-reported=”${escape(r.reported_id)}” data-community=”${escape(r.target_community_id)}”>Ban from room</button>
-         <button class=”danger” data-action=”ban” data-id=”${r.id}” data-reported=”${escape(r.reported_id)}”>Ban &amp; eject user</button>
+    ? `<div class="actions">
+         <button class="ghost" data-action="dismiss" data-id="${r.id}" data-reported="${escape(r.reported_id)}">Dismiss</button>
+         <button data-action="remove-msg" data-id="${r.id}" data-msg="${escape(r.target_id)}">Remove message</button>
+         <button data-action="ban-room" data-id="${r.id}" data-reported="${escape(r.reported_id)}" data-community="${escape(r.target_community_id)}">Ban from room</button>
+         <button class="danger" data-action="ban" data-id="${r.id}" data-reported="${escape(r.reported_id)}">Ban &amp; eject user</button>
        </div>`
-    : `<div class=”actions”>
-         <button class=”ghost” data-action=”dismiss” data-id=”${r.id}” data-reported=”${escape(r.reported_id)}”>Dismiss</button>
-         <button data-action=”remove” data-id=”${r.id}” data-reported=”${escape(r.reported_id)}”>Remove content</button>
-         <button class=”danger” data-action=”ban” data-id=”${r.id}” data-reported=”${escape(r.reported_id)}”>Ban &amp; eject user</button>
+    : `<div class="actions">
+         <button class="ghost" data-action="dismiss" data-id="${r.id}" data-reported="${escape(r.reported_id)}">Dismiss</button>
+         <button data-action="remove" data-id="${r.id}" data-reported="${escape(r.reported_id)}">Remove content</button>
+         <button class="danger" data-action="ban" data-id="${r.id}" data-reported="${escape(r.reported_id)}">Ban &amp; eject user</button>
        </div>`;
 
   return `
-    <div class=”report ${reviewed ? “reviewed” : “”}”>
-      <div class=”report-top”>
+    <div class="report ${reviewed ? "reviewed" : ""}">
+      <div class="report-top">
         ${photoHtml}
-        <div class=”meta”>
-          <div class=”name”>${escape(r.reported_nickname || r.reported_id)}
-            <span class=”pill reason”>${escape(r.reason || “report”)}</span>${bannedPill}${statusPill}
+        <div class="meta">
+          <div class="name">${escape(r.reported_nickname || r.reported_id)}
+            <span class="pill reason">${escape(r.reason || "report")}</span>${bannedPill}${statusPill}
           </div>
-          ${r.reported_bio ? `<div class=”bio”>${escape(r.reported_bio)}</div>` : “”}
-          ${r.description ? `<div class=”desc”>”${escape(r.description)}”</div>` : “”}
+          ${r.reported_bio ? `<div class="bio">${escape(r.reported_bio)}</div>` : ""}
+          ${r.description ? `<div class="desc">"${escape(r.description)}"</div>` : ""}
           ${messageBlock}
-          <div class=”sub”>Reported by ${escape(r.reporter_nickname || r.reporter_id || “unknown”)} · ${fmtDate(r.created_at)}</div>
+          <div class="sub">Reported by ${escape(r.reporter_nickname || r.reporter_id || "unknown")} · ${fmtDate(r.created_at)}</div>
           ${actions}
         </div>
       </div>
@@ -142,7 +142,7 @@ async function onAction(action, reportId, reportedId, extra = {}) {
       if (!confirm("Remove this message for everyone?")) return;
       const { error } = await supabase
         .from("community_messages")
-        .update({ is_removed: true, removed_at: new Date().toISOString(), removed_by: "admin" })
+        .update({ is_removed: true, removed_at: new Date().toISOString() })
         .eq("id", extra.msgId);
       if (error) throw error;
       await markReviewed(reportId, "content_removed");
