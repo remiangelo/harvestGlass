@@ -21,6 +21,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var cannabis: String?
     var spiritualOrientation: String?
     var childrenStatus: String?
+    var relationshipStatus: String?
     var onboardingCompleted: Bool?
     var isBanned: Bool?
     var createdAt: String?
@@ -48,6 +49,7 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case cannabis
         case spiritualOrientation = "spiritual_orientation"
         case childrenStatus = "children_status"
+        case relationshipStatus = "relationship_status"
         case onboardingCompleted = "onboarding_completed"
         case isBanned = "is_banned"
         case createdAt = "created_at"

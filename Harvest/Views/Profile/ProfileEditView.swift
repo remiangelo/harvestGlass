@@ -51,6 +51,13 @@ struct ProfileEditView: View {
         ("Don't want kids", "dont_want_kids"),
         ("Prefer not to say", "prefer_not_to_say")
     ]
+    private let relationshipStatusOptions = [
+        ("Single", "single"),
+        ("Dating / exploring", "dating"),
+        ("In a relationship", "in_relationship"),
+        ("Engaged", "engaged"),
+        ("Married", "married")
+    ]
 
 
     var body: some View {
@@ -140,6 +147,8 @@ struct ProfileEditView: View {
                         pickerRow(title: "Spiritual Orientation", selection: $viewModel.editSpiritualOrientation, options: spiritualOptions)
                         dividerRow()
                         pickerRow(title: "Children", selection: $viewModel.editChildrenStatus, options: childrenOptions)
+                        dividerRow()
+                        pickerRow(title: "Relationship Status", selection: $viewModel.editRelationshipStatus, options: relationshipStatusOptions)
                     }
                 }
 
