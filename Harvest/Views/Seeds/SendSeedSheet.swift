@@ -16,33 +16,59 @@ struct SendSeedSheet: View {
     private let service = SeedService()
     private let subscriptionService = SubscriptionService()
 
+    private var atLimit: Bool { sentToday >= limit }
+    private var canSend: Bool {
+        !message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty && !isSending && !atLimit
+    }
+
     var body: some View {
         NavigationStack {
-            VStack(alignment: .leading, spacing: 16) {
-                Text("Plant a Seed with \(recipientName) 🌱")
-                    .font(.headline)
-                Text("Start with something intentional — a question or a shared value.")
-                    .font(.subheadline)
-                    .foregroundStyle(.secondary)
-                TextEditor(text: $message)
-                    .frame(minHeight: 140)
-                    .overlay(RoundedRectangle(cornerRadius: 10).stroke(.quaternary))
-                Text("\(sentToday) of \(limit) Seeds sent today")
-                    .font(.caption)
-                    .foregroundStyle(sentToday >= limit ? .red : .secondary)
-                if let error { Text(error).foregroundStyle(.red).font(.caption) }
-                Spacer()
+            ScrollView {
+                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
+                    Text("Plant a Seed with \(recipientName) 🌱")
+                        .font(HarvestTheme.Typography.h3)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+
+                    Text("Start with something intentional — a question or a shared value.")
+                        .font(HarvestTheme.Typography.bodyRegular)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+
+                    GlassCard {
+                        TextEditor(text: $message)
+                            .frame(minHeight: 150)
+                            .scrollContentBackground(.hidden)
+                            .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    }
+
+                    HStack(spacing: HarvestTheme.Spacing.xs) {
+                        Image(systemName: "leaf.fill")
+                        Text("\(sentToday) of \(limit) Seeds sent today")
+                    }
+                    .font(HarvestTheme.Typography.caption)
+                    .foregroundStyle(atLimit ? HarvestTheme.Colors.error : HarvestTheme.Colors.textSecondary)
+
+                    if let error {
+                        Text(error)
+                            .font(HarvestTheme.Typography.caption)
+                            .foregroundStyle(HarvestTheme.Colors.error)
+                    }
+                }
+                .padding(HarvestTheme.Spacing.md)
             }
-            .padding()
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
             .navigationTitle("Send a Seed")
             .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Cancel") { dismiss() }
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Send") { Task { await send() } }
-                        .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending || sentToday >= limit)
+                        .disabled(!canSend)
+                        .fontWeight(.semibold)
                 }
             }
             .task {

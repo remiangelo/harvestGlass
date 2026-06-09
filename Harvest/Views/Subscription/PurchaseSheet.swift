@@ -65,25 +65,16 @@ struct PurchaseSheet: View {
                                 .font(HarvestTheme.Typography.h3)
 
                             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                                featureRow("Matches per week", value: tier.matchesPerWeek.map { "\($0)" } ?? "Unlimited")
-                                featureRow("Search distance", value: tier.maxDistanceMiles.map { "\($0) miles" } ?? "Unlimited")
+                                featureRow("Seeds per day", value: "\(tier.dailySeedLimit)")
+                                featureRow("Receive Seeds", value: "Unlimited")
                                 featureRow("Gardener chats/day", value: tier.gardenerConversationsPerDay.map { "\($0)" } ?? "Unlimited")
-                                featureRow("Gardener character limit", value: "\(tier.gardenerCharacterLimit / 1000)k")
 
-                                if tier.hasValuesMatching {
-                                    featureCheck("Deep values-based matching")
+                                if tier.name != .seed {
+                                    featureCheck("Deeper Soil & value insights")
+                                    featureCheck("Advanced compatibility insights")
                                 }
-                                if tier.hasAdvancedFilters {
-                                    featureCheck("Advanced discovery filters")
-                                }
-                                if tier.hasFullFilters {
-                                    featureCheck("Complete filter control")
-                                }
-                                if tier.canSeeLikes {
-                                    featureCheck("See who likes you")
-                                }
-                                if tier.canDisableMindfulMessaging {
-                                    featureCheck("Optional mindful messaging")
+                                if tier.name == .gold {
+                                    featureCheck("Premium relationship growth features")
                                 }
                             }
                         }

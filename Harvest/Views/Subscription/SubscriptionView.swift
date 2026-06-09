@@ -128,10 +128,10 @@ struct SubscriptionView: View {
                                 .font(HarvestTheme.Typography.h3)
                                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
                         } else {
-                            Text(priceString(for: tier.priceWeekly) + "/week")
-                                .font(HarvestTheme.Typography.bodyRegular)
+                            Text(priceString(for: tier.priceMonthly))
+                                .font(HarvestTheme.Typography.h3)
                                 .fontWeight(.semibold)
-                            Text(priceString(for: tier.priceMonthly) + "/month")
+                            Text("/month")
                                 .font(HarvestTheme.Typography.caption)
                                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
                         }
@@ -141,15 +141,12 @@ struct SubscriptionView: View {
                 Divider()
 
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
-                    featureRow("Matches/week", value: tier.matchesPerWeek.map { "\($0)" } ?? "Unlimited")
-                    featureRow("Distance", value: tier.maxDistanceMiles.map { "\($0) mi" } ?? "Unlimited")
-                    featureRow("Gardener chats/day", value: tier.gardenerConversationsPerDay.map { "\($0)" } ?? "Unlimited")
-                    featureRow("Character limit", value: "\(tier.gardenerCharacterLimit / 1000)k")
-                    featureCheck("Values matching", enabled: tier.hasValuesMatching)
-                    featureCheck("Advanced filters", enabled: tier.hasAdvancedFilters)
-                    featureCheck("Full filters", enabled: tier.hasFullFilters)
-                    featureCheck("See who likes you", enabled: tier.canSeeLikes)
-                    featureCheck("Disable mindful messaging", enabled: tier.canDisableMindfulMessaging)
+                    featureRow("Seeds per day", value: "\(tier.dailySeedLimit)")
+                    featureRow("Receive Seeds", value: "Unlimited")
+                    featureRow("Gardener access", value: gardenerAccessLabel(tier.name))
+                    featureCheck("Deeper Soil & value insights", enabled: tier.name != .seed)
+                    featureCheck("Advanced compatibility insights", enabled: tier.name != .seed)
+                    featureCheck("Premium growth features", enabled: tier.name == .gold)
                 }
 
                 if isCurrent {
@@ -209,6 +206,14 @@ struct SubscriptionView: View {
         case .seed: return "leaf"
         case .green: return "leaf.fill"
         case .gold: return "crown.fill"
+        }
+    }
+
+    private func gardenerAccessLabel(_ name: TierName) -> String {
+        switch name {
+        case .seed: return "Limited"
+        case .green: return "More"
+        case .gold: return "Full"
         }
     }
 

@@ -1,4 +1,3 @@
-// Harvest/Views/Seeds/SeedsView.swift
 import SwiftUI
 
 /// Carries both ids needed to open ChatDetailView from an accepted Seed.
@@ -20,11 +19,7 @@ struct SeedsView: View {
     private var acceptedRoute: AcceptedSeedRoute? {
         guard let convoId = vm.openedConversationId,
               let partnerId = vm.openedPartnerUserId else { return nil }
-        return AcceptedSeedRoute(
-            id: convoId,
-            conversationId: convoId,
-            partnerUserId: partnerId
-        )
+        return AcceptedSeedRoute(id: convoId, conversationId: convoId, partnerUserId: partnerId)
     }
 
     var body: some View {
@@ -35,7 +30,7 @@ struct SeedsView: View {
                     Text("Conversations").tag(SeedsViewModel.Segment.conversations)
                 }
                 .pickerStyle(.segmented)
-                .padding()
+                .padding(HarvestTheme.Spacing.md)
 
                 switch vm.segment {
                 case .requests:
@@ -47,9 +42,14 @@ struct SeedsView: View {
                     )
                 }
             }
+            .background(HarvestTheme.Colors.background.ignoresSafeArea())
+            .foregroundStyle(HarvestTheme.Colors.textPrimary)
             .navigationTitle("Seeds")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
+            .toolbarBackground(.visible, for: .navigationBar)
+            .toolbarColorScheme(.dark, for: .navigationBar)
             .task { await vm.load(userId: userId) }
-            .refreshable { await vm.load(userId: userId) }
             .navigationDestination(item: Binding(
                 get: { acceptedRoute },
                 set: { if $0 == nil { vm.openedConversationId = nil; vm.openedPartnerUserId = nil } }
@@ -64,32 +64,53 @@ struct SeedsView: View {
     }
 
     @ViewBuilder private var requests: some View {
+        let items = vm.requestKind == .received ? vm.received : vm.sent
+
         VStack(spacing: 0) {
             Picker("", selection: $vm.requestKind) {
                 Text("Received").tag(SeedsViewModel.RequestKind.received)
                 Text("Sent").tag(SeedsViewModel.RequestKind.sent)
             }
             .pickerStyle(.segmented)
-            .padding(.horizontal)
+            .padding(.horizontal, HarvestTheme.Spacing.md)
+            .padding(.bottom, HarvestTheme.Spacing.sm)
 
-            List {
-                let items = vm.requestKind == .received ? vm.received : vm.sent
-                if items.isEmpty {
-                    Text(vm.requestKind == .received ? "No new Seeds yet 🌱" : "No pending sent Seeds.")
-                        .foregroundStyle(.secondary)
-                } else {
-                    ForEach(items) { seed in
-                        SeedRow(
-                            seed: seed,
-                            isReceived: vm.requestKind == .received,
-                            onAccept: { Task { await vm.accept(seed, userId: userId) } },
-                            onDecline: { Task { await vm.decline(seed, userId: userId) } }
-                        )
+            ScrollView {
+                VStack(spacing: HarvestTheme.Spacing.md) {
+                    if items.isEmpty {
+                        emptyState
+                    } else {
+                        ForEach(items) { seed in
+                            SeedRow(
+                                seed: seed,
+                                isReceived: vm.requestKind == .received,
+                                onAccept: { Task { await vm.accept(seed, userId: userId) } },
+                                onDecline: { Task { await vm.decline(seed, userId: userId) } }
+                            )
+                        }
                     }
                 }
+                .padding(HarvestTheme.Spacing.md)
             }
-            .listStyle(.plain)
+            .refreshable { await vm.load(userId: userId) }
         }
+    }
+
+    private var emptyState: some View {
+        VStack(spacing: HarvestTheme.Spacing.sm) {
+            Text("🌱")
+                .font(.system(size: 40))
+            Text(vm.requestKind == .received ? "No new Seeds yet" : "No pending sent Seeds")
+                .font(HarvestTheme.Typography.h4)
+            Text(vm.requestKind == .received
+                 ? "When someone sends you a Seed, it'll appear here."
+                 : "Seeds you send will wait here until they're accepted.")
+                .font(HarvestTheme.Typography.bodySmall)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                .multilineTextAlignment(.center)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.top, HarvestTheme.Spacing.xxl)
     }
 }
 
@@ -100,22 +121,29 @@ private struct SeedRow: View {
     let onDecline: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            Text(seed.openingMessage).font(.body)
-            if isReceived {
-                HStack {
-                    Button("Let It Grow", action: onAccept)
-                        .buttonStyle(.borderedProminent)
-                        .tint(HarvestTheme.Colors.primary)
-                    Button("No Thanks", action: onDecline)
-                        .buttonStyle(.bordered)
+        GlassCard {
+            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.md) {
+                Text(seed.openingMessage)
+                    .font(HarvestTheme.Typography.bodyRegular)
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+
+                if isReceived {
+                    HStack(spacing: HarvestTheme.Spacing.sm) {
+                        Button("Let It Grow", action: onAccept)
+                            .buttonStyle(.harvestGlass(.primary))
+                        Button("No Thanks", action: onDecline)
+                            .buttonStyle(.harvestGlass(.secondary))
+                    }
+                } else {
+                    HStack(spacing: HarvestTheme.Spacing.xs) {
+                        Image(systemName: "clock")
+                        Text("Pending")
+                    }
+                    .font(HarvestTheme.Typography.caption)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
                 }
-            } else {
-                Text("Pending")
-                    .font(.caption)
-                    .foregroundStyle(.secondary)
             }
         }
-        .padding(.vertical, 6)
     }
 }

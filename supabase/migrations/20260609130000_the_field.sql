@@ -65,7 +65,9 @@ begin
   wants_all   := v_int && array['everyone','all','any','everybody'];
   wants_women := (v_int && array['woman','women','female','f']) or wants_all;
   wants_men   := (v_int && array['man','men','male','m']) or wants_all;
-  v_eligible := v_status in ('single','dating');
+  -- Eligible when single/dating OR status not yet set (launch default so the
+  -- Field is not empty for users who have not chosen a status).
+  v_eligible := v_status in ('single','dating','');
   return query
   select c.* from public.communities c
   where c.is_active and (
