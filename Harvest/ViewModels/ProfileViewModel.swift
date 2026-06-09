@@ -26,6 +26,7 @@ final class ProfileViewModel {
     var editCannabis = ""
     var editSpiritualOrientation = ""
     var editChildrenStatus = ""
+    var editRelationshipStatus = ""
     var editInterestedIn: [String] = []
 
     var valuesBrought: [Value]?
@@ -155,6 +156,9 @@ final class ProfileViewModel {
         if normalizedOptional(editChildrenStatus) != profile?.childrenStatus {
             updates["children_status"] = anyJSONStringOrNull(editChildrenStatus)
         }
+        if normalizedOptional(editRelationshipStatus) != profile?.relationshipStatus {
+            updates["relationship_status"] = anyJSONStringOrNull(editRelationshipStatus)
+        }
 
         guard photosChanged || !updates.isEmpty else {
             isEditing = false
@@ -215,6 +219,7 @@ final class ProfileViewModel {
         profile?.cannabis = normalizedOptional(editCannabis)
         profile?.spiritualOrientation = normalizedOptional(editSpiritualOrientation)
         profile?.childrenStatus = normalizedOptional(editChildrenStatus)
+        profile?.relationshipStatus = normalizedOptional(editRelationshipStatus)
     }
 
     func uploadPhoto(userId: String, imageData: Data) async {
@@ -267,6 +272,7 @@ final class ProfileViewModel {
         editCannabis = profile?.cannabis ?? ""
         editSpiritualOrientation = profile?.spiritualOrientation ?? ""
         editChildrenStatus = profile?.childrenStatus ?? ""
+        editRelationshipStatus = profile?.relationshipStatus ?? ""
     }
 
     private func anyJSONStringOrNull(_ value: String) -> AnyJSON {

@@ -219,13 +219,14 @@ struct ChatDetailView: View {
             ReportUserView(
                 reporterId: authViewModel.currentUserId ?? "",
                 reportedUserId: partnerUserId,
-                onSubmit: { category, description in
+                onSubmit: { category, description, reportTarget in
                     Task {
                         await viewModel.reportUser(
                             reporterId: authViewModel.currentUserId ?? "",
                             reportedUserId: partnerUserId,
                             category: category,
-                            description: description
+                            description: description,
+                            target: reportTarget
                         )
                     }
                 }

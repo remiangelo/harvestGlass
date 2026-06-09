@@ -31,27 +31,27 @@ struct MainTabView: View {
 
     var body: some View {
         TabView(selection: $selection) {
-            Tab("Chat", systemImage: "bubble.left.fill", value: 0) {
-                MindfulMessagesView(
+            Tab("Soil", systemImage: "heart.text.square.fill", value: 0) {
+                ValuesView(authViewModel: authViewModel)
+            }
+
+            Tab("The Field", systemImage: "leaf.circle.fill", value: 1) {
+                FieldView(authViewModel: authViewModel)
+            }
+
+            Tab("Gardener", systemImage: "leaf.fill", value: 2) {
+                GardenerChatView(authViewModel: authViewModel)
+            }
+
+            Tab("Seeds", systemImage: "bubble.left.fill", value: 3) {
+                SeedsView(
                     authViewModel: authViewModel,
                     pendingChatDeepLink: $pendingChatDeepLink
                 )
             }
 
-            Tab("Gardener", systemImage: "leaf.fill", value: 1) {
-                GardenerChatView(authViewModel: authViewModel)
-            }
-
-            Tab("Values", systemImage: "heart.text.square.fill", value: 2) {
-                ValuesView(authViewModel: authViewModel)
-            }
-
-            Tab("Profile", systemImage: "person.fill", value: 3) {
+            Tab("Profile", systemImage: "person.fill", value: 4) {
                 ProfileView(authViewModel: authViewModel)
-            }
-
-            Tab("Swipe", systemImage: "safari", value: 4) {
-                DiscoverView(authViewModel: authViewModel)
             }
         }
         .tint(HarvestTheme.Colors.primary)
@@ -63,21 +63,22 @@ struct MainTabView: View {
             DifferentiationView {
                 UserDefaults.standard.set(true, forKey: "hasSeenDifferentiation")
                 showDifferentiation = false
-                selection = 1
+                selection = 1   // land on The Field after the intro
             }
         }
     }
+
     private func handleDeepLink(_ link: String) {
         if link.hasPrefix("chat:") {
             let conversationId = String(link.dropFirst("chat:".count))
-            selection = 0
+            selection = 3
             pendingChatDeepLink = conversationId
-        } else if link.hasPrefix("match:") {
-            selection = 0
-        } else if link == "likes" {
-            selection = 0
+        } else if link.hasPrefix("seed:") || link == "seeds" || link.hasPrefix("match:") {
+            selection = 3            // all connection events open the Seeds tab
         } else if link == "gardener" {
-            selection = 1
+            selection = 2
+        } else if link.hasPrefix("community:") {
+            selection = 1            // Phase 3 deep-links into the room
         }
     }
 }

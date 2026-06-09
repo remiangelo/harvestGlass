@@ -39,6 +39,16 @@ struct TermsStepView: View {
                 }
                 .padding(.top, HarvestTheme.Spacing.xs)
 
+                // Community-Standards honesty clause for relationship status.
+                HStack(alignment: .top, spacing: HarvestTheme.Spacing.sm) {
+                    Image(systemName: "heart.text.square.fill")
+                        .foregroundStyle(HarvestTheme.Colors.primary)
+                    Text("Harvest is built on trust, intentionality, and authentic connection. Users are expected to accurately represent their relationship status. If we determine that someone intentionally misrepresented their relationship status to access communities that do not align with their current relationship season, Harvest reserves the right to restrict, suspend, or remove access to the platform.")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                }
+                .padding(.top, HarvestTheme.Spacing.xs)
+
                 HStack(spacing: HarvestTheme.Spacing.md) {
                     Button("Terms of Service") { showTerms = true }
                     Button("Community Guidelines") { showGuidelines = true }

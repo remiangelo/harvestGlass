@@ -23,6 +23,7 @@ struct SubscriptionService {
         let canSeeLikes: Bool
         let canDisableMindfulMessaging: Bool
         let sortOrder: Int
+        let dailySeedLimit: Int
 
         enum CodingKeys: String, CodingKey {
             case id, name, description
@@ -41,6 +42,7 @@ struct SubscriptionService {
             case canSeeLikes = "can_see_likes"
             case canDisableMindfulMessaging = "can_disable_mindful_messaging"
             case sortOrder = "sort_order"
+            case dailySeedLimit = "daily_seed_limit"
         }
 
         init(from decoder: Decoder) throws {
@@ -64,6 +66,7 @@ struct SubscriptionService {
             canSeeLikes = try container.decodeIfPresent(Bool.self, forKey: .canSeeLikes) ?? false
             canDisableMindfulMessaging = try container.decodeIfPresent(Bool.self, forKey: .canDisableMindfulMessaging) ?? false
             sortOrder = try Self.decodeInt(in: container, forKey: .sortOrder) ?? 0
+            dailySeedLimit = try Self.decodeInt(in: container, forKey: .dailySeedLimit) ?? 3
         }
 
         private static func decodeDouble(in container: KeyedDecodingContainer<CodingKeys>, forKey key: CodingKeys) throws -> Double? {
@@ -110,7 +113,8 @@ struct SubscriptionService {
                 hasFullFilters: hasFullFilters,
                 canSeeLikes: canSeeLikes,
                 canDisableMindfulMessaging: canDisableMindfulMessaging,
-                sortOrder: sortOrder
+                sortOrder: sortOrder,
+                dailySeedLimit: dailySeedLimit
             )
         }
     }
@@ -153,6 +157,26 @@ struct SubscriptionService {
             .execute()
             .value
         return subs.first
+    }
+
+    /// Daily Seed-send limit for the user's active tier (defaults to free tier = 3).
+    func getDailySeedLimit(userId: String) async -> Int {
+        do {
+            // Resolve the user's active subscription, then look up the tier row.
+            guard let userSub = try await getUserSubscription(userId: userId) else {
+                return 3   // no active subscription => free/seed tier default
+            }
+            let tierDTOs: [SubscriptionTierDTO] = try await client
+                .from("subscription_tiers")
+                .select()
+                .eq("id", value: userSub.tierId)
+                .limit(1)
+                .execute()
+                .value
+            return tierDTOs.first?.dailySeedLimit ?? 3
+        } catch {
+            return 3
+        }
     }
 
     func initializeUserSubscription(userId: String) async throws {

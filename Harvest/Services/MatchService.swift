@@ -91,15 +91,20 @@ struct MatchService {
         }
     }
 
-    func reportUser(reporterId: String, reportedUserId: String, category: String, description: String) async throws {
+    func reportUser(reporterId: String, reportedUserId: String, category: String, description: String, target: ReportTarget = .profile) async throws {
+        var payload: [String: AnyJSON] = [
+            "reporter_id": .string(reporterId),
+            "reported_id": .string(reportedUserId),
+            "reason": .string(category),
+            "description": .string(description),
+            "target_type": .string(target.typeString)
+        ]
+        if let tid = target.targetId {
+            payload["target_id"] = .string(tid)
+        }
         try await client
             .from("user_reports")
-            .insert([
-                "reporter_id": reporterId,
-                "reported_id": reportedUserId,
-                "reason": category,
-                "description": description
-            ])
+            .insert(payload)
             .execute()
     }
 

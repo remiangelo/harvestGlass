@@ -31,6 +31,8 @@ struct OnboardingContainerView: View {
                         GenderStepView(viewModel: viewModel)
                     case .interestedIn:
                         InterestedInStepView(viewModel: viewModel)
+                    case .relationshipStatus:
+                        RelationshipStatusStepView(viewModel: viewModel)
                     case .location:
                         LocationStepView(viewModel: viewModel)
                     case .terms:

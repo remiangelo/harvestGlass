@@ -275,13 +275,14 @@ final class ChatViewModel {
 
     // MARK: - Report/Block/Unmatch
 
-    func reportUser(reporterId: String, reportedUserId: String, category: String, description: String) async {
+    func reportUser(reporterId: String, reportedUserId: String, category: String, description: String, target: ReportTarget = .profile) async {
         do {
             try await matchService.reportUser(
                 reporterId: reporterId,
                 reportedUserId: reportedUserId,
                 category: category,
-                description: description
+                description: description,
+                target: target
             )
         } catch {
             self.error = error.localizedDescription

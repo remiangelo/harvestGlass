@@ -16,12 +16,16 @@ alter table public.user_reports
   add column if not exists action_taken text,                             -- 'dismissed' | 'content_removed' | 'banned'
   add column if not exists reviewed_at  timestamptz,
   add column if not exists reviewed_by  text,
-  add column if not exists created_at   timestamptz not null default now();
+  add column if not exists created_at   timestamptz not null default now(),
+  add column if not exists target_type  text not null default 'profile'
+      check (target_type in ('profile','community_message','seed_message')),
+  add column if not exists target_id    uuid;   -- message id when applicable
 
 create index if not exists user_reports_status_idx on public.user_reports (status);
 
 -- 3) Convenience view the admin panel reads from: each report joined with the
---    reported user's current profile content and the reporter's name.
+--    reported user's current profile content, the reporter's name, and (for
+--    community-message reports) the message text and room.
 create or replace view public.moderation_queue as
 select
   r.id,
@@ -32,11 +36,19 @@ select
   r.status,
   r.action_taken,
   r.created_at,
+  r.target_type,
+  r.target_id,
   reported.nickname  as reported_nickname,
   reported.bio       as reported_bio,
   reported.photos    as reported_photos,
   reported.is_banned as reported_is_banned,
-  reporter.nickname  as reporter_nickname
+  reporter.nickname  as reporter_nickname,
+  cm.content         as target_message_content,
+  cm.community_id    as target_community_id,
+  comm.name          as target_community_name
 from public.user_reports r
 left join public.users reported on reported.id = r.reported_id
-left join public.users reporter on reporter.id = r.reporter_id;
+left join public.users reporter on reporter.id = r.reporter_id
+left join public.community_messages cm
+       on r.target_type = 'community_message' and cm.id = r.target_id
+left join public.communities comm on comm.id = cm.community_id;
