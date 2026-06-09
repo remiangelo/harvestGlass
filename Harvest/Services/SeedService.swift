@@ -80,4 +80,19 @@ struct SeedService {
             .execute()
             .value
     }
+
+    /// How many Seeds the user has sent since local midnight UTC (matches the
+    /// server trigger's date_trunc('day', now())).
+    func sentTodayCount(userId: String) async throws -> Int {
+        let startOfDay = ISO8601DateFormatter().string(
+            from: Calendar(identifier: .gregorian).startOfDay(for: Date()))
+        let rows: [Seed] = try await client
+            .from("seeds")
+            .select("id, created_at, sender_id, recipient_id, opening_message, status, conversation_id, responded_at")
+            .eq("sender_id", value: userId)
+            .gte("created_at", value: startOfDay)
+            .execute()
+            .value
+        return rows.count
+    }
 }

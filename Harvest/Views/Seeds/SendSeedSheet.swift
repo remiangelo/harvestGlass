@@ -10,8 +10,11 @@ struct SendSeedSheet: View {
     @State private var message: String = ""
     @State private var isSending = false
     @State private var error: String?
+    @State private var sentToday = 0
+    @State private var limit = 3
 
     private let service = SeedService()
+    private let subscriptionService = SubscriptionService()
 
     var body: some View {
         NavigationStack {
@@ -24,6 +27,9 @@ struct SendSeedSheet: View {
                 TextEditor(text: $message)
                     .frame(minHeight: 140)
                     .overlay(RoundedRectangle(cornerRadius: 10).stroke(.quaternary))
+                Text("\(sentToday) of \(limit) Seeds sent today")
+                    .font(.caption)
+                    .foregroundStyle(sentToday >= limit ? .red : .secondary)
                 if let error { Text(error).foregroundStyle(.red).font(.caption) }
                 Spacer()
             }
@@ -36,8 +42,15 @@ struct SendSeedSheet: View {
                 }
                 ToolbarItem(placement: .confirmationAction) {
                     Button("Send") { Task { await send() } }
-                        .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending)
+                        .disabled(message.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSending || sentToday >= limit)
                 }
+            }
+            .task {
+                guard let userId = authViewModel.currentUserId else { return }
+                async let fetchedLimit = subscriptionService.getDailySeedLimit(userId: userId)
+                async let fetchedCount = (try? service.sentTodayCount(userId: userId)) ?? 0
+                limit = await fetchedLimit
+                sentToday = await fetchedCount
             }
         }
     }

@@ -45,6 +45,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
     let canSeeLikes: Bool
     let canDisableMindfulMessaging: Bool
     let sortOrder: Int
+    let dailySeedLimit: Int
 
     var marketingDisplayName: String {
         switch name {
@@ -72,6 +73,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         case canSeeLikes = "can_see_likes"
         case canDisableMindfulMessaging = "can_disable_mindful_messaging"
         case sortOrder = "sort_order"
+        case dailySeedLimit = "daily_seed_limit"
     }
 
     init(
@@ -91,7 +93,8 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         hasFullFilters: Bool,
         canSeeLikes: Bool,
         canDisableMindfulMessaging: Bool,
-        sortOrder: Int
+        sortOrder: Int,
+        dailySeedLimit: Int = 3
     ) {
         self.id = id
         self.name = name
@@ -110,6 +113,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         self.canSeeLikes = canSeeLikes
         self.canDisableMindfulMessaging = canDisableMindfulMessaging
         self.sortOrder = sortOrder
+        self.dailySeedLimit = dailySeedLimit
     }
 
     init(from decoder: Decoder) throws {
@@ -134,6 +138,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         canSeeLikes = try container.decode(Bool.self, forKey: .canSeeLikes)
         canDisableMindfulMessaging = try container.decode(Bool.self, forKey: .canDisableMindfulMessaging)
         sortOrder = try container.decode(Int.self, forKey: .sortOrder)
+        dailySeedLimit = try container.decodeIfPresent(Int.self, forKey: .dailySeedLimit) ?? 3
     }
 
     func encode(to encoder: Encoder) throws {
@@ -156,6 +161,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         try container.encode(canSeeLikes, forKey: .canSeeLikes)
         try container.encode(canDisableMindfulMessaging, forKey: .canDisableMindfulMessaging)
         try container.encode(sortOrder, forKey: .sortOrder)
+        try container.encode(dailySeedLimit, forKey: .dailySeedLimit)
     }
 }
 
