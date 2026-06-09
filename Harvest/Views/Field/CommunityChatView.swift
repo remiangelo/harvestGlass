@@ -6,6 +6,7 @@ struct CommunityChatView: View {
 
     @State private var vm = CommunityChatViewModel()
     @State private var showPrompts = false
+    @State private var reportTarget: (senderId: String, messageId: String)? = nil
     private var userId: String { authViewModel.currentUserId ?? "" }
 
     var body: some View {
@@ -16,6 +17,15 @@ struct CommunityChatView: View {
                         ForEach(vm.messages) { msg in
                             CommunityBubble(message: msg, isMine: msg.senderId == userId)
                                 .id(msg.id)
+                                .contextMenu {
+                                    if msg.senderId != userId {
+                                        Button(role: .destructive) {
+                                            reportTarget = (senderId: msg.senderId, messageId: msg.id)
+                                        } label: {
+                                            Label("Report message", systemImage: "flag")
+                                        }
+                                    }
+                                }
                         }
                     }
                     .padding()
@@ -54,7 +64,35 @@ struct CommunityChatView: View {
                 showPrompts = false
             }
         }
+        .sheet(item: Binding(
+            get: { reportTarget.map { ReportSheetItem(senderId: $0.senderId, messageId: $0.messageId) } },
+            set: { if $0 == nil { reportTarget = nil } }
+        )) { item in
+            ReportUserView(
+                reporterId: userId,
+                reportedUserId: item.senderId,
+                target: .communityMessage(id: item.messageId)
+            ) { category, description, reportTargetValue in
+                Task {
+                    let service = MatchService()
+                    try? await service.reportUser(
+                        reporterId: userId,
+                        reportedUserId: item.senderId,
+                        category: category,
+                        description: description,
+                        target: reportTargetValue
+                    )
+                }
+            }
+        }
     }
+}
+
+/// Identifiable wrapper so the sheet(item:) binding works.
+private struct ReportSheetItem: Identifiable, Equatable {
+    let senderId: String
+    let messageId: String
+    var id: String { messageId }
 }
 
 private struct CommunityBubble: View {

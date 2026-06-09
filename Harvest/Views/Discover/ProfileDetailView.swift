@@ -199,13 +199,14 @@ struct ProfileDetailView: View {
             }
             .sheet(isPresented: $showReportSheet) {
                 if let reporterId = currentProfile?.id {
-                    ReportUserView(reporterId: reporterId, reportedUserId: profile.id) { category, description in
+                    ReportUserView(reporterId: reporterId, reportedUserId: profile.id) { category, description, reportTarget in
                         Task {
                             try? await matchService.reportUser(
                                 reporterId: reporterId,
                                 reportedUserId: profile.id,
                                 category: category,
-                                description: description
+                                description: description,
+                                target: reportTarget
                             )
                         }
                     }
