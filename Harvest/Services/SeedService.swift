@@ -39,12 +39,24 @@ struct SeedService {
     }
 
     /// Accept a Seed via the RPC; returns the new conversation id.
+    /// The function returns a scalar uuid; decode defensively in case the
+    /// transport wraps it (scalar string vs single-element array).
     func acceptSeed(seedId: String) async throws -> String {
-        let conversationId: String = try await client
+        let response = try await client
             .rpc("accept_seed", params: ["p_seed_id": seedId])
             .execute()
-            .value
-        return conversationId
+        let data = response.data
+        if let scalar = try? JSONDecoder().decode(String.self, from: data) {
+            return scalar
+        }
+        if let array = try? JSONDecoder().decode([String].self, from: data), let first = array.first {
+            return first
+        }
+        // Last resort: trim quotes/whitespace from the raw body.
+        let raw = String(data: data, encoding: .utf8) ?? ""
+        let trimmed = raw.trimmingCharacters(in: CharacterSet(charactersIn: "\"\n\r "))
+        if trimmed.isEmpty { throw SeedError.underlying("accept_seed returned no conversation id") }
+        return trimmed
     }
 
     func declineSeed(seedId: String) async throws {

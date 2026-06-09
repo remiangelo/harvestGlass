@@ -102,7 +102,7 @@ extension MockSupabaseClient {
             displayName: name.rawValue.capitalized,
             description: "Test \(name.rawValue) tier",
             priceMonthly: name == .seed ? 0 : 9.99,
-            priceYearly: name == .seed ? 0 : 99.99,
+            priceWeekly: name == .seed ? 0 : 2.99,
             matchesPerWeek: matchesPerWeek,
             maxDistanceMiles: 25,
             gardenerConversationsPerDay: gardenerConversationsPerDay,
