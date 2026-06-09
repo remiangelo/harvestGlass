@@ -1,0 +1,79 @@
+# Codemagic CI/CD — build Harvest and ship to TestFlight.
+# Setup steps (one-time, in the Codemagic web UI) are in docs/CODEMAGIC_SETUP.md.
+#
+# Signing is fully automatic: Codemagic uses the connected App Store Connect API
+# key to create/fetch the distribution certificate + provisioning profile in the
+# cloud — no Mac and no manual certs required.
+
+workflows:
+  ios-testflight:
+    name: Harvest iOS — TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+
+    integrations:
+      # Must match the App Store Connect API key name you add in
+      # Codemagic → Teams/App settings → Integrations → App Store Connect.
+      app_store_connect: Harvest ASC API Key
+
+    environment:
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: HarvestGlass.Harvest
+      vars:
+        XCODE_PROJECT: "Harvest.xcodeproj"
+        XCODE_SCHEME: "Harvest"
+        BUNDLE_ID: "HarvestGlass.Harvest"
+      xcode: latest          # iOS 26 deployment target needs the latest Xcode
+
+    triggering:
+      events:
+        - push
+      branch_patterns:
+        - pattern: main
+          include: true
+          source: true
+
+    scripts:
+      - name: Resolve Swift Package dependencies
+        script: |
+          xcodebuild -resolvePackageDependencies \
+            -project "$XCODE_PROJECT" \
+            -scheme "$XCODE_SCHEME"
+
+      - name: Set the build number to the CI counter
+        script: |
+          # $BUILD_NUMBER auto-increments per Codemagic build, guaranteeing a
+          # unique CFBundleVersion so TestFlight never rejects a duplicate.
+          cd "$CM_BUILD_DIR"
+          agvtool new-version -all "$BUILD_NUMBER" || \
+            echo "agvtool could not set version (check apple-generic versioning); continuing"
+
+      - name: Install signing profiles
+        script: |
+          xcode-project use-profiles
+
+      - name: Build IPA
+        script: |
+          xcode-project build-ipa \
+            --project "$XCODE_PROJECT" \
+            --scheme "$XCODE_SCHEME"
+
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - $HOME/Library/Developer/Xcode/DerivedData/**/Build/**/*.app
+      - /tmp/xcodebuild_logs/*.log
+
+    publishing:
+      app_store_connect:
+        auth: integration          # use the connected API key integration
+        submit_to_testflight: true
+        # Uncomment to auto-distribute to an internal tester group:
+        # beta_groups:
+        #   - "Internal Testers"
+      email:
+        recipients:
+          - munchies.se@gmail.com
+        notify:
+          success: true
+          failure: true
