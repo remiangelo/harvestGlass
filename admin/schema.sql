@@ -26,7 +26,8 @@ create index if not exists user_reports_status_idx on public.user_reports (statu
 -- 3) Convenience view the admin panel reads from: each report joined with the
 --    reported user's current profile content, the reporter's name, and (for
 --    community-message reports) the message text and room.
-create or replace view public.moderation_queue as
+drop view if exists public.moderation_queue;
+create view public.moderation_queue with (security_invoker = true) as
 select
   r.id,
   r.reporter_id,
