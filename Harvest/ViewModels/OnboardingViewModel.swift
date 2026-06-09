@@ -13,6 +13,7 @@ enum OnboardingStep: Int, CaseIterable {
     case reflections
     case genderIdentity
     case interestedIn
+    case relationshipStatus
     case location
     case terms
     case complete
@@ -36,6 +37,7 @@ final class OnboardingViewModel {
     var isLoadingQuestions = false
     var gender = ""
     var interestedIn: Set<String> = []
+    var relationshipStatus = ""   // single|dating|in_relationship|engaged|married
     var location = ""
     var termsAccepted = false
     var isLoading = false
@@ -69,6 +71,7 @@ final class OnboardingViewModel {
             return !allQuestions.isEmpty && reflectionAnswers.count >= allQuestions.count
         case .genderIdentity: return !gender.isEmpty
         case .interestedIn: return !interestedIn.isEmpty
+        case .relationshipStatus: return !relationshipStatus.isEmpty
         case .location: return resolvedLocation != nil
         case .terms: return termsAccepted
         case .complete: return true
@@ -210,6 +213,7 @@ final class OnboardingViewModel {
             "photos": .array(photoUrls.map { .string($0) }),
             "location": .string(resolvedLocation ?? location),
             "interested_in": .array(Array(interestedIn).map { .string($0) }),
+            "relationship_status": .string(relationshipStatus),
             "onboarding_completed": .bool(true)
         ]
 
