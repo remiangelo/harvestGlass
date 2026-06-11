@@ -155,7 +155,11 @@ struct ProfileEditView: View {
                 SectionHeader(title: "Interests")
                 GlassCard(style: .light) {
                     NavigationLink {
-                        InterestPickerView(selectedInterests: $viewModel.editHobbies)
+                        InterestPickerView(selectedInterests: $viewModel.editHobbies) {
+                            if let userId = authViewModel.currentUserId {
+                                Task { await viewModel.saveHobbies(userId: userId) }
+                            }
+                        }
                     } label: {
                         navRow(
                             title: "Edit Interests",
@@ -169,7 +173,6 @@ struct ProfileEditView: View {
             .padding(.top, HarvestTheme.Spacing.sm)
         }
         .scrollDismissesKeyboard(.interactively)
-        .dismissKeyboardOnTap()
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
         .navigationTitle("Edit Profile")
         .navigationBarTitleDisplayMode(.inline)

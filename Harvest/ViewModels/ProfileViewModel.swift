@@ -204,6 +204,26 @@ final class ProfileViewModel {
         }
     }
 
+    // Interests are saved as soon as the picker's Save is tapped, so they
+    // persist even if the user backs out of Edit Profile without saving.
+    func saveHobbies(userId: String) async {
+        guard editHobbies != profile?.hobbies ?? [] else { return }
+        error = nil
+
+        do {
+            let updates: [String: AnyJSON] = [
+                "hobbies": .array(editHobbies.map { .string($0) })
+            ]
+            if let updated = try await profileService.updateProfile(userId: userId, updates: updates) {
+                profile = updated
+            } else {
+                profile?.hobbies = editHobbies
+            }
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
     private func applyEditsLocally() {
         profile?.nickname = editNickname
         profile?.bio = editBio

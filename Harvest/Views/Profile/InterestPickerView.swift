@@ -2,6 +2,7 @@ import SwiftUI
 
 struct InterestPickerView: View {
     @Binding var selectedInterests: [String]
+    var onSave: (() -> Void)? = nil
     @Environment(\.dismiss) private var dismiss
     @State private var draftInterests: [String] = []
 
@@ -89,6 +90,7 @@ struct InterestPickerView: View {
             ToolbarItem(placement: .topBarTrailing) {
                 Button("Save") {
                     selectedInterests = draftInterests
+                    onSave?()
                     dismiss()
                 }
                 .fontWeight(.semibold)

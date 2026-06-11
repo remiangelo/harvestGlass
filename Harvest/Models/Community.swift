@@ -38,3 +38,12 @@ struct CommunityPrompt: Identifiable, Codable, Equatable {
     let id: String
     let text: String
 }
+
+/// Lightweight sender info for community chat (name + avatar).
+struct CommunitySender: Identifiable, Codable, Equatable {
+    let id: String
+    let nickname: String?
+    let photos: [String]?
+
+    var photoUrl: String? { photos?.first }
+}

@@ -22,7 +22,11 @@ struct CommunityChatView: View {
                             emptyState
                         }
                         ForEach(vm.messages) { msg in
-                            CommunityBubble(message: msg, isMine: msg.senderId == userId)
+                            CommunityBubble(
+                                message: msg,
+                                sender: vm.senders[msg.senderId],
+                                isMine: msg.senderId == userId
+                            )
                                 .id(msg.id)
                                 .contextMenu {
                                     if msg.senderId != userId {
@@ -154,22 +158,69 @@ private struct ReportSheetItem: Identifiable, Equatable {
 
 private struct CommunityBubble: View {
     let message: CommunityMessage
+    let sender: CommunitySender?
     let isMine: Bool
 
+    private var senderName: String {
+        isMine ? "You" : (sender?.nickname ?? "Member")
+    }
+
     var body: some View {
-        HStack {
-            if isMine { Spacer(minLength: 40) }
-            Text(message.content)
-                .font(HarvestTheme.Typography.bodyRegular)
-                .foregroundStyle(isMine ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
-                .padding(.horizontal, HarvestTheme.Spacing.md)
-                .padding(.vertical, HarvestTheme.Spacing.sm)
-                .background(
-                    RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                        .fill(isMine ? HarvestTheme.Colors.rose : HarvestTheme.Colors.wineCard)
-                )
-            if !isMine { Spacer(minLength: 40) }
+        HStack(alignment: .top, spacing: HarvestTheme.Spacing.xs) {
+            if isMine {
+                Spacer(minLength: 40)
+            } else {
+                avatar
+            }
+
+            VStack(alignment: isMine ? .trailing : .leading, spacing: 2) {
+                Text(senderName)
+                    .font(HarvestTheme.Typography.caption)
+                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+
+                Text(message.content)
+                    .font(HarvestTheme.Typography.bodyRegular)
+                    .foregroundStyle(isMine ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
+                    .padding(.horizontal, HarvestTheme.Spacing.md)
+                    .padding(.vertical, HarvestTheme.Spacing.sm)
+                    .background(
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+                            .fill(isMine ? HarvestTheme.Colors.rose : HarvestTheme.Colors.wineCard)
+                    )
+            }
+
+            if isMine {
+                avatar
+            } else {
+                Spacer(minLength: 40)
+            }
         }
+    }
+
+    private var avatar: some View {
+        Group {
+            if let urlString = sender?.photoUrl, let url = URL(string: urlString) {
+                AsyncImage(url: url) { image in
+                    image.resizable().scaledToFill()
+                } placeholder: {
+                    avatarPlaceholder
+                }
+            } else {
+                avatarPlaceholder
+            }
+        }
+        .frame(width: 30, height: 30)
+        .clipShape(Circle())
+    }
+
+    private var avatarPlaceholder: some View {
+        Circle()
+            .fill(HarvestTheme.Colors.wineCard)
+            .overlay {
+                Image(systemName: "person.fill")
+                    .font(.system(size: 13))
+                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+            }
     }
 }
 

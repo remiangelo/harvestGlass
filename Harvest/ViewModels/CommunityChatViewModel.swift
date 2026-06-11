@@ -6,6 +6,7 @@ import Realtime
 final class CommunityChatViewModel {
     var messages: [CommunityMessage] = []
     var prompts: [CommunityPrompt] = []
+    var senders: [String: CommunitySender] = [:]
     var draft: String = ""
     var error: String?
 
@@ -21,11 +22,13 @@ final class CommunityChatViewModel {
         } catch {
             self.error = error.localizedDescription
         }
+        await loadSenders(for: Set(messages.map(\.senderId)))
         channel = service.subscribe(communityId: communityId) { [weak self] msg in
             Task { @MainActor in
                 guard let self else { return }
                 if !self.messages.contains(where: { $0.id == msg.id }) && !msg.isRemoved {
                     self.messages.append(msg)
+                    await self.loadSenders(for: [msg.senderId])
                 }
             }
         }
@@ -35,8 +38,12 @@ final class CommunityChatViewModel {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
         do {
-            try await service.post(communityId: communityId, senderId: senderId, content: text)
+            let sent = try await service.post(communityId: communityId, senderId: senderId, content: text)
             draft = ""
+            if let sent, !messages.contains(where: { $0.id == sent.id }) {
+                messages.append(sent)
+            }
+            await loadSenders(for: [senderId])
         } catch {
             // Phase 6: contact-info block surfaces here as a friendly nudge.
             if "\(error)".contains("CONTACT_INFO_BLOCKED") {
@@ -50,5 +57,15 @@ final class CommunityChatViewModel {
     func stop() {
         if let channel { service.unsubscribe(channel) }
         channel = nil
+    }
+
+    private func loadSenders(for ids: Set<String>) async {
+        let missing = ids.subtracting(senders.keys)
+        guard !missing.isEmpty else { return }
+        if let rows = try? await service.senderProfiles(ids: Array(missing)) {
+            for row in rows {
+                senders[row.id] = row
+            }
+        }
     }
 }

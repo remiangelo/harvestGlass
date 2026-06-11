@@ -58,15 +58,32 @@ struct CommunityService {
     }
 
     /// Throws ContactInfoBlocked when server-side detection rejects the message (Phase 6).
-    func post(communityId: String, senderId: String, content: String) async throws {
-        try await client
+    /// Returns the inserted row so the sender sees the message immediately,
+    /// without waiting for the realtime echo.
+    @discardableResult
+    func post(communityId: String, senderId: String, content: String) async throws -> CommunityMessage? {
+        let inserted: [CommunityMessage] = try await client
             .from("community_messages")
             .insert([
                 "community_id": communityId,
                 "sender_id": senderId,
                 "content": content
             ])
+            .select()
             .execute()
+            .value
+        return inserted.first
+    }
+
+    /// Name + avatar for the given user ids (for chat bubbles).
+    func senderProfiles(ids: [String]) async throws -> [CommunitySender] {
+        guard !ids.isEmpty else { return [] }
+        return try await client
+            .from("users")
+            .select("id, nickname, photos")
+            .in("id", values: ids)
+            .execute()
+            .value
     }
 
     func prompts(communityId: String) async throws -> [CommunityPrompt] {
@@ -76,6 +93,7 @@ struct CommunityService {
             .select("id, text")
             .or("community_id.eq.\(communityId),community_id.is.null")
             .eq("is_active", value: true)
+            .order("display_order", ascending: true)
             .execute()
             .value
     }
