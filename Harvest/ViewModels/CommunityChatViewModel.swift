@@ -10,7 +10,13 @@ final class CommunityChatViewModel {
     var draft: String = ""
     var error: String?
 
+    // Mindful messaging — outgoing pre-send warning (mirrors 1:1 chat).
+    var mindfulAnalysis: MindfulMessagingService.MindfulAnalysis?
+    var showMindfulWarning = false
+    private var pendingDraft = ""
+
     private let service = CommunityService()
+    private let mindfulService = MindfulMessagingService()
     private var channel: RealtimeChannelV2?
 
     func start(communityId: String) async {
@@ -37,9 +43,39 @@ final class CommunityChatViewModel {
     func send(communityId: String, senderId: String) async {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+
+        // Mindful messaging check — warn the sender before posting concerning content.
+        if mindfulService.isEnabled {
+            let analysis = await mindfulService.analyzeMessage(text)
+            if analysis.needsReview {
+                mindfulAnalysis = analysis
+                pendingDraft = text
+                showMindfulWarning = true
+                return
+            }
+        }
+
+        await performSend(communityId: communityId, senderId: senderId, text: text)
+    }
+
+    func confirmSendDespiteWarning(communityId: String, senderId: String) async {
+        showMindfulWarning = false
+        mindfulAnalysis = nil
+        let text = pendingDraft
+        guard !text.isEmpty else { return }
+        await performSend(communityId: communityId, senderId: senderId, text: text)
+    }
+
+    func dismissMindfulWarning() {
+        showMindfulWarning = false
+        mindfulAnalysis = nil
+    }
+
+    private func performSend(communityId: String, senderId: String, text: String) async {
         do {
             let sent = try await service.post(communityId: communityId, senderId: senderId, content: text)
             draft = ""
+            pendingDraft = ""
             if let sent, !messages.contains(where: { $0.id == sent.id }) {
                 messages.append(sent)
             }

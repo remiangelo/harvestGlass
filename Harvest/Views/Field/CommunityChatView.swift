@@ -7,6 +7,9 @@ struct CommunityChatView: View {
     @State private var vm = CommunityChatViewModel()
     @State private var showPrompts = false
     @State private var reportTarget: (senderId: String, messageId: String)? = nil
+    @State private var selectedProfile: UserProfile?
+    @State private var isLoadingProfile = false
+    private let profileService = ProfileService()
     private var userId: String { authViewModel.currentUserId ?? "" }
 
     private var canSend: Bool {
@@ -25,7 +28,10 @@ struct CommunityChatView: View {
                             CommunityBubble(
                                 message: msg,
                                 sender: vm.senders[msg.senderId],
-                                isMine: msg.senderId == userId
+                                isMine: msg.senderId == userId,
+                                onTapSender: msg.senderId == userId
+                                    ? nil
+                                    : { Task { await openProfile(senderId: msg.senderId) } }
                             )
                                 .id(msg.id)
                                 .contextMenu {
@@ -73,6 +79,32 @@ struct CommunityChatView: View {
                 showPrompts = false
             }
         }
+        .sheet(isPresented: $vm.showMindfulWarning) {
+            if let analysis = vm.mindfulAnalysis {
+                MindfulWarningView(
+                    analysis: analysis,
+                    onEdit: {
+                        vm.dismissMindfulWarning()
+                    },
+                    onSendAnyway: {
+                        Task { await vm.confirmSendDespiteWarning(communityId: community.id, senderId: userId) }
+                    }
+                )
+                .presentationDetents([.large])
+            }
+        }
+        .sheet(item: $selectedProfile) { profile in
+            // showSwipeActions surfaces the "Send a Seed" CTA — the point of
+            // opening a room member's profile.
+            ProfileDetailView(
+                profile: profile,
+                currentProfile: authViewModel.profile,
+                showSwipeActions: true,
+                authViewModel: authViewModel
+            ) { _ in
+                selectedProfile = nil
+            }
+        }
         .sheet(item: Binding(
             get: { reportTarget.map { ReportSheetItem(senderId: $0.senderId, messageId: $0.messageId) } },
             set: { if $0 == nil { reportTarget = nil } }
@@ -93,6 +125,17 @@ struct CommunityChatView: View {
                     )
                 }
             }
+        }
+    }
+
+    /// Fetch a sender's full profile, then present it so the viewer can see
+    /// values/interests and send a Seed.
+    private func openProfile(senderId: String) async {
+        guard !isLoadingProfile, senderId != userId else { return }
+        isLoadingProfile = true
+        defer { isLoadingProfile = false }
+        if let profile = try? await profileService.getProfile(userId: senderId) {
+            selectedProfile = profile
         }
     }
 
@@ -160,33 +203,59 @@ private struct CommunityBubble: View {
     let message: CommunityMessage
     let sender: CommunitySender?
     let isMine: Bool
+    var onTapSender: (() -> Void)? = nil
+
+    @State private var revealed = false
+    private let mindful = MindfulMessagingService()
 
     private var senderName: String {
         isMine ? "You" : (sender?.nickname ?? "Member")
     }
 
+    /// Non-nil when an incoming message should be blurred for the viewer.
+    /// Respects the viewer's own mindful-messaging toggle.
+    private var flag: MindfulMessagingService.MindfulAnalysis? {
+        guard !isMine, mindful.isEnabled else { return nil }
+        return mindful.localFlag(for: message.content)
+    }
+
     var body: some View {
+        let isBlurred = flag != nil && !revealed
+        let bubble = RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+
         HStack(alignment: .top, spacing: HarvestTheme.Spacing.xs) {
             if isMine {
                 Spacer(minLength: 40)
             } else {
                 avatar
+                    .contentShape(Circle())
+                    .onTapGesture { onTapSender?() }
             }
 
             VStack(alignment: isMine ? .trailing : .leading, spacing: 2) {
                 Text(senderName)
                     .font(HarvestTheme.Typography.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    .foregroundStyle(onTapSender == nil ? HarvestTheme.Colors.textTertiary : HarvestTheme.Colors.primary)
+                    .contentShape(Rectangle())
+                    .onTapGesture { onTapSender?() }
 
                 Text(message.content)
                     .font(HarvestTheme.Typography.bodyRegular)
                     .foregroundStyle(isMine ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
+                    .frame(minWidth: isBlurred ? 150 : nil, minHeight: isBlurred ? 44 : nil, alignment: .leading)
+                    .blur(radius: isBlurred ? 7 : 0)
                     .background(
-                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
-                            .fill(isMine ? HarvestTheme.Colors.rose : HarvestTheme.Colors.wineCard)
+                        bubble.fill(isMine ? HarvestTheme.Colors.rose : HarvestTheme.Colors.wineCard)
                     )
+                    .overlay {
+                        if isBlurred { blurOverlay }
+                    }
+                    .contentShape(bubble)
+                    .onTapGesture {
+                        if isBlurred { withAnimation(.easeInOut(duration: 0.2)) { revealed = true } }
+                    }
             }
 
             if isMine {
@@ -194,6 +263,35 @@ private struct CommunityBubble: View {
             } else {
                 Spacer(minLength: 40)
             }
+        }
+    }
+
+    private var blurOverlay: some View {
+        VStack(spacing: 2) {
+            Image(systemName: "eye.slash.fill")
+                .font(.caption)
+            Text(hint)
+                .font(.system(size: 11, weight: .semibold))
+                .multilineTextAlignment(.center)
+            Text("Tap to reveal")
+                .font(.system(size: 10))
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+        }
+        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        .padding(.horizontal, HarvestTheme.Spacing.sm)
+    }
+
+    /// Viewer-facing hint about why a message is hidden.
+    private var hint: String {
+        switch flag?.category {
+        case "aggressive":           return "May contain hostile language"
+        case "sexual_pressure":      return "May contain explicit content"
+        case "manipulative":         return "May contain manipulative language"
+        case "possessive":           return "May contain controlling language"
+        case "pressuring":           return "May contain pressuring language"
+        case "excessive_intensity":  return "Very intense message"
+        case "personal_info", "phone_number": return "May contain personal info"
+        default:                     return "Possibly sensitive content"
         }
     }
 
