@@ -46,29 +46,65 @@ struct CommunityService {
             .execute()
     }
 
-    func messages(communityId: String) async throws -> [CommunityMessage] {
-        try await client
+    /// Latest page of messages, newest-first. Pass the oldest loaded
+    /// created_at as `before` to fetch the next older page.
+    func messagesPage(communityId: String, before: String? = nil, limit: Int = 50) async throws -> [CommunityMessage] {
+        var query = client
             .from("community_messages")
             .select()
             .eq("community_id", value: communityId)
             .eq("is_removed", value: false)
-            .order("created_at", ascending: true)
+        if let before {
+            query = query.lt("created_at", value: before)
+        }
+        return try await query
+            .order("created_at", ascending: false)
+            .limit(limit)
             .execute()
             .value
     }
 
-    /// Throws ContactInfoBlocked when server-side detection rejects the message (Phase 6).
+    /// Fetch specific messages by id — used for quoted-reply previews whose
+    /// originals fell outside the loaded pages. Includes removed rows so the
+    /// UI can render "Message removed".
+    func messagesByIds(_ ids: [String]) async throws -> [CommunityMessage] {
+        guard !ids.isEmpty else { return [] }
+        return try await client
+            .from("community_messages")
+            .select()
+            .in("id", values: ids)
+            .execute()
+            .value
+    }
+
+    private struct NewCommunityMessage: Encodable {
+        let community_id: String
+        let sender_id: String
+        let content: String
+        let reply_to_id: String?
+        let mentions: [String]
+    }
+
+    /// Throws ContactInfoBlocked when server-side detection rejects the message.
     /// Returns the inserted row so the sender sees the message immediately,
     /// without waiting for the realtime echo.
     @discardableResult
-    func post(communityId: String, senderId: String, content: String) async throws -> CommunityMessage? {
+    func post(
+        communityId: String,
+        senderId: String,
+        content: String,
+        replyToId: String? = nil,
+        mentions: [String] = []
+    ) async throws -> CommunityMessage? {
         let inserted: [CommunityMessage] = try await client
             .from("community_messages")
-            .insert([
-                "community_id": communityId,
-                "sender_id": senderId,
-                "content": content
-            ])
+            .insert(NewCommunityMessage(
+                community_id: communityId,
+                sender_id: senderId,
+                content: content,
+                reply_to_id: replyToId,
+                mentions: mentions
+            ))
             .select()
             .execute()
             .value
@@ -84,6 +120,52 @@ struct CommunityService {
             .in("id", values: ids)
             .execute()
             .value
+    }
+
+    /// All reactions for the given messages (bulk, one query per page load).
+    func reactions(messageIds: [String]) async throws -> [CommunityReaction] {
+        guard !messageIds.isEmpty else { return [] }
+        return try await client
+            .from("community_message_reactions")
+            .select()
+            .in("message_id", values: messageIds)
+            .execute()
+            .value
+    }
+
+    func addReaction(messageId: String, userId: String, emoji: String) async throws {
+        // community_id is filled by a DB trigger — never send it.
+        try await client
+            .from("community_message_reactions")
+            .upsert([
+                "message_id": messageId,
+                "user_id": userId,
+                "emoji": emoji
+            ])
+            .execute()
+    }
+
+    func removeReaction(messageId: String, userId: String, emoji: String) async throws {
+        try await client
+            .from("community_message_reactions")
+            .delete()
+            .eq("message_id", value: messageId)
+            .eq("user_id", value: userId)
+            .eq("emoji", value: emoji)
+            .execute()
+    }
+
+    /// Active members of a room (for @mention autocomplete).
+    func members(communityId: String) async throws -> [CommunitySender] {
+        struct Row: Decodable { let users: CommunitySender }
+        let rows: [Row] = try await client
+            .from("community_members")
+            .select("users(id, nickname, photos)")
+            .eq("community_id", value: communityId)
+            .eq("status", value: "active")
+            .execute()
+            .value
+        return rows.map(\.users)
     }
 
     func prompts(communityId: String) async throws -> [CommunityPrompt] {
@@ -109,6 +191,42 @@ struct CommunityService {
             for await change in changes {
                 if let msg = try? change.decodeRecord(as: CommunityMessage.self, decoder: JSONDecoder()) {
                     onMessage(msg)
+                }
+            }
+        }
+        Task { try? await channel.subscribeWithError() }
+        return channel
+    }
+
+    /// Live reaction add/remove events for one room. DELETE events carry the
+    /// full old row because the table has replica identity full.
+    func subscribeReactions(
+        communityId: String,
+        onInsert: @escaping @Sendable (CommunityReaction) -> Void,
+        onDelete: @escaping @Sendable (CommunityReaction) -> Void
+    ) -> RealtimeChannelV2 {
+        let channel = client.realtimeV2.channel("community-reactions:\(communityId)")
+        let inserts = channel.postgresChange(
+            InsertAction.self,
+            table: "community_message_reactions",
+            filter: .eq("community_id", value: communityId)
+        )
+        let deletes = channel.postgresChange(
+            DeleteAction.self,
+            table: "community_message_reactions",
+            filter: .eq("community_id", value: communityId)
+        )
+        Task {
+            for await change in inserts {
+                if let r = try? change.decodeRecord(as: CommunityReaction.self, decoder: JSONDecoder()) {
+                    onInsert(r)
+                }
+            }
+        }
+        Task {
+            for await change in deletes {
+                if let r = try? change.decodeOldRecord(as: CommunityReaction.self, decoder: JSONDecoder()) {
+                    onDelete(r)
                 }
             }
         }
