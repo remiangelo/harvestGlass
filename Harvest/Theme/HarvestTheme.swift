@@ -19,6 +19,13 @@ enum HarvestTheme {
         static let roseBloom = Color(hex: "F0466E")   // softer pink (labels)
         static let amber = Color(hex: "F5872E")       // warm orange — 2nd radar series ("Them")
 
+        // Field greens — The Field / community rooms accent.
+        // Used ONLY inside Field views; the rest of the app stays rose.
+        static let fieldGreen = Color(hex: "4DB380")
+        static let fieldGreenLight = Color(hex: "7ACCA3")
+        static let fieldGreenBorder = fieldGreen.opacity(0.18)
+        static let fieldGreenSoft = fieldGreen.opacity(0.15)
+
         // Legacy brand tokens — kept defined so older views compile,
         // but no longer the semantic accent/text.
         static let iconRed = Color(hex: "CB0419")
