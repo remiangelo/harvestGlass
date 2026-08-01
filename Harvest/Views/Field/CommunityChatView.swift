@@ -487,8 +487,17 @@ private struct MentionText: View {
             var searchStart = attr.startIndex
             while searchStart < attr.endIndex,
                   let range = attr[searchStart...].range(of: needle, options: [.caseInsensitive]) {
-                attr[range].foregroundColor = HarvestTheme.Colors.fieldGreenLight
-                attr[range].inlinePresentationIntent = .stronglyEmphasized
+                // Word-boundary check: "@Al" must not highlight inside "@Alex".
+                let after = range.upperBound
+                let isBoundary: Bool = {
+                    guard after < attr.endIndex else { return true }
+                    let c = attr.characters[after]
+                    return !c.isLetter && !c.isNumber
+                }()
+                if isBoundary {
+                    attr[range].foregroundColor = HarvestTheme.Colors.fieldGreenLight
+                    attr[range].inlinePresentationIntent = .stronglyEmphasized
+                }
                 searchStart = range.upperBound
             }
         }

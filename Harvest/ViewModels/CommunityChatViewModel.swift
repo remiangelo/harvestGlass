@@ -123,11 +123,28 @@ final class CommunityChatViewModel {
     }
 
     /// User ids whose "@nickname" is still present in the given text.
+    /// Boundary-checked so "@al" never matches inside "@alex".
     private func mentions(in text: String) -> [String] {
         let lower = text.lowercased()
         return draftMentions.compactMap { nick, id in
-            lower.contains("@" + nick) ? id : nil
+            Self.containsMentionToken(lower, "@" + nick) ? id : nil
         }
+    }
+
+    /// True when `needle` occurs in `haystack` ending at a word boundary.
+    static func containsMentionToken(_ haystack: String, _ needle: String) -> Bool {
+        var searchStart = haystack.startIndex
+        while let r = haystack.range(of: needle, range: searchStart..<haystack.endIndex) {
+            if r.upperBound == haystack.endIndex {
+                return true
+            }
+            let next = haystack[r.upperBound]
+            if !next.isLetter && !next.isNumber {
+                return true
+            }
+            searchStart = r.upperBound
+        }
+        return false
     }
 
     /// Nicknames to highlight in a message bubble, resolved from the
