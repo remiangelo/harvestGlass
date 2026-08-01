@@ -56,3 +56,13 @@ python3 -m http.server 8787
 ## Toggle
 
 - **Show all / Show pending** switches between the open queue and the full history (including already-actioned reports).
+
+## Rooms tab
+
+Create, edit, image, deactivate, and delete community rooms; manage members
+(ban/unban, promote/demote moderators) and moderate chat (remove/restore
+messages) from a room's "Members & chat" panel.
+
+Room banner images upload to the public `community-images` storage bucket.
+Prefer **Deactivate** over Delete — Delete permanently removes the room and
+all its messages, reactions, and memberships.
