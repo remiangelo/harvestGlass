@@ -50,7 +50,7 @@ struct FieldView: View {
             VStack(spacing: HarvestTheme.Spacing.sm) {
                 Image(systemName: "leaf.circle")
                     .font(.system(size: 36))
-                    .foregroundStyle(HarvestTheme.Colors.primary)
+                    .foregroundStyle(HarvestTheme.Colors.fieldGreen)
                 Text("No spaces yet")
                     .font(HarvestTheme.Typography.h4)
                 Text("Update your relationship status in Profile to unlock connection spaces.")
@@ -89,41 +89,101 @@ private struct CommunityCard: View {
     }
 
     private func cardBody(joined: Bool) -> some View {
-        GlassCard {
-            HStack(alignment: .top, spacing: HarvestTheme.Spacing.md) {
-                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
-                    Text(community.name)
-                        .font(HarvestTheme.Typography.h4)
-                        .foregroundStyle(HarvestTheme.Colors.textPrimary)
+        VStack(alignment: .leading, spacing: 0) {
+            banner
+            details(joined: joined)
+        }
+        .background(HarvestTheme.Colors.wineCard)
+        .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl))
+        .overlay(
+            RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
+                .stroke(joined ? HarvestTheme.Colors.fieldGreenBorder : HarvestTheme.Colors.border, lineWidth: 1)
+        )
+    }
 
-                    if let description = community.description {
-                        Text(description)
-                            .font(HarvestTheme.Typography.bodySmall)
-                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                            .fixedSize(horizontal: false, vertical: true)
+    private var banner: some View {
+        ZStack(alignment: .bottomLeading) {
+            Group {
+                if let urlString = community.imageUrl, let url = URL(string: urlString) {
+                    AsyncImage(url: url) { image in
+                        image.resizable().scaledToFill()
+                    } placeholder: {
+                        bannerPlaceholder
                     }
-
-                    if joined {
-                        Label("Tap to open room", systemImage: "bubble.left.and.bubble.right.fill")
-                            .font(HarvestTheme.Typography.caption)
-                            .foregroundStyle(HarvestTheme.Colors.primary)
-                            .padding(.top, HarvestTheme.Spacing.xxs)
-                    }
-                }
-
-                Spacer(minLength: HarvestTheme.Spacing.sm)
-
-                if joined {
-                    Image(systemName: "chevron.right")
-                        .font(.footnote.weight(.semibold))
-                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                        .padding(.top, HarvestTheme.Spacing.xxs)
                 } else {
-                    Button("Join", action: onToggle)
-                        .buttonStyle(.harvestGlass(.primary))
+                    bannerPlaceholder
                 }
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .frame(height: 110)
+            .frame(maxWidth: .infinity)
+            .clipped()
+
+            LinearGradient(
+                colors: [.clear, HarvestTheme.Colors.wineBlack.opacity(0.85)],
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .frame(height: 110)
+
+            Text(community.name)
+                .font(HarvestTheme.Typography.h4)
+                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                .padding(HarvestTheme.Spacing.md)
         }
+        .frame(height: 110)
+    }
+
+    private var bannerPlaceholder: some View {
+        Rectangle()
+            .fill(HarvestTheme.Colors.wineRaised)
+            .overlay {
+                Image(systemName: "leaf.fill")
+                    .font(.system(size: 30))
+                    .foregroundStyle(HarvestTheme.Colors.fieldGreen.opacity(0.4))
+            }
+    }
+
+    private func details(joined: Bool) -> some View {
+        HStack(alignment: .top, spacing: HarvestTheme.Spacing.md) {
+            VStack(alignment: .leading, spacing: HarvestTheme.Spacing.xs) {
+                if let description = community.description {
+                    Text(description)
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                if let count = community.memberCount, count > 0 {
+                    Label("\(count) gardener\(count == 1 ? "" : "s")", systemImage: "leaf.fill")
+                        .font(HarvestTheme.Typography.caption)
+                        .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                }
+
+                if joined {
+                    Label("Tap to open room", systemImage: "bubble.left.and.bubble.right.fill")
+                        .font(HarvestTheme.Typography.caption)
+                        .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                        .padding(.top, HarvestTheme.Spacing.xxs)
+                }
+            }
+
+            Spacer(minLength: HarvestTheme.Spacing.sm)
+
+            if joined {
+                Image(systemName: "chevron.right")
+                    .font(.footnote.weight(.semibold))
+                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    .padding(.top, HarvestTheme.Spacing.xxs)
+            } else {
+                Button("Join", action: onToggle)
+                    .font(HarvestTheme.Typography.bodySmall.weight(.semibold))
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                    .padding(.horizontal, HarvestTheme.Spacing.md)
+                    .padding(.vertical, HarvestTheme.Spacing.xs)
+                    .background(Capsule().fill(HarvestTheme.Colors.fieldGreen))
+            }
+        }
+        .padding(HarvestTheme.Spacing.md)
+        .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
