@@ -305,10 +305,17 @@ async function onRoomAction(action, id) {
         `Prefer Deactivate to hide it without losing history.`
       )) return;
       // Explicit ordered deletes — don't rely on FK cascade config.
-      await supabase.from("community_message_reactions").delete().eq("community_id", id);
-      await supabase.from("community_messages").delete().eq("community_id", id);
-      await supabase.from("community_members").delete().eq("community_id", id);
-      await supabase.from("community_prompts").delete().eq("community_id", id);
+      // Each is error-checked: a failed child delete must abort the parent
+      // delete, not silently orphan rows.
+      for (const table of [
+        "community_message_reactions",
+        "community_messages",
+        "community_members",
+        "community_prompts",
+      ]) {
+        const { error: childErr } = await supabase.from(table).delete().eq("community_id", id);
+        if (childErr) throw childErr;
+      }
       const { error } = await supabase.from("communities").delete().eq("id", id);
       if (error) throw error;
       await loadRooms();
