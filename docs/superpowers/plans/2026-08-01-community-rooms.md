@@ -1240,6 +1240,9 @@ Add properties:
     /// message id → reactions on it.
     var reactions: [String: [CommunityReaction]] = [:]
     private var reactionChannel: RealtimeChannelV2?
+    /// Blocks overlapping toggles of the same (message, emoji) — a rapid
+    /// double-tap would otherwise race two opposite requests.
+    private var inFlightReactions: Set<String> = []
 ```
 
 Add loading (call sites next) :
@@ -1270,6 +1273,11 @@ Add loading (call sites next) :
     }
 
     func toggleReaction(emoji: String, message: CommunityMessage, userId: String) async {
+        let key = message.id + emoji
+        guard !inFlightReactions.contains(key) else { return }
+        inFlightReactions.insert(key)
+        defer { inFlightReactions.remove(key) }
+
         let mine = CommunityReaction(messageId: message.id, userId: userId, emoji: emoji, communityId: message.communityId)
         let alreadyMine = (reactions[message.id] ?? [])
             .contains(where: { $0.userId == userId && $0.emoji == emoji })
