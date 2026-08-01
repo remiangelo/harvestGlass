@@ -41,28 +41,47 @@ struct CommunityChatView: View {
                         }
                         ForEach(vm.messages) { msg in
                             SwipeToReply(onReply: { vm.replyTarget = msg }) {
-                                CommunityBubble(
-                                    message: msg,
-                                    quoted: vm.quotedMessage(for: msg),
-                                    quotedSenderName: vm.quotedMessage(for: msg).map {
-                                        vm.senders[$0.senderId]?.nickname ?? "Member"
-                                    },
-                                    mentionNicknames: vm.mentionedNicknames(for: msg),
-                                    mentionsMe: (msg.mentions ?? []).contains(userId),
-                                    sender: vm.senders[msg.senderId],
-                                    isMine: msg.senderId == userId,
-                                    onTapSender: msg.senderId == userId
-                                        ? nil
-                                        : { Task { await openProfile(senderId: msg.senderId) } },
-                                    onTapQuote: { originalId in
-                                        if vm.messages.contains(where: { $0.id == originalId }) {
-                                            withAnimation { proxy.scrollTo(originalId, anchor: .center) }
+                                VStack(alignment: msg.senderId == userId ? .trailing : .leading, spacing: 2) {
+                                    CommunityBubble(
+                                        message: msg,
+                                        quoted: vm.quotedMessage(for: msg),
+                                        quotedSenderName: vm.quotedMessage(for: msg).map {
+                                            vm.senders[$0.senderId]?.nickname ?? "Member"
+                                        },
+                                        mentionNicknames: vm.mentionedNicknames(for: msg),
+                                        mentionsMe: (msg.mentions ?? []).contains(userId),
+                                        sender: vm.senders[msg.senderId],
+                                        isMine: msg.senderId == userId,
+                                        onTapSender: msg.senderId == userId
+                                            ? nil
+                                            : { Task { await openProfile(senderId: msg.senderId) } },
+                                        onTapQuote: { originalId in
+                                            if vm.messages.contains(where: { $0.id == originalId }) {
+                                                withAnimation { proxy.scrollTo(originalId, anchor: .center) }
+                                            }
+                                        }
+                                    )
+                                    if let rs = vm.reactions[msg.id], !rs.isEmpty {
+                                        ReactionChips(
+                                            reactions: rs,
+                                            myUserId: userId,
+                                            isMine: msg.senderId == userId
+                                        ) { emoji in
+                                            Task { await vm.toggleReaction(emoji: emoji, message: msg, userId: userId) }
                                         }
                                     }
-                                )
+                                }
                             }
                                 .id(msg.id)
                                 .contextMenu {
+                                    ControlGroup {
+                                        ForEach(CommunityReaction.curatedEmoji, id: \.self) { emoji in
+                                            Button(emoji) {
+                                                Task { await vm.toggleReaction(emoji: emoji, message: msg, userId: userId) }
+                                            }
+                                        }
+                                    }
+                                    .controlGroupStyle(.palette)
                                     Button {
                                         vm.replyTarget = msg
                                     } label: {
@@ -301,6 +320,50 @@ private struct SwipeToReply<Content: View>: View {
                         withAnimation(.spring(duration: 0.25)) { offsetX = 0 }
                     }
             )
+    }
+}
+
+/// Grouped emoji counts under a bubble. Your own reactions tint green.
+private struct ReactionChips: View {
+    let reactions: [CommunityReaction]
+    let myUserId: String
+    let isMine: Bool
+    let onToggle: (String) -> Void
+
+    private var grouped: [(emoji: String, count: Int, mine: Bool)] {
+        CommunityReaction.curatedEmoji.compactMap { emoji in
+            let matching = reactions.filter { $0.emoji == emoji }
+            guard !matching.isEmpty else { return nil }
+            return (emoji, matching.count, matching.contains { $0.userId == myUserId })
+        }
+    }
+
+    var body: some View {
+        HStack(spacing: 4) {
+            ForEach(grouped, id: \.emoji) { group in
+                Button {
+                    onToggle(group.emoji)
+                } label: {
+                    HStack(spacing: 3) {
+                        Text(group.emoji).font(.system(size: 12))
+                        Text("\(group.count)")
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(group.mine ? HarvestTheme.Colors.fieldGreenLight : HarvestTheme.Colors.textSecondary)
+                    }
+                    .padding(.horizontal, 8)
+                    .padding(.vertical, 3)
+                    .background(
+                        Capsule().fill(group.mine ? HarvestTheme.Colors.fieldGreenSoft : HarvestTheme.Colors.wineRaised)
+                    )
+                    .overlay(
+                        Capsule().stroke(group.mine ? HarvestTheme.Colors.fieldGreenBorder : .clear, lineWidth: 1)
+                    )
+                }
+                .buttonStyle(.plain)
+            }
+        }
+        .padding(.leading, isMine ? 0 : 38)   // align under bubble, past avatar
+        .padding(.trailing, isMine ? 38 : 0)
     }
 }
 

@@ -15,6 +15,10 @@ final class CommunityChatViewModel {
     var isLoadingOlder = false
     var replyTarget: CommunityMessage?
 
+    /// message id → reactions on it.
+    var reactions: [String: [CommunityReaction]] = [:]
+    private var reactionChannel: RealtimeChannelV2?
+
     /// nickname (lowercased) → user id, accumulated as the sender picks
     /// suggestions. Filtered against the final text at send time.
     private var draftMentions: [String: String] = [:]
@@ -45,6 +49,7 @@ final class CommunityChatViewModel {
         }
         await loadSenders(for: Set(messages.map(\.senderId)))
         await loadReferenced()
+        await loadReactions(for: messages.map(\.id))
         channel = service.subscribe(communityId: communityId) { [weak self] msg in
             Task { @MainActor in
                 guard let self else { return }
@@ -55,6 +60,15 @@ final class CommunityChatViewModel {
                 }
             }
         }
+        reactionChannel = service.subscribeReactions(
+            communityId: communityId,
+            onInsert: { [weak self] r in
+                Task { @MainActor in self?.applyReaction(r) }
+            },
+            onDelete: { [weak self] r in
+                Task { @MainActor in self?.dropReaction(r) }
+            }
+        )
     }
 
     func loadOlder(communityId: String) async {
@@ -68,6 +82,7 @@ final class CommunityChatViewModel {
             messages.insert(contentsOf: older.reversed().filter { !existing.contains($0.id) }, at: 0)
             await loadSenders(for: Set(older.map(\.senderId)))
             await loadReferenced()
+            await loadReactions(for: older.map(\.id))
         } catch {
             self.error = error.localizedDescription
         }
@@ -90,6 +105,53 @@ final class CommunityChatViewModel {
         if let rows = try? await service.messagesByIds(Array(missing)) {
             for row in rows { referenced[row.id] = row }
             await loadSenders(for: Set(rows.map(\.senderId)))
+        }
+    }
+
+    private func loadReactions(for messageIds: [String]) async {
+        guard !messageIds.isEmpty else { return }
+        if let rows = try? await service.reactions(messageIds: messageIds) {
+            var grouped = reactions
+            for id in messageIds { grouped[id] = [] }
+            for row in rows { grouped[row.messageId, default: []].append(row) }
+            reactions = grouped
+        }
+    }
+
+    private func applyReaction(_ r: CommunityReaction) {
+        guard messages.contains(where: { $0.id == r.messageId }) else { return }
+        var list = reactions[r.messageId] ?? []
+        guard !list.contains(where: { $0.userId == r.userId && $0.emoji == r.emoji }) else { return }
+        list.append(r)
+        reactions[r.messageId] = list
+    }
+
+    private func dropReaction(_ r: CommunityReaction) {
+        guard var list = reactions[r.messageId] else { return }
+        list.removeAll { $0.userId == r.userId && $0.emoji == r.emoji }
+        reactions[r.messageId] = list
+    }
+
+    func toggleReaction(emoji: String, message: CommunityMessage, userId: String) async {
+        let mine = CommunityReaction(messageId: message.id, userId: userId, emoji: emoji, communityId: message.communityId)
+        let alreadyMine = (reactions[message.id] ?? [])
+            .contains(where: { $0.userId == userId && $0.emoji == emoji })
+        // Optimistic; realtime echo is deduped by applyReaction/dropReaction.
+        if alreadyMine {
+            dropReaction(mine)
+        } else {
+            applyReaction(mine)
+        }
+        do {
+            if alreadyMine {
+                try await service.removeReaction(messageId: message.id, userId: userId, emoji: emoji)
+            } else {
+                try await service.addReaction(messageId: message.id, userId: userId, emoji: emoji)
+            }
+        } catch {
+            // Roll back
+            if alreadyMine { applyReaction(mine) } else { dropReaction(mine) }
+            self.error = error.localizedDescription
         }
     }
 
@@ -217,6 +279,8 @@ final class CommunityChatViewModel {
     func stop() {
         if let channel { service.unsubscribe(channel) }
         channel = nil
+        if let reactionChannel { service.unsubscribe(reactionChannel) }
+        reactionChannel = nil
     }
 
     private func loadSenders(for ids: Set<String>) async {
