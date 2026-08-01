@@ -1754,6 +1754,8 @@ let openDetailId = null;
 let detailMsgLimit = 100;
 ```
 
+Also add one line at the end of `loadRooms()` (after the `statusEl.textContent` update): `openDetailId = null;` — `loadRooms()` rebuilds every card's `.room-detail` div closed, so stale open-state would make the next "Members & chat" click on that room silently no-op.
+
 Add:
 
 ```js
