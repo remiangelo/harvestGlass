@@ -198,8 +198,11 @@ struct CommunityService {
         return channel
     }
 
-    /// Live reaction add/remove events for one room. DELETE events carry the
-    /// full old row because the table has replica identity full.
+    /// Live reaction add/remove events for one room. INSERT events are
+    /// server-filtered by community_id; DELETE events are not filterable in
+    /// postgres_changes and (with RLS) carry only the primary-key columns —
+    /// that's sufficient, since dropReaction matches on (messageId, userId,
+    /// emoji) and events for unloaded messages no-op.
     func subscribeReactions(
         communityId: String,
         onInsert: @escaping @Sendable (CommunityReaction) -> Void,
@@ -213,8 +216,7 @@ struct CommunityService {
         )
         let deletes = channel.postgresChange(
             DeleteAction.self,
-            table: "community_message_reactions",
-            filter: .eq("community_id", value: communityId)
+            table: "community_message_reactions"
         )
         Task {
             for await change in inserts {

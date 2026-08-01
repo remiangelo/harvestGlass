@@ -5,9 +5,15 @@
 alter table communities add column if not exists image_url text;
 
 -- 2. Quote-replies + mentions on messages
+-- reply_to_id uses ON DELETE SET NULL (not the default NO ACTION/RESTRICT):
+-- the users-row cascade that backs account deletion must be able to remove
+-- a user's messages even when another user's surviving reply points at one.
 alter table community_messages
-  add column if not exists reply_to_id uuid references community_messages(id),
+  add column if not exists reply_to_id uuid references community_messages(id) on delete set null,
   add column if not exists mentions uuid[] not null default '{}';
+
+create index if not exists idx_community_messages_reply_to
+  on community_messages (reply_to_id);
 
 -- 3. Reactions (curated set enforced at the DB)
 create table if not exists community_message_reactions (
