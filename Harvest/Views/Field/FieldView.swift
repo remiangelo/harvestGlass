@@ -179,8 +179,9 @@ private struct CommunityCard: View {
                     .font(HarvestTheme.Typography.bodySmall.weight(.semibold))
                     .foregroundStyle(HarvestTheme.Colors.textPrimary)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
-                    .padding(.vertical, HarvestTheme.Spacing.xs)
+                    .padding(.vertical, HarvestTheme.Spacing.sm)
                     .background(Capsule().fill(HarvestTheme.Colors.fieldGreen))
+                    .contentShape(Capsule())
             }
         }
         .padding(HarvestTheme.Spacing.md)
