@@ -266,7 +266,7 @@ private struct SwipeToReply<Content: View>: View {
     var body: some View {
         content
             .offset(x: offsetX)
-            .gesture(
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 25)
                     .onChanged { value in
                         guard value.translation.width > 0,
