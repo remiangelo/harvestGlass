@@ -929,7 +929,10 @@ private struct SwipeToReply<Content: View>: View {
     var body: some View {
         content
             .offset(x: offsetX)
-            .gesture(
+            // simultaneousGesture, NOT .gesture — an exclusive gesture on a
+            // row inside a ScrollView claims the touch before the direction
+            // check runs, breaking vertical scrolling.
+            .simultaneousGesture(
                 DragGesture(minimumDistance: 25)
                     .onChanged { value in
                         guard value.translation.width > 0,
