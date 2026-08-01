@@ -5,9 +5,17 @@ const statusEl = document.getElementById("status");
 const bannerEl = document.getElementById("banner");
 const toggleBtn = document.getElementById("toggle");
 const refreshBtn = document.getElementById("refresh");
+const roomsEl = document.getElementById("rooms");
+const roomFormEl = document.getElementById("room-form");
+const newRoomBtn = document.getElementById("new-room");
+const pageTitleEl = document.getElementById("page-title");
+const tabModBtn = document.getElementById("tab-moderation");
+const tabRoomsBtn = document.getElementById("tab-rooms");
 
 const cfg = window.HARVEST_ADMIN_CONFIG;
 let showAll = false;
+let activeTab = "moderation";
+let roomsCache = [];
 
 function fatal(msg) {
   bannerEl.style.display = "block";
@@ -162,11 +170,183 @@ async function onAction(action, reportId, reportedId, extra = {}) {
   }
 }
 
+async function loadRooms() {
+  statusEl.textContent = "Loading rooms…";
+  const { data, error } = await supabase
+    .from("communities")
+    .select("*")
+    .order("display_order", { ascending: true });
+  if (error) {
+    fatal("Rooms query failed: " + error.message);
+    return;
+  }
+  roomsCache = data || [];
+  roomsEl.innerHTML = roomsCache.map(roomCard).join("") ||
+    `<div class="empty">No rooms yet. Create one!</div>`;
+  roomsEl.querySelectorAll("[data-raction]").forEach((btn) => {
+    btn.addEventListener("click", () => onRoomAction(btn.dataset.raction, btn.dataset.id));
+  });
+  statusEl.textContent = `${roomsCache.length} rooms`;
+}
+
+function roomCard(c) {
+  const thumb = c.image_url
+    ? `<img class="room-thumb" src="${escape(c.image_url)}" alt="" />`
+    : `<div class="no-thumb">🌱</div>`;
+  return `
+    <div class="room ${c.is_active ? "" : "inactive"}" id="room-${c.id}">
+      <div class="room-top">
+        ${thumb}
+        <div class="meta">
+          <div class="name">${escape(c.name)}
+            <span class="pill kind">${escape(c.kind)}</span>
+            ${c.is_active ? "" : `<span class="pill off">inactive</span>`}
+          </div>
+          <div class="sub">/${escape(c.slug)} · ${c.member_count ?? 0} members · order ${c.display_order ?? 0}</div>
+          ${c.description ? `<div class="desc">${escape(c.description)}</div>` : ""}
+          <div class="actions">
+            <button class="ghost" data-raction="detail" data-id="${c.id}">Members &amp; chat</button>
+            <button data-raction="edit" data-id="${c.id}">Edit</button>
+            <button data-raction="toggle-active" data-id="${c.id}">${c.is_active ? "Deactivate" : "Activate"}</button>
+            <button class="danger" data-raction="delete" data-id="${c.id}">Delete</button>
+          </div>
+        </div>
+      </div>
+      <div class="room-detail" id="detail-${c.id}"></div>
+    </div>`;
+}
+
+function openRoomForm(room) {
+  const c = room || {};
+  roomFormEl.style.display = "";
+  roomFormEl.innerHTML = `
+    <div class="form-card">
+      <div class="grid">
+        <div><label>Name</label><input id="rf-name" value="${escape(c.name || "")}" /></div>
+        <div><label>Slug</label><input id="rf-slug" value="${escape(c.slug || "")}" placeholder="auto from name" /></div>
+        <div><label>Kind</label>
+          <select id="rf-kind">
+            ${["everyone", "seeking_connection", "relationship_stage", "peer"]
+              .map((k) => `<option value="${k}" ${c.kind === k ? "selected" : ""}>${k}</option>`).join("")}
+          </select>
+        </div>
+        <div><label>Display order</label><input id="rf-order" type="number" value="${c.display_order ?? 0}" /></div>
+        <textarea id="rf-desc" placeholder="Description">${escape(c.description || "")}</textarea>
+        <div><label>Banner image</label><input id="rf-image" type="file" accept="image/*" /></div>
+        <div style="align-self:end; display:flex; gap:8px; justify-content:flex-end;">
+          <button class="ghost" id="rf-cancel">Cancel</button>
+          <button class="green" id="rf-save">${c.id ? "Save changes" : "Create room"}</button>
+        </div>
+      </div>
+    </div>`;
+  document.getElementById("rf-cancel").addEventListener("click", () => {
+    roomFormEl.style.display = "none";
+  });
+  document.getElementById("rf-save").addEventListener("click", () => saveRoom(c.id || null, c.image_url || null));
+  roomFormEl.scrollIntoView({ behavior: "smooth" });
+}
+
+const slugify = (s) =>
+  s.toLowerCase().trim().replace(/[^a-z0-9]+/g, "-").replace(/^-+|-+$/g, "");
+
+async function saveRoom(id, existingImageUrl) {
+  const name = document.getElementById("rf-name").value.trim();
+  if (!name) return alert("Name is required.");
+  const slug = document.getElementById("rf-slug").value.trim() || slugify(name);
+  const row = {
+    name,
+    slug,
+    kind: document.getElementById("rf-kind").value,
+    display_order: parseInt(document.getElementById("rf-order").value, 10) || 0,
+    description: document.getElementById("rf-desc").value.trim() || null,
+    image_url: existingImageUrl,
+  };
+
+  try {
+    const file = document.getElementById("rf-image").files[0];
+    if (file) {
+      const ext = (file.name.split(".").pop() || "jpg").toLowerCase();
+      const path = `${slug}-${Date.now()}.${ext}`;
+      const { error: upErr } = await supabase.storage
+        .from("community-images")
+        .upload(path, file, { upsert: true });
+      if (upErr) throw upErr;
+      row.image_url = supabase.storage.from("community-images").getPublicUrl(path).data.publicUrl;
+    }
+
+    const { error } = id
+      ? await supabase.from("communities").update(row).eq("id", id)
+      : await supabase.from("communities").insert({ ...row, is_active: true });
+    if (error) throw error;
+
+    roomFormEl.style.display = "none";
+    await loadRooms();
+  } catch (e) {
+    fatal("Save failed: " + (e.message || e));
+  }
+}
+
+async function onRoomAction(action, id) {
+  const room = roomsCache.find((c) => c.id === id);
+  if (!room) return;
+  try {
+    if (action === "edit") {
+      openRoomForm(room);
+    } else if (action === "toggle-active") {
+      const { error } = await supabase
+        .from("communities")
+        .update({ is_active: !room.is_active })
+        .eq("id", id);
+      if (error) throw error;
+      await loadRooms();
+    } else if (action === "delete") {
+      if (!confirm(
+        `PERMANENTLY delete "${room.name}"?\n\nThis removes the room, ALL its messages, reactions, and memberships. ` +
+        `Prefer Deactivate to hide it without losing history.`
+      )) return;
+      // Explicit ordered deletes — don't rely on FK cascade config.
+      await supabase.from("community_message_reactions").delete().eq("community_id", id);
+      await supabase.from("community_messages").delete().eq("community_id", id);
+      await supabase.from("community_members").delete().eq("community_id", id);
+      await supabase.from("community_prompts").delete().eq("community_id", id);
+      const { error } = await supabase.from("communities").delete().eq("id", id);
+      if (error) throw error;
+      await loadRooms();
+    } else if (action === "detail") {
+      await toggleRoomDetail(id); // Task 10; stub as alert("Detail panel lands in the next task") until then
+    }
+  } catch (e) {
+    alert("Action failed: " + (e.message || e));
+  }
+}
+
+async function toggleRoomDetail(id) {
+  alert("Detail panel lands in the next task");
+}
+
+function switchTab(name) {
+  activeTab = name;
+  const rooms = name === "rooms";
+  tabModBtn.classList.toggle("active", !rooms);
+  tabRoomsBtn.classList.toggle("active", rooms);
+  pageTitleEl.textContent = rooms ? "Rooms" : "Moderation";
+  listEl.style.display = rooms ? "none" : "";
+  roomsEl.style.display = rooms ? "" : "none";
+  roomFormEl.style.display = "none";
+  toggleBtn.style.display = rooms ? "none" : "";
+  newRoomBtn.style.display = rooms ? "" : "none";
+  rooms ? loadRooms() : load();
+}
+
+tabModBtn.addEventListener("click", () => switchTab("moderation"));
+tabRoomsBtn.addEventListener("click", () => switchTab("rooms"));
+newRoomBtn.addEventListener("click", () => openRoomForm(null));
+
 toggleBtn.addEventListener("click", () => {
   showAll = !showAll;
   toggleBtn.textContent = showAll ? "Show pending" : "Show all";
   load();
 });
-refreshBtn.addEventListener("click", load);
+refreshBtn.addEventListener("click", () => (activeTab === "rooms" ? loadRooms() : load()));
 
 load();

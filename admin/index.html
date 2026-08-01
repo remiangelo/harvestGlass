@@ -10,6 +10,7 @@
       --rose: #fb2e63; --rose-light: #ff5c8a; --amber: #f5872e;
       --text: #fbf6f8; --text-dim: #c9a9b4; --border: rgba(251, 46, 99, 0.18);
       --ok: #27cf8a; --warn: #f5a623;
+      --green: #4db380; --green-light: #7acca3;
     }
     * { box-sizing: border-box; }
     body {
@@ -50,13 +51,37 @@
     .sub { color: var(--text-dim); font-size: 12px; }
     .actions { display: flex; gap: 8px; margin-top: 12px; flex-wrap: wrap; }
     .empty { color: var(--text-dim); text-align: center; padding: 60px 0; }
+    .tabs { display: flex; gap: 6px; }
+    .tab { background: transparent; border-color: transparent; color: var(--text-dim); }
+    .tab.active { border-color: var(--green); color: var(--text); }
+    .room { background: var(--card); border: 1px solid var(--border); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+    .room.inactive { opacity: 0.55; }
+    .room-top { display: flex; gap: 16px; align-items: flex-start; }
+    .room-thumb { width: 96px; height: 64px; object-fit: cover; border-radius: 10px; background: var(--raised); flex-shrink: 0; }
+    .no-thumb { width: 96px; height: 64px; border-radius: 10px; background: var(--raised); display: grid; place-items: center; color: var(--green); font-size: 20px; flex-shrink: 0; }
+    .pill.kind { background: rgba(77, 179, 128, 0.18); color: var(--green-light); }
+    .pill.off { background: rgba(201, 169, 180, 0.15); color: var(--text-dim); }
+    .form-card { background: var(--card); border: 1px solid var(--green); border-radius: 16px; padding: 16px; margin-bottom: 14px; }
+    .form-card .grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+    .form-card label { display: block; font-size: 12px; color: var(--text-dim); margin-bottom: 3px; }
+    .form-card input, .form-card select, .form-card textarea {
+      width: 100%; font: inherit; color: var(--text); background: var(--raised);
+      border: 1px solid var(--border); border-radius: 10px; padding: 8px 10px;
+    }
+    .form-card textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
+    button.green { background: var(--green); border-color: var(--green); color: #fff; }
   </style>
 </head>
 <body>
   <header>
-    <h1>Harvest <span>Moderation</span></h1>
+    <h1>Harvest <span id="page-title">Moderation</span></h1>
+    <nav class="tabs">
+      <button id="tab-moderation" class="tab active">Moderation</button>
+      <button id="tab-rooms" class="tab">Rooms</button>
+    </nav>
     <div class="controls">
       <span id="status">Loading…</span>
+      <button id="new-room" class="primary" style="display:none">＋ New room</button>
       <button id="toggle" class="ghost">Show all</button>
       <button id="refresh" class="primary">Refresh</button>
     </div>
@@ -64,6 +89,8 @@
 
   <div id="banner"></div>
   <div id="list"></div>
+  <div id="room-form" style="display:none"></div>
+  <div id="rooms" style="display:none"></div>
 
   <script src="config.js"></script>
   <script type="module" src="app.js"></script>
