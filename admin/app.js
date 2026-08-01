@@ -189,6 +189,7 @@ async function loadRooms() {
     btn.addEventListener("click", () => onRoomAction(btn.dataset.raction, btn.dataset.id));
   });
   statusEl.textContent = `${roomsCache.length} rooms`;
+  openDetailId = null;
 }
 
 function roomCard(c) {
