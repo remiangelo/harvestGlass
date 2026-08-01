@@ -51,12 +51,12 @@ alter table community_message_reactions enable row level security;
 drop policy if exists "reactions_select" on community_message_reactions;
 create policy "reactions_select" on community_message_reactions
   for select to authenticated
-  using (is_active_member(community_id, auth.uid()));
+  using (is_active_member(auth.uid(), community_id));
 
 drop policy if exists "reactions_insert" on community_message_reactions;
 create policy "reactions_insert" on community_message_reactions
   for insert to authenticated
-  with check (user_id = auth.uid() and is_active_member(community_id, auth.uid()));
+  with check (user_id = auth.uid() and is_active_member(auth.uid(), community_id));
 
 drop policy if exists "reactions_delete" on community_message_reactions;
 create policy "reactions_delete" on community_message_reactions
