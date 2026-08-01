@@ -16,6 +16,8 @@ const cfg = window.HARVEST_ADMIN_CONFIG;
 let showAll = false;
 let activeTab = "moderation";
 let roomsCache = [];
+let openDetailId = null;
+let detailMsgLimit = 100;
 
 function fatal(msg) {
   bannerEl.style.display = "block";
@@ -320,7 +322,7 @@ async function onRoomAction(action, id) {
       if (error) throw error;
       await loadRooms();
     } else if (action === "detail") {
-      await toggleRoomDetail(id); // Task 10; stub as alert("Detail panel lands in the next task") until then
+      await toggleRoomDetail(id);
     }
   } catch (e) {
     alert("Action failed: " + (e.message || e));
@@ -328,7 +330,142 @@ async function onRoomAction(action, id) {
 }
 
 async function toggleRoomDetail(id) {
-  alert("Detail panel lands in the next task");
+  const panel = document.getElementById(`detail-${id}`);
+  if (openDetailId === id) {
+    panel.classList.remove("open");
+    openDetailId = null;
+    return;
+  }
+  document.querySelectorAll(".room-detail.open").forEach((p) => p.classList.remove("open"));
+  openDetailId = id;
+  detailMsgLimit = 100;
+  await renderRoomDetail(id);
+}
+
+async function renderRoomDetail(id) {
+  const panel = document.getElementById(`detail-${id}`);
+  panel.classList.add("open");
+  panel.innerHTML = `<div class="panel">Loading…</div>`;
+
+  const [membersRes, msgsRes] = await Promise.all([
+    supabase
+      .from("community_members")
+      .select("user_id, role, status, joined_at, users!user_id(nickname)")
+      .eq("community_id", id)
+      .order("joined_at", { ascending: true }),
+    supabase
+      .from("community_messages")
+      .select("id, sender_id, content, is_removed, created_at, users!sender_id(nickname)")
+      .eq("community_id", id)
+      .order("created_at", { ascending: false })
+      .limit(detailMsgLimit),
+  ]);
+
+  if (membersRes.error || msgsRes.error) {
+    panel.innerHTML = `<div class="panel">Load failed: ${escape((membersRes.error || msgsRes.error).message)}</div>`;
+    return;
+  }
+
+  const members = membersRes.data || [];
+  const msgs = msgsRes.data || [];
+
+  panel.innerHTML = `
+    <div class="panel">
+      <h3>Members (${members.length})</h3>
+      ${members.map((m) => memberRow(id, m)).join("") || `<div class="sub">Nobody here yet.</div>`}
+    </div>
+    <div class="panel">
+      <h3>Latest messages</h3>
+      ${msgs.map((m) => messageRow(id, m)).join("") || `<div class="sub">No messages yet.</div>`}
+      ${msgs.length >= detailMsgLimit
+        ? `<div class="actions"><button class="ghost" data-daction="older" data-room="${id}">Load older</button></div>`
+        : ""}
+    </div>`;
+
+  panel.querySelectorAll("[data-daction]").forEach((btn) => {
+    btn.addEventListener("click", () =>
+      onDetailAction(btn.dataset.daction, btn.dataset.room, btn.dataset.user, btn.dataset.msg));
+  });
+}
+
+function memberRow(roomId, m) {
+  const nick = escape(m.users?.nickname || m.user_id);
+  const rolePill = m.role === "moderator" ? `<span class="pill mod">mod</span>` : "";
+  const statusPill = m.status === "banned" ? `<span class="pill room-banned">banned</span>`
+    : m.status === "left" ? `<span class="pill off">left</span>` : "";
+  const actions =
+    m.status === "banned"
+      ? `<button data-daction="unban" data-room="${roomId}" data-user="${m.user_id}">Unban</button>`
+      : `<button data-daction="ban" data-room="${roomId}" data-user="${m.user_id}">Ban</button>` +
+        (m.role === "moderator"
+          ? `<button class="ghost" data-daction="demote" data-room="${roomId}" data-user="${m.user_id}">Demote</button>`
+          : `<button class="ghost" data-daction="promote" data-room="${roomId}" data-user="${m.user_id}">Make mod</button>`);
+  return `
+    <div class="mrow">
+      <span class="who">${nick}${rolePill}${statusPill}</span>
+      <span class="when">${fmtDate(m.joined_at)}</span>
+      ${actions}
+    </div>`;
+}
+
+function messageRow(roomId, m) {
+  const nick = escape(m.users?.nickname || m.sender_id);
+  return `
+    <div class="mrow">
+      <span class="who">${nick}</span>
+      <span class="when">${fmtDate(m.created_at)}</span>
+      ${m.is_removed
+        ? `<button data-daction="restore" data-room="${roomId}" data-msg="${m.id}">Restore</button>`
+        : `<button data-daction="remove" data-room="${roomId}" data-msg="${m.id}">Remove</button>
+           <button class="danger" data-daction="ban" data-room="${roomId}" data-user="${m.sender_id}">Ban author</button>`}
+      <span class="txt ${m.is_removed ? "removed" : ""}">${escape(m.content)}</span>
+    </div>`;
+}
+
+async function onDetailAction(action, roomId, userId, msgId) {
+  try {
+    if (action === "older") {
+      detailMsgLimit += 100;
+    } else if (action === "ban") {
+      if (!confirm("Ban this user from this room?")) return;
+      const { error } = await supabase
+        .from("community_members")
+        .update({ status: "banned" })
+        .eq("community_id", roomId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    } else if (action === "unban") {
+      const { error } = await supabase
+        .from("community_members")
+        .update({ status: "active" })
+        .eq("community_id", roomId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    } else if (action === "promote" || action === "demote") {
+      const { error } = await supabase
+        .from("community_members")
+        .update({ role: action === "promote" ? "moderator" : "member" })
+        .eq("community_id", roomId)
+        .eq("user_id", userId);
+      if (error) throw error;
+    } else if (action === "remove") {
+      if (!confirm("Remove this message for everyone?")) return;
+      const { error } = await supabase
+        .from("community_messages")
+        .update({ is_removed: true, removed_at: new Date().toISOString() })
+        .eq("id", msgId);
+      if (error) throw error;
+    } else if (action === "restore") {
+      const { error } = await supabase
+        .from("community_messages")
+        .update({ is_removed: false, removed_at: null })
+        .eq("id", msgId);
+      if (error) throw error;
+    }
+    await renderRoomDetail(roomId);
+  } catch (e) {
+    alert("Action failed: " + (e.message || e));
+  }
 }
 
 function switchTab(name) {

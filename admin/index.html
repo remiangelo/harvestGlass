@@ -70,6 +70,19 @@
     }
     .form-card textarea { grid-column: 1 / -1; resize: vertical; min-height: 60px; }
     button.green { background: var(--green); border-color: var(--green); color: #fff; }
+    .room-detail { margin-top: 14px; display: none; }
+    .room-detail.open { display: block; }
+    .panel { background: var(--raised); border-radius: 12px; padding: 12px; margin-top: 10px; }
+    .panel h3 { margin: 0 0 8px; font-size: 14px; color: var(--green-light); }
+    .mrow { display: flex; align-items: center; gap: 10px; padding: 6px 0; border-top: 1px solid var(--border); font-size: 14px; flex-wrap: wrap; }
+    .mrow:first-of-type { border-top: none; }
+    .mrow .who { font-weight: 600; min-width: 120px; }
+    .mrow .when { color: var(--text-dim); font-size: 12px; }
+    .mrow .txt { flex: 1 1 100%; color: var(--text-dim); }
+    .mrow .txt.removed { text-decoration: line-through; opacity: 0.6; }
+    .mrow button { padding: 3px 10px; font-size: 12px; }
+    .pill.mod { background: rgba(122, 204, 163, 0.2); color: var(--green-light); }
+    .pill.room-banned { background: rgba(251, 46, 99, 0.2); color: var(--rose-light); }
   </style>
 </head>
 <body>
