@@ -40,16 +40,32 @@ struct CommunityChatView: View {
                             emptyState
                         }
                         ForEach(vm.messages) { msg in
-                            CommunityBubble(
-                                message: msg,
-                                sender: vm.senders[msg.senderId],
-                                isMine: msg.senderId == userId,
-                                onTapSender: msg.senderId == userId
-                                    ? nil
-                                    : { Task { await openProfile(senderId: msg.senderId) } }
-                            )
+                            SwipeToReply(onReply: { vm.replyTarget = msg }) {
+                                CommunityBubble(
+                                    message: msg,
+                                    quoted: vm.quotedMessage(for: msg),
+                                    quotedSenderName: vm.quotedMessage(for: msg).map {
+                                        vm.senders[$0.senderId]?.nickname ?? "Member"
+                                    },
+                                    sender: vm.senders[msg.senderId],
+                                    isMine: msg.senderId == userId,
+                                    onTapSender: msg.senderId == userId
+                                        ? nil
+                                        : { Task { await openProfile(senderId: msg.senderId) } },
+                                    onTapQuote: { originalId in
+                                        if vm.messages.contains(where: { $0.id == originalId }) {
+                                            withAnimation { proxy.scrollTo(originalId, anchor: .center) }
+                                        }
+                                    }
+                                )
+                            }
                                 .id(msg.id)
                                 .contextMenu {
+                                    Button {
+                                        vm.replyTarget = msg
+                                    } label: {
+                                        Label("Reply", systemImage: "arrowshape.turn.up.left")
+                                    }
                                     if msg.senderId != userId {
                                         Button(role: .destructive) {
                                             reportTarget = (senderId: msg.senderId, messageId: msg.id)
@@ -76,6 +92,32 @@ struct CommunityChatView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.top, HarvestTheme.Spacing.xs)
+            }
+
+            if let target = vm.replyTarget {
+                HStack(spacing: HarvestTheme.Spacing.sm) {
+                    RoundedRectangle(cornerRadius: 2)
+                        .fill(HarvestTheme.Colors.fieldGreen)
+                        .frame(width: 3, height: 32)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text("Replying to \(vm.senders[target.senderId]?.nickname ?? "Member")")
+                            .font(HarvestTheme.Typography.caption)
+                            .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                        Text(target.content)
+                            .font(HarvestTheme.Typography.caption)
+                            .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                            .lineLimit(1)
+                    }
+                    Spacer()
+                    Button {
+                        vm.replyTarget = nil
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                    }
+                }
+                .padding(.horizontal, HarvestTheme.Spacing.md)
+                .padding(.top, HarvestTheme.Spacing.xs)
             }
 
             composer
@@ -214,11 +256,39 @@ private struct ReportSheetItem: Identifiable, Equatable {
     var id: String { messageId }
 }
 
+/// Drag-right-to-reply. Threshold 40pt; the row springs back either way.
+private struct SwipeToReply<Content: View>: View {
+    let onReply: () -> Void
+    @ViewBuilder let content: Content
+
+    @State private var offsetX: CGFloat = 0
+
+    var body: some View {
+        content
+            .offset(x: offsetX)
+            .gesture(
+                DragGesture(minimumDistance: 25)
+                    .onChanged { value in
+                        guard value.translation.width > 0,
+                              abs(value.translation.width) > abs(value.translation.height) else { return }
+                        offsetX = min(value.translation.width * 0.5, 60)
+                    }
+                    .onEnded { value in
+                        if offsetX > 40 { onReply() }
+                        withAnimation(.spring(duration: 0.25)) { offsetX = 0 }
+                    }
+            )
+    }
+}
+
 private struct CommunityBubble: View {
     let message: CommunityMessage
+    var quoted: CommunityMessage? = nil
+    var quotedSenderName: String? = nil
     let sender: CommunitySender?
     let isMine: Bool
     var onTapSender: (() -> Void)? = nil
+    var onTapQuote: ((String) -> Void)? = nil
 
     @State private var revealed = false
     private let mindful = MindfulMessagingService()
@@ -253,6 +323,34 @@ private struct CommunityBubble: View {
                     .foregroundStyle(onTapSender == nil ? HarvestTheme.Colors.textTertiary : HarvestTheme.Colors.primary)
                     .contentShape(Rectangle())
                     .onTapGesture { onTapSender?() }
+
+                if message.replyToId != nil {
+                    HStack(spacing: HarvestTheme.Spacing.xs) {
+                        RoundedRectangle(cornerRadius: 2)
+                            .fill(HarvestTheme.Colors.fieldGreen)
+                            .frame(width: 3)
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(quotedSenderName ?? "Member")
+                                .font(HarvestTheme.Typography.caption.weight(.semibold))
+                                .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                            Text(quoted.map { $0.isRemoved ? "Message removed" : $0.content } ?? "…")
+                                .font(HarvestTheme.Typography.caption)
+                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                                .lineLimit(2)
+                        }
+                    }
+                    .padding(.horizontal, HarvestTheme.Spacing.sm)
+                    .padding(.vertical, HarvestTheme.Spacing.xs)
+                    .background(
+                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                            .fill(HarvestTheme.Colors.wineBlack.opacity(0.35))
+                    )
+                    .fixedSize(horizontal: false, vertical: true)
+                    .contentShape(Rectangle())
+                    .onTapGesture {
+                        if let id = message.replyToId { onTapQuote?(id) }
+                    }
+                }
 
                 Text(message.content)
                     .font(HarvestTheme.Typography.bodyRegular)

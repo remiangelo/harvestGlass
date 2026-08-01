@@ -13,6 +13,7 @@ final class CommunityChatViewModel {
     var error: String?
     var hasMore = false
     var isLoadingOlder = false
+    var replyTarget: CommunityMessage?
 
     let pageSize = 50
 
@@ -68,6 +69,13 @@ final class CommunityChatViewModel {
         }
     }
 
+    /// The original message a reply points at, from loaded pages or the
+    /// referenced cache. nil while it loads (bubble hides the quote briefly).
+    func quotedMessage(for message: CommunityMessage) -> CommunityMessage? {
+        guard let id = message.replyToId else { return nil }
+        return messages.first(where: { $0.id == id }) ?? referenced[id]
+    }
+
     /// Fetch originals for any quoted replies whose parent isn't loaded.
     private func loadReferenced() async {
         let loaded = Set(messages.map(\.id))
@@ -114,9 +122,16 @@ final class CommunityChatViewModel {
 
     private func performSend(communityId: String, senderId: String, text: String) async {
         do {
-            let sent = try await service.post(communityId: communityId, senderId: senderId, content: text)
+            let sent = try await service.post(
+                communityId: communityId,
+                senderId: senderId,
+                content: text,
+                replyToId: replyTarget?.id,
+                mentions: []
+            )
             draft = ""
             pendingDraft = ""
+            replyTarget = nil
             if let sent, !messages.contains(where: { $0.id == sent.id }) {
                 messages.append(sent)
             }
