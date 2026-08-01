@@ -15,6 +15,10 @@ final class CommunityChatViewModel {
     var isLoadingOlder = false
     var replyTarget: CommunityMessage?
 
+    /// nickname (lowercased) → user id, accumulated as the sender picks
+    /// suggestions. Filtered against the final text at send time.
+    private var draftMentions: [String: String] = [:]
+
     let pageSize = 50
 
     // Mindful messaging — outgoing pre-send warning (mirrors 1:1 chat).
@@ -89,6 +93,52 @@ final class CommunityChatViewModel {
         }
     }
 
+    /// Non-empty while the draft ends in an "@query" token that matches members.
+    var mentionSuggestions: [CommunitySender] {
+        guard let query = currentMentionQuery() else { return [] }
+        return members.filter { member in
+            guard let nick = member.nickname, !nick.isEmpty else { return false }
+            return query.isEmpty || nick.lowercased().hasPrefix(query)
+        }
+    }
+
+    /// The trailing "@..." token of the draft, lowercased, or nil.
+    private func currentMentionQuery() -> String? {
+        guard let atIndex = draft.lastIndex(of: "@") else { return nil }
+        let after = draft[draft.index(after: atIndex)...]
+        // A space before "@" (or "@" at the start) begins a mention; a space
+        // after it ends one.
+        if atIndex != draft.startIndex {
+            let before = draft[draft.index(before: atIndex)]
+            guard before == " " || before == "\n" else { return nil }
+        }
+        guard !after.contains(" "), !after.contains("\n") else { return nil }
+        return after.lowercased()
+    }
+
+    func pickMention(_ member: CommunitySender) {
+        guard let nick = member.nickname, let atIndex = draft.lastIndex(of: "@") else { return }
+        draft = String(draft[..<atIndex]) + "@" + nick + " "
+        draftMentions[nick.lowercased()] = member.id
+    }
+
+    /// User ids whose "@nickname" is still present in the given text.
+    private func mentions(in text: String) -> [String] {
+        let lower = text.lowercased()
+        return draftMentions.compactMap { nick, id in
+            lower.contains("@" + nick) ? id : nil
+        }
+    }
+
+    /// Nicknames to highlight in a message bubble, resolved from the
+    /// mentions id array via the sender/member caches.
+    func mentionedNicknames(for message: CommunityMessage) -> [String] {
+        guard let ids = message.mentions, !ids.isEmpty else { return [] }
+        return ids.compactMap { id in
+            senders[id]?.nickname ?? members.first(where: { $0.id == id })?.nickname
+        }
+    }
+
     func send(communityId: String, senderId: String) async {
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
@@ -127,9 +177,10 @@ final class CommunityChatViewModel {
                 senderId: senderId,
                 content: text,
                 replyToId: replyTarget?.id,
-                mentions: []
+                mentions: mentions(in: text)
             )
             draft = ""
+            draftMentions = [:]
             pendingDraft = ""
             replyTarget = nil
             if let sent, !messages.contains(where: { $0.id == sent.id }) {

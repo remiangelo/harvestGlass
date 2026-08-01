@@ -47,6 +47,8 @@ struct CommunityChatView: View {
                                     quotedSenderName: vm.quotedMessage(for: msg).map {
                                         vm.senders[$0.senderId]?.nickname ?? "Member"
                                     },
+                                    mentionNicknames: vm.mentionedNicknames(for: msg),
+                                    mentionsMe: (msg.mentions ?? []).contains(userId),
                                     sender: vm.senders[msg.senderId],
                                     isMine: msg.senderId == userId,
                                     onTapSender: msg.senderId == userId
@@ -117,6 +119,27 @@ struct CommunityChatView: View {
                     }
                 }
                 .padding(.horizontal, HarvestTheme.Spacing.md)
+                .padding(.top, HarvestTheme.Spacing.xs)
+            }
+
+            if !vm.mentionSuggestions.isEmpty {
+                ScrollView(.horizontal, showsIndicators: false) {
+                    HStack(spacing: HarvestTheme.Spacing.sm) {
+                        ForEach(vm.mentionSuggestions) { member in
+                            Button {
+                                vm.pickMention(member)
+                            } label: {
+                                Text("@\(member.nickname ?? "")")
+                                    .font(HarvestTheme.Typography.caption.weight(.semibold))
+                                    .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                                    .padding(.horizontal, HarvestTheme.Spacing.sm)
+                                    .padding(.vertical, HarvestTheme.Spacing.xs)
+                                    .background(Capsule().fill(HarvestTheme.Colors.fieldGreenSoft))
+                            }
+                        }
+                    }
+                    .padding(.horizontal, HarvestTheme.Spacing.md)
+                }
                 .padding(.top, HarvestTheme.Spacing.xs)
             }
 
@@ -285,6 +308,8 @@ private struct CommunityBubble: View {
     let message: CommunityMessage
     var quoted: CommunityMessage? = nil
     var quotedSenderName: String? = nil
+    var mentionNicknames: [String] = []
+    var mentionsMe: Bool = false
     let sender: CommunitySender?
     let isMine: Bool
     var onTapSender: (() -> Void)? = nil
@@ -352,9 +377,11 @@ private struct CommunityBubble: View {
                     }
                 }
 
-                Text(message.content)
-                    .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(isMine ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary)
+                MentionText(
+                    content: message.content,
+                    nicknames: mentionNicknames,
+                    baseColor: isMine ? HarvestTheme.Colors.textOnRedPrimary : HarvestTheme.Colors.textPrimary
+                )
                     .padding(.horizontal, HarvestTheme.Spacing.md)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .frame(minWidth: isBlurred ? 150 : nil, minHeight: isBlurred ? 44 : nil, alignment: .leading)
@@ -364,6 +391,11 @@ private struct CommunityBubble: View {
                     )
                     .overlay {
                         if isBlurred { blurOverlay }
+                    }
+                    .overlay {
+                        if mentionsMe {
+                            bubble.stroke(HarvestTheme.Colors.fieldGreen.opacity(0.5), lineWidth: 1)
+                        }
                     }
                     .contentShape(bubble)
                     .onTapGesture {
@@ -432,6 +464,35 @@ private struct CommunityBubble: View {
                     .font(.system(size: 13))
                     .foregroundStyle(HarvestTheme.Colors.textTertiary)
             }
+    }
+}
+
+/// Message text with "@nickname" spans tinted green. Falls back to plain
+/// text when a mentioned user's nickname changed and no longer matches.
+private struct MentionText: View {
+    let content: String
+    let nicknames: [String]
+    let baseColor: Color
+
+    var body: some View {
+        Text(attributed)
+            .font(HarvestTheme.Typography.bodyRegular)
+            .foregroundStyle(baseColor)
+    }
+
+    private var attributed: AttributedString {
+        var attr = AttributedString(content)
+        for nick in nicknames where !nick.isEmpty {
+            let needle = "@" + nick
+            var searchStart = attr.startIndex
+            while searchStart < attr.endIndex,
+                  let range = attr[searchStart...].range(of: needle, options: [.caseInsensitive]) {
+                attr[range].foregroundColor = HarvestTheme.Colors.fieldGreenLight
+                attr[range].inlinePresentationIntent = .stronglyEmphasized
+                searchStart = range.upperBound
+            }
+        }
+        return attr
     }
 }
 
