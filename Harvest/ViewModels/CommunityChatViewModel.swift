@@ -7,8 +7,14 @@ final class CommunityChatViewModel {
     var messages: [CommunityMessage] = []
     var prompts: [CommunityPrompt] = []
     var senders: [String: CommunitySender] = [:]
+    var members: [CommunitySender] = []
+    var referenced: [String: CommunityMessage] = [:]
     var draft: String = ""
     var error: String?
+    var hasMore = false
+    var isLoadingOlder = false
+
+    let pageSize = 50
 
     // Mindful messaging — outgoing pre-send warning (mirrors 1:1 chat).
     var mindfulAnalysis: MindfulMessagingService.MindfulAnalysis?
@@ -21,22 +27,57 @@ final class CommunityChatViewModel {
 
     func start(communityId: String) async {
         do {
-            async let msgs = service.messages(communityId: communityId)
+            async let page = service.messagesPage(communityId: communityId, before: nil, limit: pageSize)
             async let pr = service.prompts(communityId: communityId)
-            self.messages = try await msgs
+            async let mem = service.members(communityId: communityId)
+            let newest = try await page
+            self.messages = newest.reversed()
+            self.hasMore = newest.count == pageSize
             self.prompts = try await pr
+            self.members = try await mem
         } catch {
             self.error = error.localizedDescription
         }
         await loadSenders(for: Set(messages.map(\.senderId)))
+        await loadReferenced()
         channel = service.subscribe(communityId: communityId) { [weak self] msg in
             Task { @MainActor in
                 guard let self else { return }
                 if !self.messages.contains(where: { $0.id == msg.id }) && !msg.isRemoved {
                     self.messages.append(msg)
                     await self.loadSenders(for: [msg.senderId])
+                    await self.loadReferenced()
                 }
             }
+        }
+    }
+
+    func loadOlder(communityId: String) async {
+        guard hasMore, !isLoadingOlder, let oldest = messages.first?.createdAt else { return }
+        isLoadingOlder = true
+        defer { isLoadingOlder = false }
+        do {
+            let older = try await service.messagesPage(communityId: communityId, before: oldest, limit: pageSize)
+            hasMore = older.count == pageSize
+            let existing = Set(messages.map(\.id))
+            messages.insert(contentsOf: older.reversed().filter { !existing.contains($0.id) }, at: 0)
+            await loadSenders(for: Set(older.map(\.senderId)))
+            await loadReferenced()
+        } catch {
+            self.error = error.localizedDescription
+        }
+    }
+
+    /// Fetch originals for any quoted replies whose parent isn't loaded.
+    private func loadReferenced() async {
+        let loaded = Set(messages.map(\.id))
+        let missing = Set(messages.compactMap(\.replyToId))
+            .subtracting(loaded)
+            .subtracting(referenced.keys)
+        guard !missing.isEmpty else { return }
+        if let rows = try? await service.messagesByIds(Array(missing)) {
+            for row in rows { referenced[row.id] = row }
+            await loadSenders(for: Set(rows.map(\.senderId)))
         }
     }
 

@@ -21,6 +21,21 @@ struct CommunityChatView: View {
             ScrollViewReader { proxy in
                 ScrollView {
                     LazyVStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                        if vm.hasMore {
+                            Button {
+                                Task { await vm.loadOlder(communityId: community.id) }
+                            } label: {
+                                if vm.isLoadingOlder {
+                                    ProgressView().tint(HarvestTheme.Colors.fieldGreen)
+                                } else {
+                                    Label("Load earlier messages", systemImage: "arrow.up.circle")
+                                        .font(HarvestTheme.Typography.caption)
+                                        .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                                }
+                            }
+                            .frame(maxWidth: .infinity)
+                            .padding(.vertical, HarvestTheme.Spacing.xs)
+                        }
                         if vm.messages.isEmpty {
                             emptyState
                         }
@@ -47,9 +62,9 @@ struct CommunityChatView: View {
                     }
                     .padding(HarvestTheme.Spacing.md)
                 }
-                .onChange(of: vm.messages.count) { _, _ in
-                    if let last = vm.messages.last {
-                        withAnimation { proxy.scrollTo(last.id, anchor: .bottom) }
+                .onChange(of: vm.messages.last?.id) { _, lastId in
+                    if let lastId {
+                        withAnimation { proxy.scrollTo(lastId, anchor: .bottom) }
                     }
                 }
             }
