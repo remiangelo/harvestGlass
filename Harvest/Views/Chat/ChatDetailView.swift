@@ -12,6 +12,15 @@ struct ChatDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isMessageFieldFocused: Bool
 
+    /// "9:41" for a message, or "" when the timestamp is unusable.
+    private func timeLabel(for message: Message) -> String {
+        guard let date = MessageGrouping.date(from: message.createdAt) else { return "" }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
+    }
+
     var body: some View {
         VStack(spacing: 0) {
             // Safety warning banner
@@ -41,9 +50,21 @@ struct ChatDetailView: View {
                 ScrollView {
                     LazyVStack(spacing: HarvestTheme.Spacing.sm) {
                         ForEach(viewModel.messages) { message in
+                            let position = viewModel.positions[message.id]
+                                ?? MessagePosition(showsDateSeparator: false,
+                                                   isFirstInGroup: true,
+                                                   isLastInGroup: true)
+
+                            if position.showsDateSeparator,
+                               let date = MessageGrouping.date(from: message.createdAt) {
+                                DateSeparator(date: date)
+                            }
+
                             MessageBubbleView(
                                 message: message,
-                                isSent: message.isSentBy(authViewModel.currentUserId ?? "")
+                                isSent: message.isSentBy(authViewModel.currentUserId ?? ""),
+                                position: position,
+                                timeLabel: position.isLastInGroup ? timeLabel(for: message) : ""
                             )
                             .id(message.id)
                         }
@@ -69,52 +90,24 @@ struct ChatDetailView: View {
                 }
             }
 
-            Divider()
-
-            // Input bar
-            HStack(spacing: HarvestTheme.Spacing.sm) {
-                TextField(
-                    "",
-                    text: $viewModel.messageText,
-                    prompt: Text("Type a message...").foregroundStyle(HarvestTheme.Colors.textTertiary),
-                    axis: .vertical
-                )
-                    .font(HarvestTheme.Typography.bodyRegular)
-                    .foregroundStyle(HarvestTheme.Colors.textOnBlack)
-                    .tint(HarvestTheme.Colors.textOnBlack)
-                    .focused($isMessageFieldFocused)
-                    .lineLimit(1...4)
-                    .padding(.horizontal, HarvestTheme.Spacing.md)
-                    .padding(.vertical, HarvestTheme.Spacing.sm)
-                    .background {
-                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                            .fill(HarvestTheme.Colors.blackSurface)
-                            .overlay {
-                                RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                                    .stroke(HarvestTheme.Colors.border, lineWidth: 1)
-                            }
-                    }
-
-                Button {
+            ChatComposer(
+                text: $viewModel.messageText,
+                focused: $isMessageFieldFocused,
+                accent: .rose,
+                placeholder: "Type a message...",
+                isSending: viewModel.isSending,
+                onSend: {
                     Task {
                         await viewModel.sendMessage(
                             conversationId: conversationId,
                             senderId: authViewModel.currentUserId ?? ""
                         )
                     }
-                } label: {
-                    Image(systemName: "paperplane.fill")
-                        .font(.title3)
-                        .foregroundStyle(HarvestTheme.Colors.accent)
-                        .frame(width: 40, height: 40)
                 }
-                .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
-            }
-            .padding(.horizontal)
-            .padding(.vertical, HarvestTheme.Spacing.sm)
+            )
         }
         .foregroundStyle(HarvestTheme.Colors.textPrimary)
-        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .background(ChatBackdrop(accent: .rose))
         .contentShape(Rectangle())
         .onTapGesture {
             isMessageFieldFocused = false

@@ -15,12 +15,12 @@ struct TypingIndicatorView: View {
             }
             .padding(.horizontal, HarvestTheme.Spacing.md)
             .padding(.vertical, HarvestTheme.Spacing.sm + 4)
-            .background {
-                let bubble = RoundedRectangle(cornerRadius: 18, style: .continuous)
-                bubble
-                    .fill(HarvestTheme.Colors.glassFill)
-                    .overlay { bubble.stroke(HarvestTheme.Colors.border, lineWidth: 1) }
-            }
+            // Same surface as an incoming bubble, so it reads as one.
+            .chatBubble(
+                accent: .rose,
+                isMine: false,
+                shape: ChatBubbleShape(isMine: false, isFirstInGroup: true, isLastInGroup: true)
+            )
 
             Spacer(minLength: 60)
         }

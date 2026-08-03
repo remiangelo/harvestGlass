@@ -3,6 +3,8 @@ import SwiftUI
 struct MessageBubbleView: View {
     let message: Message
     let isSent: Bool
+    let position: MessagePosition
+    var timeLabel: String = ""
 
     @State private var revealed = false
     private let mindful = MindfulMessagingService()
@@ -16,7 +18,11 @@ struct MessageBubbleView: View {
 
     var body: some View {
         let isBlurred = flag != nil && !revealed
-        let bubble = RoundedRectangle(cornerRadius: 18, style: .continuous)
+        let shape = ChatBubbleShape(
+            isMine: isSent,
+            isFirstInGroup: position.isFirstInGroup,
+            isLastInGroup: position.isLastInGroup
+        )
 
         HStack {
             if isSent { Spacer(minLength: 60) }
@@ -29,39 +35,32 @@ struct MessageBubbleView: View {
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .frame(minWidth: isBlurred ? 150 : nil, minHeight: isBlurred ? 44 : nil, alignment: .leading)
                     .blur(radius: isBlurred ? 7 : 0)
-                    .background {
-                        if isSent {
-                            bubble.fill(HarvestTheme.Colors.outgoingMessageSurface)
-                        } else {
-                            bubble
-                                .fill(HarvestTheme.Colors.glassFill)
-                                .overlay { bubble.stroke(HarvestTheme.Colors.border, lineWidth: 1) }
-                        }
-                    }
+                    .chatBubble(accent: .rose, isMine: isSent, shape: shape)
                     .overlay {
                         if isBlurred {
                             blurOverlay
                         }
                     }
-                    .contentShape(bubble)
+                    .contentShape(shape)
                     .onTapGesture {
                         if isBlurred { withAnimation(.easeInOut(duration: 0.2)) { revealed = true } }
                     }
 
-                HStack(spacing: 4) {
-                    if let time = message.createdAt {
-                        Text(formatMessageTime(time))
+                // Metadata once per run, not once per bubble.
+                if !timeLabel.isEmpty {
+                    HStack(spacing: 4) {
+                        Text(timeLabel)
                             .font(.system(size: 10))
                             .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                    }
 
-                    if isSent {
-                        Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark.circle")
-                            .font(.system(size: 10))
-                            .foregroundStyle(message.isRead ? HarvestTheme.Colors.primary : HarvestTheme.Colors.textTertiary)
+                        if isSent {
+                            Image(systemName: message.isRead ? "checkmark.circle.fill" : "checkmark.circle")
+                                .font(.system(size: 10))
+                                .foregroundStyle(message.isRead ? HarvestTheme.Colors.primary : HarvestTheme.Colors.textTertiary)
+                        }
                     }
+                    .padding(.horizontal, 4)
                 }
-                .padding(.horizontal, 4)
             }
 
             if !isSent { Spacer(minLength: 60) }
@@ -97,11 +96,4 @@ struct MessageBubbleView: View {
         }
     }
 
-    private func formatMessageTime(_ isoString: String) -> String {
-        let formatter = ISO8601DateFormatter()
-        guard let date = formatter.date(from: isoString) else { return "" }
-        let timeFormatter = DateFormatter()
-        timeFormatter.timeStyle = .short
-        return timeFormatter.string(from: date)
-    }
 }

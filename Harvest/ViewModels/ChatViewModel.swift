@@ -69,6 +69,23 @@ final class ChatViewModel {
         }
     }
 
+    /// Grouping metadata for every loaded message, keyed by message id.
+    var positions: [String: MessagePosition] {
+        var result: [String: MessagePosition] = [:]
+        let dates = messages.map { MessageGrouping.date(from: $0.createdAt) }
+        for (i, message) in messages.enumerated() {
+            result[message.id] = MessageGrouping.position(
+                previousSender: i > 0 ? messages[i - 1].senderId : nil,
+                previousDate: i > 0 ? dates[i - 1] : nil,
+                currentSender: message.senderId,
+                currentDate: dates[i],
+                nextSender: i + 1 < messages.count ? messages[i + 1].senderId : nil,
+                nextDate: i + 1 < messages.count ? dates[i + 1] : nil
+            )
+        }
+        return result
+    }
+
     func loadPartnerProfile(userId: String) async {
         do {
             partnerProfile = try await profileService.getProfile(userId: userId)
