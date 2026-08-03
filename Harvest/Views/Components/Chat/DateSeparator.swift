@@ -11,8 +11,10 @@ struct DateSeparator: View {
             .padding(.horizontal, HarvestTheme.Spacing.md)
             .padding(.vertical, HarvestTheme.Spacing.xs)
             .background {
+                // Solid rather than material: a light blur over the cream
+                // page reads as nothing at all.
                 Capsule()
-                    .fill(.ultraThinMaterial)
+                    .fill(HarvestTheme.Colors.wineRaised)
                     .overlay { Capsule().stroke(HarvestTheme.Colors.border, lineWidth: 1) }
             }
             .frame(maxWidth: .infinity)
