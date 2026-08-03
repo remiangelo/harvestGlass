@@ -9,12 +9,9 @@ struct CommunityChatView: View {
     @State private var reportTarget: (senderId: String, messageId: String)? = nil
     @State private var selectedProfile: UserProfile?
     @State private var isLoadingProfile = false
+    @FocusState private var isComposerFocused: Bool
     private let profileService = ProfileService()
     private var userId: String { authViewModel.currentUserId ?? "" }
-
-    private var canSend: Bool {
-        !vm.draft.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -40,6 +37,16 @@ struct CommunityChatView: View {
                             emptyState
                         }
                         ForEach(vm.messages) { msg in
+                            let position = vm.positions[msg.id]
+                                ?? MessagePosition(showsDateSeparator: false,
+                                                   isFirstInGroup: true,
+                                                   isLastInGroup: true)
+
+                            if position.showsDateSeparator,
+                               let date = MessageGrouping.date(from: msg.createdAt) {
+                                DateSeparator(date: date)
+                            }
+
                             SwipeToReply(onReply: { vm.replyTarget = msg }) {
                                 VStack(alignment: msg.senderId == userId ? .trailing : .leading, spacing: 2) {
                                     CommunityBubble(
@@ -52,6 +59,8 @@ struct CommunityChatView: View {
                                         mentionsMe: (msg.mentions ?? []).contains(userId),
                                         sender: vm.senders[msg.senderId],
                                         isMine: msg.senderId == userId,
+                                        position: position,
+                                        timeLabel: position.isLastInGroup ? vm.timeLabel(for: msg) : "",
                                         onTapSender: msg.senderId == userId
                                             ? nil
                                             : { Task { await openProfile(senderId: msg.senderId) } },
@@ -99,6 +108,8 @@ struct CommunityChatView: View {
                     }
                     .padding(HarvestTheme.Spacing.md)
                 }
+                .contentShape(Rectangle())
+                .onTapGesture { isComposerFocused = false }
                 .onChange(of: vm.messages.last?.id) { _, lastId in
                     if let lastId {
                         withAnimation { proxy.scrollTo(lastId, anchor: .bottom) }
@@ -164,7 +175,7 @@ struct CommunityChatView: View {
 
             composer
         }
-        .background(HarvestTheme.Colors.background.ignoresSafeArea())
+        .background(ChatBackdrop(accent: .field))
         .navigationTitle(community.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
@@ -242,7 +253,8 @@ struct CommunityChatView: View {
         VStack(spacing: HarvestTheme.Spacing.sm) {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 32))
-                .foregroundStyle(HarvestTheme.Colors.primary)
+                // Field views stay green; primary would leak the app's red in.
+                .foregroundStyle(HarvestTheme.Colors.fieldGreen)
             Text("Be the first to share something.")
                 .font(HarvestTheme.Typography.bodySmall)
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
@@ -258,36 +270,22 @@ struct CommunityChatView: View {
     }
 
     private var composer: some View {
-        HStack(spacing: HarvestTheme.Spacing.sm) {
-            Button { showPrompts.toggle() } label: {
-                Image(systemName: "lightbulb.fill")
-                    .font(.title3)
-                    .foregroundStyle(HarvestTheme.Colors.primary)
+        ChatComposer(
+            text: $vm.draft,
+            focused: $isComposerFocused,
+            accent: .field,
+            placeholder: "Share something…",
+            isSending: vm.isSending,
+            onSend: { Task { await vm.send(communityId: community.id, senderId: userId) } },
+            accessory: {
+                Button { showPrompts.toggle() } label: {
+                    Image(systemName: "lightbulb.fill")
+                        .font(.title3)
+                        .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                        .frame(width: 36, height: 36)
+                }
             }
-
-            TextField("Share something…", text: $vm.draft, axis: .vertical)
-                .textFieldStyle(.plain)
-                .lineLimit(1...4)
-                .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                .padding(.horizontal, HarvestTheme.Spacing.md)
-                .padding(.vertical, HarvestTheme.Spacing.sm)
-                .background(
-                    Capsule()
-                        .fill(HarvestTheme.Colors.fieldFill)
-                        .overlay(Capsule().stroke(HarvestTheme.Colors.border, lineWidth: 1))
-                )
-
-            Button {
-                Task { await vm.send(communityId: community.id, senderId: userId) }
-            } label: {
-                Image(systemName: "arrow.up.circle.fill")
-                    .font(.largeTitle)
-                    .foregroundStyle(canSend ? HarvestTheme.Colors.primary : HarvestTheme.Colors.textTertiary)
-            }
-            .disabled(!canSend)
-        }
-        .padding(HarvestTheme.Spacing.md)
-        .background(HarvestTheme.Colors.wineBlack.ignoresSafeArea(edges: .bottom))
+        )
     }
 }
 
@@ -362,8 +360,10 @@ private struct ReactionChips: View {
                 .buttonStyle(.plain)
             }
         }
-        .padding(.leading, isMine ? 0 : 38)   // align under bubble, past avatar
-        .padding(.trailing, isMine ? 38 : 0)
+        // Line the chips up with the bubble, clearing the avatar gutter.
+        // The old trailing inset cleared your own avatar, which no longer renders.
+        .padding(.leading, isMine ? 0 : 28 + HarvestTheme.Spacing.xs)
+        .frame(maxWidth: .infinity, alignment: isMine ? .trailing : .leading)
     }
 }
 
@@ -375,15 +375,13 @@ private struct CommunityBubble: View {
     var mentionsMe: Bool = false
     let sender: CommunitySender?
     let isMine: Bool
+    let position: MessagePosition
+    var timeLabel: String = ""
     var onTapSender: (() -> Void)? = nil
     var onTapQuote: ((String) -> Void)? = nil
 
     @State private var revealed = false
     private let mindful = MindfulMessagingService()
-
-    private var senderName: String {
-        isMine ? "You" : (sender?.nickname ?? "Member")
-    }
 
     /// Non-nil when an incoming message should be blurred for the viewer.
     /// Respects the viewer's own mindful-messaging toggle.
@@ -394,50 +392,42 @@ private struct CommunityBubble: View {
 
     var body: some View {
         let isBlurred = flag != nil && !revealed
-        let bubble = RoundedRectangle(cornerRadius: HarvestTheme.Radius.lg)
+        let shape = ChatBubbleShape(
+            isMine: isMine,
+            isFirstInGroup: position.isFirstInGroup,
+            isLastInGroup: position.isLastInGroup
+        )
 
-        HStack(alignment: .top, spacing: HarvestTheme.Spacing.xs) {
+        HStack(alignment: .bottom, spacing: HarvestTheme.Spacing.xs) {
             if isMine {
-                Spacer(minLength: 40)
+                Spacer(minLength: 48)
             } else {
-                avatar
-                    .contentShape(Circle())
-                    .onTapGesture { onTapSender?() }
+                // The avatar sits on the last message of a run only; earlier
+                // rows reserve its width so the column stays flush.
+                if position.isLastInGroup {
+                    avatar
+                        .contentShape(Circle())
+                        .onTapGesture { onTapSender?() }
+                } else {
+                    Color.clear.frame(width: 28, height: 28)
+                }
             }
 
             VStack(alignment: isMine ? .trailing : .leading, spacing: 2) {
-                Text(senderName)
-                    .font(HarvestTheme.Typography.caption)
-                    .foregroundStyle(onTapSender == nil ? HarvestTheme.Colors.textTertiary : HarvestTheme.Colors.primary)
-                    .contentShape(Rectangle())
-                    .onTapGesture { onTapSender?() }
+                // Name once per run, and never on your own messages.
+                if !isMine, position.isFirstInGroup {
+                    Text(sender?.nickname ?? "Member")
+                        .font(HarvestTheme.Typography.caption)
+                        .foregroundStyle(onTapSender == nil
+                                         ? HarvestTheme.Colors.textTertiary
+                                         : HarvestTheme.Colors.fieldGreenLight)
+                        .contentShape(Rectangle())
+                        .onTapGesture { onTapSender?() }
+                        .padding(.leading, HarvestTheme.Spacing.xs)
+                }
 
                 if message.replyToId != nil {
-                    HStack(spacing: HarvestTheme.Spacing.xs) {
-                        RoundedRectangle(cornerRadius: 2)
-                            .fill(HarvestTheme.Colors.fieldGreen)
-                            .frame(width: 3)
-                        VStack(alignment: .leading, spacing: 1) {
-                            Text(quotedSenderName ?? "Member")
-                                .font(HarvestTheme.Typography.caption.weight(.semibold))
-                                .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
-                            Text(quoted.map { $0.isRemoved ? "Message removed" : $0.content } ?? "…")
-                                .font(HarvestTheme.Typography.caption)
-                                .foregroundStyle(HarvestTheme.Colors.textSecondary)
-                                .lineLimit(2)
-                        }
-                    }
-                    .padding(.horizontal, HarvestTheme.Spacing.sm)
-                    .padding(.vertical, HarvestTheme.Spacing.xs)
-                    .background(
-                        RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                            .fill(HarvestTheme.Colors.wineBlack.opacity(0.35))
-                    )
-                    .fixedSize(horizontal: false, vertical: true)
-                    .contentShape(Rectangle())
-                    .onTapGesture {
-                        if let id = message.replyToId { onTapQuote?(id) }
-                    }
+                    replyQuote
                 }
 
                 MentionText(
@@ -449,28 +439,60 @@ private struct CommunityBubble: View {
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .frame(minWidth: isBlurred ? 150 : nil, minHeight: isBlurred ? 44 : nil, alignment: .leading)
                     .blur(radius: isBlurred ? 7 : 0)
-                    .background(
-                        bubble.fill(isMine ? HarvestTheme.Colors.rose : HarvestTheme.Colors.wineCard)
-                    )
+                    .chatBubble(accent: .field, isMine: isMine, shape: shape)
                     .overlay {
                         if isBlurred { blurOverlay }
                     }
                     .overlay {
                         if mentionsMe {
-                            bubble.stroke(HarvestTheme.Colors.fieldGreen.opacity(0.5), lineWidth: 1)
+                            shape.stroke(HarvestTheme.Colors.fieldGreen.opacity(0.55), lineWidth: 1)
                         }
                     }
-                    .contentShape(bubble)
+                    .contentShape(shape)
                     .onTapGesture {
                         if isBlurred { withAnimation(.easeInOut(duration: 0.2)) { revealed = true } }
                     }
+
+                if !timeLabel.isEmpty {
+                    Text(timeLabel)
+                        .font(.system(size: 10))
+                        .foregroundStyle(HarvestTheme.Colors.textTertiary)
+                        .padding(.horizontal, HarvestTheme.Spacing.xs)
+                }
             }
 
-            if isMine {
-                avatar
-            } else {
-                Spacer(minLength: 40)
+            // No avatar on your own messages — you know who you are.
+            if !isMine { Spacer(minLength: 48) }
+        }
+    }
+
+    /// The quoted original above a reply. Logic unchanged from before the
+    /// redesign; only the surface is new.
+    private var replyQuote: some View {
+        HStack(spacing: HarvestTheme.Spacing.xs) {
+            RoundedRectangle(cornerRadius: 2)
+                .fill(HarvestTheme.Colors.fieldGreen)
+                .frame(width: 3)
+            VStack(alignment: .leading, spacing: 1) {
+                Text(quotedSenderName ?? "Member")
+                    .font(HarvestTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                Text(quoted.map { $0.isRemoved ? "Message removed" : $0.content } ?? "…")
+                    .font(HarvestTheme.Typography.caption)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                    .lineLimit(2)
             }
+        }
+        .padding(.horizontal, HarvestTheme.Spacing.sm)
+        .padding(.vertical, HarvestTheme.Spacing.xs)
+        .background {
+            RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
+                .fill(HarvestTheme.Colors.fieldGreenSoft)
+        }
+        .fixedSize(horizontal: false, vertical: true)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            if let id = message.replyToId { onTapQuote?(id) }
         }
     }
 
@@ -515,7 +537,7 @@ private struct CommunityBubble: View {
                 avatarPlaceholder
             }
         }
-        .frame(width: 30, height: 30)
+        .frame(width: 28, height: 28)
         .clipShape(Circle())
     }
 

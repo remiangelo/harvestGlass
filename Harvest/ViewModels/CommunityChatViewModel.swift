@@ -104,6 +104,33 @@ final class CommunityChatViewModel {
         return messages.first(where: { $0.id == id }) ?? referenced[id]
     }
 
+    /// Grouping metadata for every loaded message, keyed by message id.
+    /// Computed once per messages change rather than per bubble redraw.
+    var positions: [String: MessagePosition] {
+        var result: [String: MessagePosition] = [:]
+        let dates = messages.map { MessageGrouping.date(from: $0.createdAt) }
+        for (i, message) in messages.enumerated() {
+            result[message.id] = MessageGrouping.position(
+                previousSender: i > 0 ? messages[i - 1].senderId : nil,
+                previousDate: i > 0 ? dates[i - 1] : nil,
+                currentSender: message.senderId,
+                currentDate: dates[i],
+                nextSender: i + 1 < messages.count ? messages[i + 1].senderId : nil,
+                nextDate: i + 1 < messages.count ? dates[i + 1] : nil
+            )
+        }
+        return result
+    }
+
+    /// "9:41" for a message, or "" when the timestamp is unusable.
+    func timeLabel(for message: CommunityMessage) -> String {
+        guard let date = MessageGrouping.date(from: message.createdAt) else { return "" }
+        let formatter = DateFormatter()
+        formatter.timeStyle = .short
+        formatter.dateStyle = .none
+        return formatter.string(from: date)
+    }
+
     /// Fetch originals for any quoted replies whose parent isn't loaded.
     private func loadReferenced() async {
         let loaded = Set(messages.map(\.id))
