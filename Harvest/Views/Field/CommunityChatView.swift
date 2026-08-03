@@ -169,7 +169,7 @@ struct CommunityChatView: View {
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .task { await vm.start(communityId: community.id) }
         .onDisappear { vm.stop() }
         .sheet(isPresented: $showPrompts) {
@@ -603,7 +603,7 @@ private struct PromptPicker: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button("Close") { dismiss() }

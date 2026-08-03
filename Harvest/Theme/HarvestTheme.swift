@@ -5,33 +5,46 @@ enum HarvestTheme {
 
     enum Colors {
         // MARK: Core Brand Palette
-        // Pink / wine-black direction.
-        // Wines (dark surfaces, from deepest to most lifted)
-        static let wineBlack = Color(hex: "150A0F")   // nav bar / deepest base
-        static let deepPlum = Color(hex: "1A0C12")    // app background
-        static let wineCard = Color(hex: "271019")    // card / glass surface
-        static let wineRaised = Color(hex: "331622")  // elevated surface
+        // Warm light direction: a blush-cream page with a strong red accent.
+        //
+        // The token NAMES below are historical — they date from the dark
+        // wine/plum theme and are referenced by ~300 call sites, so they were
+        // kept and re-valued rather than renamed. Read "wine*" as "surface,
+        // deepest to most lifted"; they are light tints now, not darks.
+        static let wineBlack = Color(hex: "E6C6B6")   // nav / tab bars — deepest tint
+        static let deepPlum = Color(hex: "F0D5C8")    // app background
+        static let wineCard = Color(hex: "FFF9F5")    // card / glass surface
+        static let wineRaised = Color(hex: "FFFFFF")  // elevated surface
 
-        // Hot pinks (brand accent family)
-        static let rose = Color(hex: "FB2E63")        // primary hot pink
-        static let roseLight = Color(hex: "FF5C8A")   // lighter accent / 2nd series
-        static let roseDeep = Color(hex: "E01248")    // gradient end (redder)
-        static let roseBloom = Color(hex: "F0466E")   // softer pink (labels)
-        static let amber = Color(hex: "F5872E")       // warm orange — 2nd radar series ("Them")
+        /// The one place a genuine dark is still needed: a scrim over
+        /// user photography so white text stays legible on top of it.
+        /// Do not use it as a surface.
+        static let photoScrim = Color(hex: "2A1714")
+
+        // Reds (brand accent family)
+        static let rose = Color(hex: "DB2637")        // primary red
+        static let roseLight = Color(hex: "EE6A72")   // lighter tint / 2nd series
+        static let roseDeep = Color(hex: "A81C2B")    // gradient end (deeper)
+        static let roseBloom = Color(hex: "C94F58")   // softer red (labels)
+        static let amber = Color(hex: "D97A28")       // warm amber — 2nd radar series ("Them")
 
         // Field greens — The Field / community rooms accent.
-        // Used ONLY inside Field views; the rest of the app stays rose.
-        static let fieldGreen = Color(hex: "4DB380")
-        static let fieldGreenLight = Color(hex: "7ACCA3")
-        static let fieldGreenBorder = fieldGreen.opacity(0.18)
-        static let fieldGreenSoft = fieldGreen.opacity(0.15)
+        // Used ONLY inside Field views; the rest of the app stays red.
+        // Deepened from the old mint so they hold contrast against cream.
+        static let fieldGreen = Color(hex: "2E7D5B")
+        /// Despite the name this is the DARKER green: it is used as a
+        /// foreground (labels, metadata), which now sits on light surfaces.
+        static let fieldGreenLight = Color(hex: "246B4C")
+        static let fieldGreenDeep = Color(hex: "1E5A40")   // gradient end for Field bubbles
+        static let fieldGreenBorder = fieldGreen.opacity(0.28)
+        static let fieldGreenSoft = fieldGreen.opacity(0.12)
 
         // Legacy brand tokens — kept defined so older views compile,
         // but no longer the semantic accent/text.
-        static let iconRed = Color(hex: "CB0419")
-        static let appleRed = Color(hex: "C9413B")
+        static let iconRed = Color(hex: "B81D2A")
+        static let appleRed = Color(hex: "BE3A34")
         static let heartGlow = rose
-        static let harvestGold = Color(hex: "D18A4A")
+        static let harvestGold = Color(hex: "C07A3C")
         static let harvestCream = Color(hex: "F0D5C8")
         static let pureWhite = Color(hex: "FFFFFF")
         static let black = Color(hex: "000000")
@@ -41,16 +54,18 @@ enum HarvestTheme {
         static let primary = rose
         static let primaryDark = roseDeep
         static let primaryLight = roseLight
-        static let primarySoft = rose.opacity(0.15)
+        static let primarySoft = rose.opacity(0.10)
         static let blackSurface = wineBlack
         static let redSurface = rose
-        static let outgoingMessageSurface = roseDeep
+        static let outgoingMessageSurface = rose
 
         // Accent
-        static let accent = roseLight
-        static let accentLight = Color(hex: "FF85A7")
-        static let accentDark = Color(hex: "E0245A")
-        static let accentSoft = roseLight.opacity(0.15)
+        // Deeper than `roseLight` because accent is used as a FOREGROUND
+        // (icons, links) and needs to hold up against the cream page.
+        static let accent = Color(hex: "C41F2E")
+        static let accentLight = Color(hex: "E8555F")
+        static let accentDark = Color(hex: "8E1622")
+        static let accentSoft = rose.opacity(0.10)
 
         // Backgrounds
         // Kept token names the same so old views still compile.
@@ -60,29 +75,31 @@ enum HarvestTheme {
         static let creamSurface = harvestCream
 
         // Text
-        static let textPrimary = Color(hex: "FBF6F8")     // near-white
-        static let textSecondary = Color(hex: "C9A9B4")   // muted rose-gray
-        static let textTertiary = Color(hex: "94787F")
-        static let textInverse = black
-        static let textOnCream = deepPlum
-        static let textOnRedPrimary = pureWhite           // white on pink buttons
+        // Flipped to warm darks — the page is light now.
+        static let textPrimary = Color(hex: "2B1A16")     // deep warm brown-black
+        static let textSecondary = Color(hex: "6E524A")   // muted warm brown
+        static let textTertiary = Color(hex: "8A6E66")
+        static let textInverse = pureWhite
+        static let textOnCream = Color(hex: "2B1A16")
+        static let textOnRedPrimary = pureWhite           // white on red buttons
         static let textOnRedAccent = pureWhite
-        static let textOnBlack = roseLight
-        static let textOnWhitePrimary = deepPlum
-        static let textOnWhiteSecondary = deepPlum.opacity(0.78)
-        static let textOnWhiteTertiary = deepPlum.opacity(0.58)
+        /// Historical name: the surfaces it sits on are light now, so it is dark.
+        static let textOnBlack = Color(hex: "2B1A16")
+        static let textOnWhitePrimary = Color(hex: "2B1A16")
+        static let textOnWhiteSecondary = Color(hex: "2B1A16").opacity(0.75)
+        static let textOnWhiteTertiary = Color(hex: "2B1A16").opacity(0.55)
         static let whiteFormSurface = Color.white
-        static let whiteFormBorder = deepPlum.opacity(0.12)
+        static let whiteFormBorder = Color(hex: "2B1A16").opacity(0.12)
 
         // Semantic
-        static let error = Color(hex: "FF4D4F")
+        static let error = Color(hex: "C62828")
         static let success = rose
-        static let warning = Color(hex: "F5A623")
-        static let info = primaryLight
+        static let warning = Color(hex: "C77700")
+        static let info = accent
 
         // UI
-        static let border = rose.opacity(0.14)            // faint pink hairline
-        static let divider = pureWhite.opacity(0.08)
+        static let border = Color(hex: "2B1A16").opacity(0.12)   // warm hairline
+        static let divider = Color(hex: "2B1A16").opacity(0.10)
         static let glassFill = wineCard
         static let glassFillStrong = wineRaised
         static let fieldFill = wineCard
@@ -91,7 +108,7 @@ enum HarvestTheme {
         // Swipe actions
         static let like = rose
         static let nope = iconRed
-        static let superLike = roseLight
+        static let superLike = accent
 
         // Gradients
         // Keep the old names so dependent views still work.
@@ -101,8 +118,9 @@ enum HarvestTheme {
             endPoint: .bottomTrailing
         )
 
+        /// Sits over photography, so it stays genuinely dark.
         static let overlayGradient = LinearGradient(
-            colors: [.clear, black.opacity(0.6)],
+            colors: [.clear, photoScrim.opacity(0.65)],
             startPoint: .top,
             endPoint: .bottom
         )
@@ -110,10 +128,10 @@ enum HarvestTheme {
         // MARK: Extra Brand Gradients
         static let splashGradient = LinearGradient(
             colors: [
-                Color(hex: "2A0F1A"),
-                roseDeep,
+                harvestCream,
+                roseLight,
                 rose,
-                roseLight
+                roseDeep
             ],
             startPoint: .topLeading,
             endPoint: .bottomTrailing
@@ -126,7 +144,7 @@ enum HarvestTheme {
         )
 
         static let glowGradient = RadialGradient(
-            colors: [rose.opacity(0.9), rose.opacity(0.18), .clear],
+            colors: [rose.opacity(0.55), rose.opacity(0.12), .clear],
             center: .center,
             startRadius: 0,
             endRadius: 120
@@ -137,10 +155,10 @@ enum HarvestTheme {
         static let elevatedSurface = wineRaised
 
         // Form surfaces
-        static let formBackground = Color(hex: "2A0F1A")
-        static let formSurface = Color(hex: "3A1825")
-        static let formSurfaceStrong = Color(hex: "46202F")
-        static let formBorder = pureWhite.opacity(0.14)
+        static let formBackground = Color(hex: "FFF4EE")
+        static let formSurface = Color(hex: "FFFFFF")
+        static let formSurfaceStrong = Color(hex: "F7E7DE")
+        static let formBorder = Color(hex: "2B1A16").opacity(0.12)
         static let formAccent = rose
         static let tabBarBackground = wineBlack
         static let tabBarSelectedBackground = rose

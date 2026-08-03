@@ -32,7 +32,7 @@ struct FieldView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .task { await vm.load(userId: userId) }
             .refreshable { await vm.load(userId: userId) }
         }
@@ -119,7 +119,7 @@ private struct CommunityCard: View {
             .clipped()
 
             LinearGradient(
-                colors: [.clear, HarvestTheme.Colors.wineBlack.opacity(0.85)],
+                colors: [.clear, HarvestTheme.Colors.photoScrim.opacity(0.85)],
                 startPoint: .top,
                 endPoint: .bottom
             )
@@ -127,7 +127,8 @@ private struct CommunityCard: View {
 
             Text(community.name)
                 .font(HarvestTheme.Typography.h4)
-                .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                // Sits on the photo scrim, not the page — stays white.
+                .foregroundStyle(HarvestTheme.Colors.textInverse)
                 .padding(HarvestTheme.Spacing.md)
         }
         .frame(height: 110)

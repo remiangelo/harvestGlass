@@ -48,7 +48,7 @@ struct SeedsView: View {
             .navigationBarTitleDisplayMode(.inline)
             .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
             .task { await vm.load(userId: userId) }
             .navigationDestination(item: Binding(
                 get: { acceptedRoute },

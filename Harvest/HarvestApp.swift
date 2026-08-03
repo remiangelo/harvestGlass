@@ -21,7 +21,10 @@ struct HarvestApp: App {
                     LoginView(authViewModel: authViewModel)
                 }
             }
-            .preferredColorScheme(.dark)
+            // Light: the palette is a cream page with warm dark text. This
+            // also decides how `.ultraThinMaterial` resolves — under .dark it
+            // blurs to a dark grey, which would be wrong over cream.
+            .preferredColorScheme(.light)
             .tint(HarvestTheme.Colors.rose)
             .dismissKeyboardOnTap()
             .task {

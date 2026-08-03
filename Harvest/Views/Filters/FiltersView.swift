@@ -237,7 +237,7 @@ struct FiltersView: View {
         }
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
     }
 
     private func sectionTitle(_ title: String) -> some View {

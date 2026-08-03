@@ -177,7 +177,7 @@ struct HelpCenterView: View {
         .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .alert("Ticket Submitted", isPresented: $viewModel.showSuccess) {
             Button("OK", role: .cancel) { }
         } message: {

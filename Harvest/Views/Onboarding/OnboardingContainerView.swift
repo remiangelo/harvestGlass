@@ -80,7 +80,7 @@ struct OnboardingContainerView: View {
             }
             .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
         }
     }
 }

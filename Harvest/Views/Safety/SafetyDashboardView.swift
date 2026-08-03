@@ -118,7 +118,7 @@ struct SafetyDashboardView: View {
         }
         .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
-        .toolbarColorScheme(.dark, for: .navigationBar)
+        .toolbarColorScheme(.light, for: .navigationBar)
         .listStyle(.insetGrouped)
     }
 }
@@ -228,7 +228,7 @@ private struct SafetyDetailSheet: View {
             .background(HarvestTheme.Colors.formBackground.ignoresSafeArea())
             .toolbarBackground(HarvestTheme.Colors.formBackground, for: .navigationBar)
             .toolbarBackground(.visible, for: .navigationBar)
-            .toolbarColorScheme(.dark, for: .navigationBar)
+            .toolbarColorScheme(.light, for: .navigationBar)
         }
     }
 
