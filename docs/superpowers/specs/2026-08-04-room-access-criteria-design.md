@@ -71,6 +71,12 @@ existing logic. The existing gender / `interested_in` / `relationship_status` /
 whatever the function returns, and `can_join_community()` already delegates to
 it, so joining is gated by the same rule as discovery.
 
+Grandfathering therefore has to live inside the same function: `FieldViewModel`
+sources rooms *only* from `available_communities()`, so an existing member must
+appear in its results or the room would disappear from their Field the moment
+they stopped qualifying. The function returns a room when the user
+`is_active_member` of it **or** passes the eligibility and criteria checks.
+
 Rooms a user doesn't qualify for simply don't appear. No "locked room" state,
 no explanation — matching how ineligible rooms behave today.
 

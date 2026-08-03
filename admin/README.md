@@ -66,3 +66,28 @@ messages) from a room's "Members & chat" panel.
 Room banner images upload to the public `community-images` storage bucket.
 Prefer **Deactivate** over Delete — Delete permanently removes the room and
 all its messages, reactions, and memberships.
+
+### Restrictions
+
+The room form has a **Restrictions** section that writes `communities.criteria`
+(jsonb). Leave it empty and the room is visible to everyone it would have been
+visible to before.
+
+- **All set restrictions must be met** (they are ANDed).
+- **A blank profile field fails a restriction.** Someone who never set their
+  faith does not qualify for a Christianity-only room. Expect restricted rooms
+  to look sparse.
+- **Existing members keep access** regardless of criteria changes. Restrictions
+  gate discovery and joining, never revoke a membership.
+- **Location** needs coordinates, not just a place name. Type the place, press
+  **Look up place**, confirm the resolved address shown beneath, and set a
+  radius. Saving with a place but no coordinates is rejected rather than
+  silently ignored.
+
+Lookup uses OpenStreetMap Nominatim — the one external service this panel
+talks to besides Supabase. It is free and needs no key.
+
+Enforcement lives entirely in the `available_communities()` Postgres function
+(`supabase/migrations/20260804120000_room_access_criteria.sql`). Nothing is
+checked in the browser, and **the iOS app needs no update** for a new
+restriction to take effect — that is the point of the feature.

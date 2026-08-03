@@ -206,6 +206,7 @@ function roomCard(c) {
             ${c.is_active ? "" : `<span class="pill off">inactive</span>`}
           </div>
           <div class="sub">/${escape(c.slug)} · ${c.member_count ?? 0} members · order ${c.display_order ?? 0}</div>
+          ${criteriaSummary(c.criteria)}
           ${c.description ? `<div class="desc">${escape(c.description)}</div>` : ""}
           <div class="actions">
             <button class="ghost" data-raction="detail" data-id="${c.id}">Members &amp; chat</button>
@@ -217,6 +218,33 @@ function roomCard(c) {
       </div>
       <div class="room-detail" id="detail-${c.id}"></div>
     </div>`;
+}
+
+/// One line describing a room's restrictions, so it's obvious from the list
+/// which rooms are gated and why.
+function criteriaSummary(criteria) {
+  if (!criteria || typeof criteria !== "object") return "";
+  const bits = [];
+
+  if (criteria.age) {
+    bits.push(`age ${criteria.age.min ?? "any"}–${criteria.age.max ?? "any"}`);
+  }
+  if (criteria.height_cm) {
+    bits.push(`height ${criteria.height_cm.min ?? "any"}–${criteria.height_cm.max ?? "any"}cm`);
+  }
+  for (const key of Object.keys(CRITERIA_OPTIONS)) {
+    const values = criteria[key];
+    if (Array.isArray(values) && values.length) {
+      bits.push(`${CRITERIA_LABELS[key].toLowerCase()}: ${values.join(", ")}`);
+    }
+  }
+  if (criteria.location) {
+    const where = criteria.location.label || `${criteria.location.lat}, ${criteria.location.lng}`;
+    bits.push(`within ${criteria.location.radius_miles} mi of ${where}`);
+  }
+
+  if (!bits.length) return "";
+  return `<div class="sub"><span class="pill kind">restricted</span> ${escape(bits.join(" · "))}</div>`;
 }
 
 function openRoomForm(room) {
@@ -236,6 +264,7 @@ function openRoomForm(room) {
         <div><label>Display order</label><input id="rf-order" type="number" value="${c.display_order ?? 0}" /></div>
         <textarea id="rf-desc" placeholder="Description">${escape(c.description || "")}</textarea>
         <div><label>Banner image</label><input id="rf-image" type="file" accept="image/*" /></div>
+        ${criteriaFieldset(c.criteria || {})}
         <div style="align-self:end; display:flex; gap:8px; justify-content:flex-end;">
           <button class="ghost" id="rf-cancel">Cancel</button>
           <button class="green" id="rf-save">${c.id ? "Save changes" : "Create room"}</button>
@@ -246,7 +275,171 @@ function openRoomForm(room) {
     roomFormEl.style.display = "none";
   });
   document.getElementById("rf-save").addEventListener("click", () => saveRoom(c.id || null, c.image_url || null));
+  document.getElementById("rf-geocode").addEventListener("click", geocodeRoomLocation);
   roomFormEl.scrollIntoView({ behavior: "smooth" });
+}
+
+// ---------------------------------------------------------------------------
+// Room access criteria
+//
+// Written to communities.criteria (jsonb). Absent key = no constraint. The
+// gating itself lives in available_communities() — nothing here is enforced
+// client-side, and the iOS app needs no change to respect it.
+// ---------------------------------------------------------------------------
+
+const CRITERIA_OPTIONS = {
+  gender: ["male", "female", "non-binary"],
+  relationship_status: ["single", "dating", "in a relationship", "married"],
+  looking_for: ["Dating", "Relationship", "Long-term Commitment", "Marriage"],
+  faith: ["Christianity", "Islam", "Judaism", "Buddhism", "Hinduism", "Spiritual", "Agnostic", "Atheist", "Other"],
+  children_status: ["Want someday", "Don't want", "Have & want more", "Have & don't want more", "Not sure", "Prefer not to say"],
+  smoking: ["Never", "Sometimes", "Often", "Prefer not to say"],
+  drinking: ["Never", "Socially", "Often", "Prefer not to say"],
+  cannabis: ["Never", "Sometimes", "Often", "Prefer not to say"],
+};
+
+const CRITERIA_LABELS = {
+  gender: "Gender",
+  relationship_status: "Relationship status",
+  looking_for: "Looking for",
+  faith: "Faith",
+  children_status: "Children",
+  smoking: "Smoking",
+  drinking: "Drinking",
+  cannabis: "Cannabis",
+};
+
+function multiSelect(key, selected) {
+  const chosen = Array.isArray(selected) ? selected.map(String) : [];
+  const opts = CRITERIA_OPTIONS[key]
+    .map((v) => `<option value="${escape(v)}" ${chosen.includes(v) ? "selected" : ""}>${escape(v)}</option>`)
+    .join("");
+  return `
+    <div>
+      <label>${CRITERIA_LABELS[key]}</label>
+      <select id="rf-c-${key}" multiple size="4">${opts}</select>
+    </div>`;
+}
+
+function criteriaFieldset(criteria) {
+  const loc = criteria.location || {};
+  const age = criteria.age || {};
+  const height = criteria.height_cm || {};
+  const isRestricted = Object.keys(criteria).length > 0;
+
+  return `
+    <details id="rf-criteria" ${isRestricted ? "open" : ""} style="grid-column:1/-1;">
+      <summary style="cursor:pointer; margin:8px 0;">
+        <strong>Restrictions</strong>
+        <span class="muted"> — leave empty for a room everyone can see</span>
+      </summary>
+      <div class="form-card" style="margin-top:8px;">
+        <p class="muted" style="margin-top:0;">
+          All set restrictions must be met. A member whose profile leaves a
+          restricted field blank does <strong>not</strong> qualify. Existing
+          members keep access regardless.
+        </p>
+        <div class="grid">
+          <div><label>Min age</label><input id="rf-c-age-min" type="number" min="18" max="99" value="${age.min ?? ""}" /></div>
+          <div><label>Max age</label><input id="rf-c-age-max" type="number" min="18" max="99" value="${age.max ?? ""}" /></div>
+          <div><label>Min height (cm)</label><input id="rf-c-h-min" type="number" value="${height.min ?? ""}" /></div>
+          <div><label>Max height (cm)</label><input id="rf-c-h-max" type="number" value="${height.max ?? ""}" /></div>
+          ${Object.keys(CRITERIA_OPTIONS).map((k) => multiSelect(k, criteria[k])).join("")}
+        </div>
+        <hr />
+        <div class="grid">
+          <div style="grid-column:1/-1;">
+            <label>Location</label>
+            <input id="rf-c-loc-label" value="${escape(loc.label || "")}" placeholder="e.g. Washington, DC" />
+          </div>
+          <div><label>Radius (miles)</label><input id="rf-c-loc-radius" type="number" min="1" value="${loc.radius_miles ?? ""}" /></div>
+          <div><label>Latitude</label><input id="rf-c-loc-lat" value="${loc.lat ?? ""}" readonly /></div>
+          <div><label>Longitude</label><input id="rf-c-loc-lng" value="${loc.lng ?? ""}" readonly /></div>
+          <div style="align-self:end;"><button class="ghost" id="rf-geocode" type="button">Look up place</button></div>
+          <div id="rf-geocode-status" class="muted" style="grid-column:1/-1;"></div>
+        </div>
+      </div>
+    </details>`;
+}
+
+/// Resolves the typed place via OpenStreetMap Nominatim and shows what it
+/// found. Coordinates are never guessed silently — the lat/lng inputs are
+/// read-only and only this button fills them.
+async function geocodeRoomLocation() {
+  const query = document.getElementById("rf-c-loc-label").value.trim();
+  const status = document.getElementById("rf-geocode-status");
+  if (!query) {
+    status.textContent = "Type a place first.";
+    return;
+  }
+  status.textContent = "Looking up…";
+  try {
+    const url =
+      "https://nominatim.openstreetmap.org/search?format=json&limit=1&q=" +
+      encodeURIComponent(query);
+    const res = await fetch(url, { headers: { Accept: "application/json" } });
+    if (!res.ok) throw new Error("lookup failed (" + res.status + ")");
+    const hits = await res.json();
+    if (!hits.length) {
+      status.textContent = `No match for "${query}". Try a more specific place.`;
+      return;
+    }
+    document.getElementById("rf-c-loc-lat").value = Number(hits[0].lat).toFixed(6);
+    document.getElementById("rf-c-loc-lng").value = Number(hits[0].lon).toFixed(6);
+    status.textContent = `Resolved to: ${hits[0].display_name}`;
+  } catch (e) {
+    status.textContent = "Lookup failed: " + (e.message || e);
+  }
+}
+
+const selectedValues = (id) =>
+  Array.from(document.getElementById(id).selectedOptions).map((o) => o.value);
+
+const numOrNull = (id) => {
+  const raw = document.getElementById(id).value.trim();
+  if (raw === "") return null;
+  const n = Number(raw);
+  return Number.isFinite(n) ? n : null;
+};
+
+/// Builds the criteria object, omitting anything left empty so an
+/// unrestricted room stores exactly {}.
+function collectCriteria() {
+  const criteria = {};
+
+  for (const key of Object.keys(CRITERIA_OPTIONS)) {
+    const values = selectedValues(`rf-c-${key}`);
+    if (values.length) criteria[key] = values;
+  }
+
+  const range = (minId, maxId) => {
+    const min = numOrNull(minId);
+    const max = numOrNull(maxId);
+    if (min === null && max === null) return null;
+    const out = {};
+    if (min !== null) out.min = min;
+    if (max !== null) out.max = max;
+    return out;
+  };
+
+  const age = range("rf-c-age-min", "rf-c-age-max");
+  if (age) criteria.age = age;
+  const height = range("rf-c-h-min", "rf-c-h-max");
+  if (height) criteria.height_cm = height;
+
+  const lat = numOrNull("rf-c-loc-lat");
+  const lng = numOrNull("rf-c-loc-lng");
+  const radius = numOrNull("rf-c-loc-radius");
+  if (lat !== null && lng !== null && radius !== null) {
+    criteria.location = {
+      lat,
+      lng,
+      radius_miles: radius,
+      label: document.getElementById("rf-c-loc-label").value.trim(),
+    };
+  }
+
+  return criteria;
 }
 
 const slugify = (s) =>
@@ -263,7 +456,18 @@ async function saveRoom(id, existingImageUrl) {
     display_order: parseInt(document.getElementById("rf-order").value, 10) || 0,
     description: document.getElementById("rf-desc").value.trim() || null,
     image_url: existingImageUrl,
+    criteria: collectCriteria(),
   };
+
+  // A half-filled location is a mistake worth catching: without coordinates
+  // the restriction silently does nothing.
+  const locLabel = document.getElementById("rf-c-loc-label").value.trim();
+  const locRadius = document.getElementById("rf-c-loc-radius").value.trim();
+  if ((locLabel || locRadius) && !row.criteria.location) {
+    return alert(
+      'Location restriction incomplete. Enter a place, press "Look up place" to resolve coordinates, and set a radius — or clear all three.'
+    );
+  }
 
   try {
     const file = document.getElementById("rf-image").files[0];

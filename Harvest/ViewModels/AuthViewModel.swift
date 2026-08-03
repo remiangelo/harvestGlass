@@ -104,6 +104,15 @@ final class AuthViewModel {
                 return
             }
             profile = loaded
+
+            // Resolve coordinates once for accounts that predate the columns.
+            // Silent and best-effort — location-restricted rooms stay hidden
+            // until it succeeds, and it retries on the next launch.
+            if let loaded {
+                Task.detached(priority: .background) {
+                    await LocationBackfillService().backfillIfNeeded(for: loaded)
+                }
+            }
         } catch {
             // Profile may not exist yet
         }

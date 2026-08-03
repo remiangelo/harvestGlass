@@ -22,6 +22,9 @@ struct UserProfile: Codable, Identifiable, Sendable {
     var spiritualOrientation: String?
     var childrenStatus: String?
     var relationshipStatus: String?
+    /// Resolved from `location` on-device; backs location-restricted rooms.
+    var latitude: Double?
+    var longitude: Double?
     var onboardingCompleted: Bool?
     var isBanned: Bool?
     var createdAt: String?
@@ -50,6 +53,8 @@ struct UserProfile: Codable, Identifiable, Sendable {
         case spiritualOrientation = "spiritual_orientation"
         case childrenStatus = "children_status"
         case relationshipStatus = "relationship_status"
+        case latitude
+        case longitude
         case onboardingCompleted = "onboarding_completed"
         case isBanned = "is_banned"
         case createdAt = "created_at"
