@@ -9,6 +9,8 @@ struct FieldView: View {
         NavigationStack {
             ScrollView {
                 VStack(spacing: HarvestTheme.Spacing.md) {
+                    EventsComingSoonBanner()
+
                     header
 
                     if vm.available.isEmpty && !vm.isLoading {
