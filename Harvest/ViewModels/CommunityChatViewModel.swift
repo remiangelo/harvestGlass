@@ -15,6 +15,11 @@ final class CommunityChatViewModel {
     var isLoadingOlder = false
     var replyTarget: CommunityMessage?
 
+    /// True from the moment send is tapped until the row is committed.
+    /// Gates re-entry: the mindful check can span an OpenAI round trip, and
+    /// two taps inside that window used to insert two separate rows.
+    private(set) var isSending = false
+
     /// message id → reactions on it.
     var reactions: [String: [CommunityReaction]] = [:]
     private var reactionChannel: RealtimeChannelV2?
@@ -227,8 +232,14 @@ final class CommunityChatViewModel {
     }
 
     func send(communityId: String, senderId: String) async {
+        guard !isSending else { return }
         let text = draft.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+
+        isSending = true
+        // Clear up front. Leaving the text in place while the network call
+        // runs is what made a second tap possible.
+        draft = ""
 
         // Mindful messaging check — warn the sender before posting concerning content.
         if mindfulService.isEnabled {
@@ -237,24 +248,36 @@ final class CommunityChatViewModel {
                 mindfulAnalysis = analysis
                 pendingDraft = text
                 showMindfulWarning = true
+                isSending = false   // the sheet owns the send from here
                 return
             }
         }
 
         await performSend(communityId: communityId, senderId: senderId, text: text)
+        isSending = false
     }
 
     func confirmSendDespiteWarning(communityId: String, senderId: String) async {
+        guard !isSending else { return }
         showMindfulWarning = false
         mindfulAnalysis = nil
         let text = pendingDraft
         guard !text.isEmpty else { return }
+
+        isSending = true
         await performSend(communityId: communityId, senderId: senderId, text: text)
+        isSending = false
     }
 
     func dismissMindfulWarning() {
         showMindfulWarning = false
         mindfulAnalysis = nil
+        // Put the text back, or "Edit" would silently discard it — the draft
+        // was already cleared when the send began.
+        if !pendingDraft.isEmpty {
+            draft = pendingDraft
+            pendingDraft = ""
+        }
     }
 
     private func performSend(communityId: String, senderId: String, text: String) async {
@@ -266,7 +289,6 @@ final class CommunityChatViewModel {
                 replyToId: replyTarget?.id,
                 mentions: mentions(in: text)
             )
-            draft = ""
             draftMentions = [:]
             pendingDraft = ""
             replyTarget = nil
@@ -275,6 +297,9 @@ final class CommunityChatViewModel {
             }
             await loadSenders(for: [senderId])
         } catch {
+            // Hand the text back so a failed send isn't a lost message.
+            draft = text
+            pendingDraft = ""
             // Phase 6: contact-info block surfaces here as a friendly nudge.
             if "\(error)".contains("CONTACT_INFO_BLOCKED") {
                 self.error = "Keep contact sharing to private Seed conversations 🌱"

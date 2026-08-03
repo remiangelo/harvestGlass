@@ -16,6 +16,10 @@ final class ChatViewModel {
     }
     var error: String?
 
+    /// True while a send is in flight. Gates re-entry so a double tap can't
+    /// insert two rows — see CommunityChatViewModel for the full story.
+    private(set) var isSending = false
+
     // Typing indicator
     var isPartnerTyping = false
     private var typingChannel: RealtimeChannelV2?
@@ -106,8 +110,13 @@ final class ChatViewModel {
     }
 
     func sendMessage(conversationId: String, senderId: String) async {
+        guard !isSending else { return }
         let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
+
+        isSending = true
+        // Clear up front — the mindful check below can span a network call.
+        messageText = ""
 
         // Mindful messaging check
         if mindfulService.isEnabled {
@@ -124,31 +133,43 @@ final class ChatViewModel {
                 pendingConversationId = conversationId
                 pendingSenderId = senderId
                 showMindfulWarning = true
+                isSending = false   // the sheet owns the send from here
                 return
             }
         }
 
         await performSend(text: text, conversationId: conversationId, senderId: senderId)
+        isSending = false
     }
 
     func confirmSendDespiteWarning() async {
+        guard !isSending else { return }
         showMindfulWarning = false
         mindfulAnalysis = nil
+        let text = pendingMessageText
+        guard !text.isEmpty else { return }
+
+        isSending = true
         await performSend(
-            text: pendingMessageText,
+            text: text,
             conversationId: pendingConversationId,
             senderId: pendingSenderId
         )
+        isSending = false
     }
 
     func dismissMindfulWarning() {
         showMindfulWarning = false
         mindfulAnalysis = nil
+        // Put the text back, or "Edit" would silently discard it — the field
+        // was already cleared when the send began.
+        if !pendingMessageText.isEmpty {
+            messageText = pendingMessageText
+            pendingMessageText = ""
+        }
     }
 
     private func performSend(text: String, conversationId: String, senderId: String) async {
-        messageText = ""
-
         do {
             if let message = try await chatService.sendMessage(
                 conversationId: conversationId,
@@ -160,9 +181,11 @@ final class ChatViewModel {
                     messages.append(message)
                 }
             }
+            pendingMessageText = ""
         } catch {
             self.error = error.localizedDescription
             messageText = text // Restore on failure
+            pendingMessageText = ""
         }
     }
 
