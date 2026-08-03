@@ -1,9 +1,44 @@
 import SwiftUI
+import PhotosUI
 
 struct GardenerChatView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = GardenerViewModel()
+    @State private var pickedPhoto: PhotosPickerItem?
     @FocusState private var isMessageFieldFocused: Bool
+
+    /// The staged screenshot, shown above the composer so it can be captioned
+    /// or removed before sending.
+    private func screenshotPreview(_ image: UIImage) -> some View {
+        HStack(spacing: HarvestTheme.Spacing.sm) {
+            Image(uiImage: image)
+                .resizable()
+                .scaledToFill()
+                .frame(width: 44, height: 44)
+                .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm))
+
+            VStack(alignment: .leading, spacing: 1) {
+                Text("Screenshot ready")
+                    .font(HarvestTheme.Typography.caption.weight(.semibold))
+                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
+                Text("Not saved — reviewed once, then discarded.")
+                    .font(HarvestTheme.Typography.caption)
+                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+            }
+
+            Spacer()
+
+            Button {
+                viewModel.pendingScreenshot = nil
+                pickedPhoto = nil
+            } label: {
+                Image(systemName: "xmark.circle.fill")
+                    .foregroundStyle(HarvestTheme.Colors.textTertiary)
+            }
+        }
+        .padding(.horizontal)
+        .padding(.vertical, HarvestTheme.Spacing.xs)
+    }
 
     var body: some View {
         NavigationStack {
@@ -22,6 +57,19 @@ struct GardenerChatView: View {
                     if let userId = authViewModel.currentUserId {
                         await viewModel.loadChat(userId: userId)
                         await viewModel.checkDailyQuiz(userId: userId)
+                    }
+                }
+                .onChange(of: pickedPhoto) { _, item in
+                    guard let item else { return }
+                    Task {
+                        // Loaded into memory only — never written to disk.
+                        if let data = try? await item.loadTransferable(type: Data.self),
+                           let image = UIImage(data: data) {
+                            viewModel.pendingScreenshot = image
+                        } else {
+                            viewModel.error = "That image couldn't be read. Try a different screenshot."
+                            pickedPhoto = nil
+                        }
                     }
                 }
                 .onAppear {
@@ -127,11 +175,29 @@ struct GardenerChatView: View {
                 .padding(.horizontal)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
             } else {
+                if let staged = viewModel.pendingScreenshot {
+                    screenshotPreview(staged)
+                }
+
                 HStack(spacing: HarvestTheme.Spacing.sm) {
+                    // .images, not .screenshots: a screenshot someone was *sent*
+                    // isn't flagged as one by iOS, and the refusal path has to
+                    // be reachable for images that genuinely aren't chats.
+                    PhotosPicker(selection: $pickedPhoto, matching: .images) {
+                        Image(systemName: "photo.on.rectangle.angled")
+                            .font(.title3)
+                            .foregroundStyle(HarvestTheme.Colors.accent)
+                            .frame(width: 36, height: 36)
+                    }
+                    .disabled(viewModel.isSending)
+
                     TextField(
                         "",
                         text: $viewModel.messageText,
-                        prompt: Text("Ask The Gardener...").foregroundStyle(HarvestTheme.Colors.textTertiary),
+                        prompt: Text(viewModel.hasPendingScreenshot
+                                     ? "Add a note (optional)…"
+                                     : "Ask The Gardener...")
+                            .foregroundStyle(HarvestTheme.Colors.textTertiary),
                         axis: .vertical
                     )
                         .font(HarvestTheme.Typography.bodyRegular)
@@ -152,8 +218,13 @@ struct GardenerChatView: View {
 
                     VStack(spacing: 2) {
                         Button {
-                            if let userId = authViewModel.currentUserId {
-                                Task { await viewModel.sendMessage(userId: userId) }
+                            guard let userId = authViewModel.currentUserId else { return }
+                            Task {
+                                if viewModel.hasPendingScreenshot {
+                                    await viewModel.sendScreenshot(userId: userId)
+                                } else {
+                                    await viewModel.sendMessage(userId: userId)
+                                }
                             }
                         } label: {
                             Image(systemName: "paperplane.fill")
@@ -161,7 +232,13 @@ struct GardenerChatView: View {
                                 .foregroundStyle(HarvestTheme.Colors.accent)
                                 .frame(width: 40, height: 40)
                         }
-                        .disabled(viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || viewModel.isSending)
+                        // A staged screenshot is sendable on its own — the
+                        // caption is optional.
+                        .disabled(
+                            (!viewModel.hasPendingScreenshot
+                             && viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                            || viewModel.isSending
+                        )
 
                         Text("\(viewModel.remainingChars)")
                             .font(.system(size: 9))

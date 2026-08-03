@@ -1,5 +1,6 @@
 import Foundation
 import Observation
+import UIKit
 
 @Observable
 final class GardenerViewModel {
@@ -38,6 +39,91 @@ final class GardenerViewModel {
             todayCharUsage = try await gardenerService.getTodayCharacterUsage(userId: userId)
         } catch {
             self.error = error.localizedDescription
+        }
+    }
+
+    /// The image staged in the composer, awaiting send. Never persisted.
+    var pendingScreenshot: UIImage?
+
+    var hasPendingScreenshot: Bool { pendingScreenshot != nil }
+
+    /// Sends the staged screenshot for review. The image is encoded inline and
+    /// dropped — nothing is uploaded to storage.
+    func sendScreenshot(userId: String) async {
+        guard !isSending, let image = pendingScreenshot else { return }
+
+        guard let tier = currentTier else {
+            error = "Unable to verify subscription tier"
+            return
+        }
+
+        // A vision call is charged a flat rate, not the caption's length.
+        let cost = GardenerService.screenshotCharacterCost
+        do {
+            let limitCheck = try await rateLimitService.checkGardenerLimit(
+                userId: userId,
+                messageLength: cost,
+                userTier: tier
+            )
+            if !limitCheck.canSend {
+                error = limitCheck.reason
+                rateLimitWarning = limitCheck.reason
+                return
+            }
+        } catch {
+            print("Warning: Rate limit check failed: \(error)")
+            // Continue with send - don't block user due to rate limit check failure
+        }
+
+        let caption = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
+
+        // Encode before mutating any state, so a bad image leaves the composer
+        // exactly as the user left it.
+        let dataURL: String
+        do {
+            dataURL = try ScreenshotEncoder.dataURL(from: image)
+        } catch {
+            self.error = error.localizedDescription
+            return
+        }
+
+        isSending = true
+        defer { isSending = false }
+        messageText = ""
+        pendingScreenshot = nil
+
+        let placeholder = caption.isEmpty ? "📷 Screenshot" : "📷 Screenshot — \(caption)"
+        messages.append(
+            GardenerMessage(
+                id: UUID().uuidString,
+                userId: userId,
+                role: "user",
+                content: placeholder,
+                createdAt: ISO8601DateFormatter().string(from: Date())
+            )
+        )
+        todayCharUsage += cost
+
+        do {
+            let response = try await gardenerService.sendScreenshot(
+                userId: userId,
+                imageDataURL: dataURL,
+                caption: caption,
+                history: messages
+            )
+            messages.append(
+                GardenerMessage(
+                    id: UUID().uuidString,
+                    userId: userId,
+                    role: "assistant",
+                    content: response,
+                    createdAt: ISO8601DateFormatter().string(from: Date())
+                )
+            )
+        } catch {
+            // Transport or decode failure — never presented as "not a
+            // screenshot", which would blame the user for a network problem.
+            self.error = "I couldn't read that screenshot just now. Try sending it again."
         }
     }
 

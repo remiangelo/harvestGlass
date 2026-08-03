@@ -39,6 +39,144 @@ struct GardenerService {
         "Remember: you're not just looking for someone to like you. You're looking for someone you genuinely like too. What qualities matter most to you?"
     ]
 
+    // MARK: - Screenshot review
+
+    /// What a screenshot costs against the daily character budget. A vision
+    /// call is far more expensive than a text turn, and the budget is measured
+    /// in characters, so it is charged a flat rate rather than its caption.
+    static let screenshotCharacterCost = 1_000
+
+    /// Shown verbatim when the image isn't a conversation. Fixed in the app
+    /// rather than written by the model so the promise is worded identically
+    /// every time — and so it invites a retry, because detection is a
+    /// judgement call that will occasionally be wrong.
+    static let notAScreenshotReply = """
+        I can only read screenshots of a conversation — a chat thread, texts, or DMs.
+
+        This one doesn't look like that, so I'd rather not guess at it. If it *is* a \
+        conversation, try a fuller screenshot showing the messages and I'll take another look.
+        """
+
+    private static let screenshotSystemPrompt = """
+        You are The Gardener, a warm and insightful AI dating coach for the Harvest dating app.
+
+        The user has sent an image. First decide whether it is a screenshot of a
+        TEXT CONVERSATION — a chat thread, SMS/iMessage, or DMs from any app, showing
+        messages between people. A selfie, a dating profile, a meme, a landscape, a
+        document, or a photo of a person is NOT a conversation screenshot.
+
+        Reply with ONLY a JSON object, no code fences, in exactly this shape:
+        {"is_chat_screenshot": <true|false>, "reply": "<your coaching reply>"}
+
+        If is_chat_screenshot is false, set "reply" to an empty string.
+
+        If it is true, "reply" is your coaching response about the conversation:
+        - Say plainly what you notice in the exchange, then what to do about it.
+        - Be specific about tone and what the other person appears to be signalling.
+        - Give 2-4 concrete suggestions, including an example of what to send next.
+        - Never invent messages that aren't visible in the image.
+        - Keep it concise: short paragraphs of 1-3 sentences, blank line between each.
+        - Never give medical or legal advice. If it shows distress, abuse, or risk,
+          name that clearly and encourage professional or trusted human support.
+        """
+
+    /// Internal, not private: `parseVerdict` returns it and is unit tested.
+    struct ScreenshotVerdict: Decodable, Equatable {
+        let isChatScreenshot: Bool
+        let reply: String
+
+        enum CodingKeys: String, CodingKey {
+            case isChatScreenshot = "is_chat_screenshot"
+            case reply
+        }
+    }
+
+    /// Sends a screenshot for review. The image is passed inline as a data URL
+    /// and never stored; only a placeholder is written to chat history.
+    ///
+    /// Throws on transport or decoding failure — a user must never be told
+    /// their screenshot was invalid because the network dropped.
+    func sendScreenshot(
+        userId: String,
+        imageDataURL: String,
+        caption: String,
+        history: [GardenerMessage]
+    ) async throws -> String {
+        var chatMessages: [OpenAIService.ChatMessage] = [
+            .init(role: "system", content: Self.screenshotSystemPrompt)
+        ]
+
+        for msg in history.suffix(6) {
+            let role = msg.role == "assistant" ? "assistant" : "user"
+            chatMessages.append(.init(role: role, content: msg.content))
+        }
+
+        let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        var parts: [OpenAIService.ChatMessage.ContentPart] = []
+        if !trimmedCaption.isEmpty {
+            parts.append(.text(trimmedCaption))
+        }
+        parts.append(.imageURL(imageDataURL))
+        chatMessages.append(.init(role: "user", parts: parts))
+
+        let raw = try await openAI.sendChat(
+            messages: chatMessages,
+            temperature: 0.4,
+            maxTokens: 400
+        )
+
+        let verdict = try Self.parseVerdict(raw)
+        let response = verdict.isChatScreenshot && !verdict.reply.isEmpty
+            ? Self.formatResponse(verdict.reply)
+            : Self.notAScreenshotReply
+
+        let placeholder = trimmedCaption.isEmpty
+            ? "📷 Screenshot"
+            : "📷 Screenshot — \(trimmedCaption)"
+        await persistTurn(userId: userId, userMessage: placeholder, reply: response)
+
+        return response
+    }
+
+    /// Pulls the verdict out of the model's reply, tolerating code fences and
+    /// stray prose around the object.
+    static func parseVerdict(_ raw: String) throws -> ScreenshotVerdict {
+        let cleaned = raw
+            .replacingOccurrences(of: "```json", with: "")
+            .replacingOccurrences(of: "```", with: "")
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+
+        guard let start = cleaned.firstIndex(of: "{"),
+              let end = cleaned.lastIndex(of: "}"),
+              start < end,
+              let data = String(cleaned[start...end]).data(using: .utf8)
+        else {
+            throw OpenAIService.OpenAIError.noResponse
+        }
+        return try JSONDecoder().decode(ScreenshotVerdict.self, from: data)
+    }
+
+    /// Writes one user turn and one Gardener turn. Persistence failures are
+    /// logged, never surfaced — the reply is already on screen.
+    private func persistTurn(userId: String, userMessage: String, reply: String) async {
+        let now = ISO8601DateFormatter().string(from: Date())
+        for (sender, text) in [("user", userMessage), ("gardener", reply)] {
+            do {
+                try await client
+                    .from("gardener_chat_history")
+                    .insert([
+                        "user_id": AnyJSON.string(userId),
+                        "sender": AnyJSON.string(sender),
+                        "message": AnyJSON.string(text),
+                        "created_at": AnyJSON.string(now)
+                    ])
+                    .execute()
+            } catch {
+                print("Warning: Failed to persist \(sender) message to gardener_chat_history: \(error)")
+            }
+        }
+    }
+
     func sendMessage(userId: String, message: String, history: [GardenerMessage]) async throws -> String {
         var chatMessages: [OpenAIService.ChatMessage] = [
             .init(role: "system", content: Self.systemPrompt)

@@ -4,8 +4,96 @@ import Supabase
 
 struct OpenAIService {
     struct ChatMessage: Codable, Sendable {
+        /// One piece of a message. OpenAI accepts either a bare string or an
+        /// array of these; images can only be sent the second way.
+        enum ContentPart: Sendable, Equatable {
+            case text(String)
+            case imageURL(String)   // a data: URL or an https: URL
+        }
+
         let role: String
-        let content: String
+        let parts: [ContentPart]
+
+        /// Text-only. Every pre-existing call site uses this and encodes
+        /// exactly as it did before.
+        init(role: String, content: String) {
+            self.role = role
+            self.parts = [.text(content)]
+        }
+
+        init(role: String, parts: [ContentPart]) {
+            self.role = role
+            self.parts = parts
+        }
+
+        /// Convenience for the common text case.
+        var content: String {
+            parts.compactMap { if case .text(let t) = $0 { return t } else { return nil } }
+                .joined(separator: "\n")
+        }
+
+        // MARK: Codable
+
+        private enum CodingKeys: String, CodingKey { case role, content }
+        private enum PartKeys: String, CodingKey { case type, text, image_url }
+        private enum ImageURLKeys: String, CodingKey { case url }
+
+        func encode(to encoder: Encoder) throws {
+            var container = encoder.container(keyedBy: CodingKeys.self)
+            try container.encode(role, forKey: .role)
+
+            // A lone text part encodes as a bare string — byte-identical to
+            // what this type produced before images existed.
+            if parts.count == 1, case .text(let only) = parts[0] {
+                try container.encode(only, forKey: .content)
+                return
+            }
+
+            var array = container.nestedUnkeyedContainer(forKey: .content)
+            for part in parts {
+                var partContainer = array.nestedContainer(keyedBy: PartKeys.self)
+                switch part {
+                case .text(let value):
+                    try partContainer.encode("text", forKey: .type)
+                    try partContainer.encode(value, forKey: .text)
+                case .imageURL(let url):
+                    try partContainer.encode("image_url", forKey: .type)
+                    var image = partContainer.nestedContainer(
+                        keyedBy: ImageURLKeys.self, forKey: .image_url
+                    )
+                    try image.encode(url, forKey: .url)
+                }
+            }
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            role = try container.decode(String.self, forKey: .role)
+
+            if let flat = try? container.decode(String.self, forKey: .content) {
+                parts = [.text(flat)]
+                return
+            }
+
+            var array = try container.nestedUnkeyedContainer(forKey: .content)
+            var decoded: [ContentPart] = []
+            while !array.isAtEnd {
+                let partContainer = try array.nestedContainer(keyedBy: PartKeys.self)
+                let type = try partContainer.decode(String.self, forKey: .type)
+                switch type {
+                case "text":
+                    decoded.append(.text(try partContainer.decode(String.self, forKey: .text)))
+                case "image_url":
+                    let image = try partContainer.nestedContainer(
+                        keyedBy: ImageURLKeys.self, forKey: .image_url
+                    )
+                    decoded.append(.imageURL(try image.decode(String.self, forKey: .url)))
+                default:
+                    break   // forward compatible: skip part types we don't model
+                }
+            }
+            parts = decoded
+        }
     }
 
     private struct ChatRequest: Codable {
