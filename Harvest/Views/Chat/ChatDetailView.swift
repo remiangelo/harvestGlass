@@ -12,6 +12,9 @@ struct ChatDetailView: View {
     @Environment(\.dismiss) private var dismiss
     @FocusState private var isMessageFieldFocused: Bool
 
+    /// Invisible row pinned below the last message; the scroll target.
+    private static let bottomAnchor = "chatBottomAnchor"
+
     /// "9:41" for a message, or "" when the timestamp is unusable.
     private func timeLabel(for message: Message) -> String {
         guard let date = MessageGrouping.date(from: message.createdAt) else { return "" }
@@ -72,6 +75,12 @@ struct ChatDetailView: View {
                         if viewModel.isPartnerTyping {
                             TypingIndicatorView()
                         }
+
+                        // Scroll target. Anchoring on the last message left it
+                        // flush against the composer; this gives it room.
+                        Color.clear
+                            .frame(height: 1)
+                            .id(Self.bottomAnchor)
                     }
                     .padding(.horizontal)
                     .padding(.vertical, HarvestTheme.Spacing.sm)
@@ -82,10 +91,12 @@ struct ChatDetailView: View {
                     isMessageFieldFocused = false
                 }
                 .onChange(of: viewModel.messages.count) { _, _ in
-                    if let lastId = viewModel.messages.last?.id {
-                        withAnimation {
-                            proxy.scrollTo(lastId, anchor: .bottom)
-                        }
+                    withAnimation { proxy.scrollTo(Self.bottomAnchor, anchor: .bottom) }
+                }
+                .onChange(of: isMessageFieldFocused) { _, focused in
+                    // Keyboard opening must not hide the newest message.
+                    if focused {
+                        withAnimation { proxy.scrollTo(Self.bottomAnchor, anchor: .bottom) }
                     }
                 }
             }

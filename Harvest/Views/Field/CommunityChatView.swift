@@ -13,6 +13,11 @@ struct CommunityChatView: View {
     private let profileService = ProfileService()
     private var userId: String { authViewModel.currentUserId ?? "" }
 
+    /// Invisible row pinned below the last message; the scroll target.
+    private static let bottomAnchor = "chatBottomAnchor"
+    /// Avatar diameter, and the gutter reserved for it on grouped rows.
+    fileprivate static let avatarSize: CGFloat = 36
+
     var body: some View {
         VStack(spacing: 0) {
             ScrollViewReader { proxy in
@@ -105,14 +110,27 @@ struct CommunityChatView: View {
                                     }
                                 }
                         }
+
+                        // Scroll target. Anchoring on the last *message* left
+                        // it flush against the composer; this sentinel gives
+                        // it room to clear.
+                        Color.clear
+                            .frame(height: 1)
+                            .id(Self.bottomAnchor)
                     }
                     .padding(HarvestTheme.Spacing.md)
+                    .padding(.bottom, HarvestTheme.Spacing.sm)
                 }
+                .scrollDismissesKeyboard(.interactively)
                 .contentShape(Rectangle())
                 .onTapGesture { isComposerFocused = false }
-                .onChange(of: vm.messages.last?.id) { _, lastId in
-                    if let lastId {
-                        withAnimation { proxy.scrollTo(lastId, anchor: .bottom) }
+                .onChange(of: vm.messages.last?.id) { _, _ in
+                    withAnimation { proxy.scrollTo(Self.bottomAnchor, anchor: .bottom) }
+                }
+                .onChange(of: isComposerFocused) { _, focused in
+                    // Keyboard opening must not hide the newest message.
+                    if focused {
+                        withAnimation { proxy.scrollTo(Self.bottomAnchor, anchor: .bottom) }
                     }
                 }
             }
@@ -362,7 +380,7 @@ private struct ReactionChips: View {
         }
         // Line the chips up with the bubble, clearing the avatar gutter.
         // The old trailing inset cleared your own avatar, which no longer renders.
-        .padding(.leading, isMine ? 0 : 28 + HarvestTheme.Spacing.xs)
+        .padding(.leading, isMine ? 0 : CommunityChatView.avatarSize + HarvestTheme.Spacing.xs)
         .frame(maxWidth: .infinity, alignment: isMine ? .trailing : .leading)
     }
 }
@@ -409,7 +427,7 @@ private struct CommunityBubble: View {
                         .contentShape(Circle())
                         .onTapGesture { onTapSender?() }
                 } else {
-                    Color.clear.frame(width: 28, height: 28)
+                    Color.clear.frame(width: CommunityChatView.avatarSize, height: CommunityChatView.avatarSize)
                 }
             }
 
@@ -537,7 +555,7 @@ private struct CommunityBubble: View {
                 avatarPlaceholder
             }
         }
-        .frame(width: 28, height: 28)
+        .frame(width: CommunityChatView.avatarSize, height: CommunityChatView.avatarSize)
         .clipShape(Circle())
     }
 

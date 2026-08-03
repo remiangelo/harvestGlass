@@ -10,16 +10,22 @@ struct MainTabView: View {
     init(authViewModel: AuthViewModel) {
         self.authViewModel = authViewModel
 
+        // Driven by HarvestTheme, not literals. These were hardcoded to the
+        // old dark palette, which is why the repalette never reached the
+        // tab bar and the active item stayed white.
+        let selected = UIColor(HarvestTheme.Colors.rose)
+        let unselected = UIColor(HarvestTheme.Colors.textTertiary)
+
         let appearance = UITabBarAppearance()
         appearance.configureWithOpaqueBackground()
-        appearance.backgroundColor = UIColor(hex: "150A0F")
-        appearance.shadowColor = UIColor(hex: "FB2E63")?.withAlphaComponent(0.18)
+        appearance.backgroundColor = UIColor(HarvestTheme.Colors.wineBlack)
+        appearance.shadowColor = UIColor(HarvestTheme.Colors.textPrimary).withAlphaComponent(0.12)
 
         let itemAppearance = UITabBarItemAppearance()
-        itemAppearance.normal.iconColor = UIColor(hex: "9A7E88")
-        itemAppearance.normal.titleTextAttributes = [.foregroundColor: UIColor(hex: "9A7E88") ?? .white]
-        itemAppearance.selected.iconColor = UIColor(hex: "FFFFFF")
-        itemAppearance.selected.titleTextAttributes = [.foregroundColor: UIColor(hex: "FFFFFF") ?? .white]
+        itemAppearance.normal.iconColor = unselected
+        itemAppearance.normal.titleTextAttributes = [.foregroundColor: unselected]
+        itemAppearance.selected.iconColor = selected
+        itemAppearance.selected.titleTextAttributes = [.foregroundColor: selected]
 
         appearance.stackedLayoutAppearance = itemAppearance
         appearance.inlineLayoutAppearance = itemAppearance
@@ -83,27 +89,3 @@ struct MainTabView: View {
     }
 }
 
-private extension UIColor {
-    convenience init?(hex: String) {
-        let hex = hex.trimmingCharacters(in: CharacterSet.alphanumerics.inverted)
-        var int: UInt64 = 0
-        guard Scanner(string: hex).scanHexInt64(&int) else { return nil }
-
-        let a, r, g, b: UInt64
-        switch hex.count {
-        case 6:
-            (a, r, g, b) = (255, int >> 16, int >> 8 & 0xFF, int & 0xFF)
-        case 8:
-            (a, r, g, b) = (int >> 24, int >> 16 & 0xFF, int >> 8 & 0xFF, int & 0xFF)
-        default:
-            return nil
-        }
-
-        self.init(
-            red: CGFloat(r) / 255,
-            green: CGFloat(g) / 255,
-            blue: CGFloat(b) / 255,
-            alpha: CGFloat(a) / 255
-        )
-    }
-}
