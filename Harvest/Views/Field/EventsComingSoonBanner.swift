@@ -12,7 +12,7 @@ struct EventsComingSoonBanner: View {
                     .font(.system(size: 11, weight: .bold))
                     .kerning(0.8)
             }
-            .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+            .foregroundStyle(HarvestTheme.Colors.accent)
 
             Text("Community events")
                 .font(HarvestTheme.Typography.h3)
@@ -36,7 +36,7 @@ struct EventsComingSoonBanner: View {
                 .fill(
                     LinearGradient(
                         colors: [
-                            HarvestTheme.Colors.fieldGreen.opacity(0.16),
+                            HarvestTheme.Colors.rose.opacity(0.14),
                             HarvestTheme.Colors.wineCard
                         ],
                         startPoint: .topLeading,
@@ -45,7 +45,7 @@ struct EventsComingSoonBanner: View {
                 )
                 .overlay {
                     RoundedRectangle(cornerRadius: HarvestTheme.Radius.xl)
-                        .stroke(HarvestTheme.Colors.fieldGreen.opacity(0.30), lineWidth: 1)
+                        .stroke(HarvestTheme.Colors.rose.opacity(0.28), lineWidth: 1)
                 }
         }
         .overlay(alignment: .topTrailing) {
@@ -63,14 +63,14 @@ struct EventsComingSoonBanner: View {
     private func modePill(_ title: String, systemImage: String) -> some View {
         Label(title, systemImage: systemImage)
             .font(HarvestTheme.Typography.caption)
-            .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+            .foregroundStyle(HarvestTheme.Colors.accent)
             .padding(.horizontal, HarvestTheme.Spacing.sm)
             .padding(.vertical, HarvestTheme.Spacing.xs)
             .background {
                 Capsule()
-                    .fill(HarvestTheme.Colors.fieldGreenSoft)
+                    .fill(HarvestTheme.Colors.primarySoft)
                     .overlay {
-                        Capsule().stroke(HarvestTheme.Colors.fieldGreenBorder, lineWidth: 1)
+                        Capsule().stroke(HarvestTheme.Colors.rose.opacity(0.22), lineWidth: 1)
                     }
             }
     }

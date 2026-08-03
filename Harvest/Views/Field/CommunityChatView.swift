@@ -28,11 +28,11 @@ struct CommunityChatView: View {
                                 Task { await vm.loadOlder(communityId: community.id) }
                             } label: {
                                 if vm.isLoadingOlder {
-                                    ProgressView().tint(HarvestTheme.Colors.fieldGreen)
+                                    ProgressView().tint(HarvestTheme.Colors.rose)
                                 } else {
                                     Label("Load earlier messages", systemImage: "arrow.up.circle")
                                         .font(HarvestTheme.Typography.caption)
-                                        .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                                        .foregroundStyle(HarvestTheme.Colors.accent)
                                 }
                             }
                             .frame(maxWidth: .infinity)
@@ -147,12 +147,12 @@ struct CommunityChatView: View {
             if let target = vm.replyTarget {
                 HStack(spacing: HarvestTheme.Spacing.sm) {
                     RoundedRectangle(cornerRadius: 2)
-                        .fill(HarvestTheme.Colors.fieldGreen)
+                        .fill(HarvestTheme.Colors.rose)
                         .frame(width: 3, height: 32)
                     VStack(alignment: .leading, spacing: 1) {
                         Text("Replying to \(vm.senders[target.senderId]?.nickname ?? "Member")")
                             .font(HarvestTheme.Typography.caption)
-                            .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                            .foregroundStyle(HarvestTheme.Colors.accent)
                         Text(target.content)
                             .font(HarvestTheme.Typography.caption)
                             .foregroundStyle(HarvestTheme.Colors.textSecondary)
@@ -193,7 +193,7 @@ struct CommunityChatView: View {
 
             composer
         }
-        .background(ChatBackdrop(accent: .field))
+        .background(ChatBackdrop(accent: .rose))
         .navigationTitle(community.name)
         .navigationBarTitleDisplayMode(.inline)
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
@@ -272,7 +272,7 @@ struct CommunityChatView: View {
             Image(systemName: "bubble.left.and.bubble.right")
                 .font(.system(size: 32))
                 // Field views stay green; primary would leak the app's red in.
-                .foregroundStyle(HarvestTheme.Colors.fieldGreen)
+                .foregroundStyle(HarvestTheme.Colors.rose)
             Text("Be the first to share something.")
                 .font(HarvestTheme.Typography.bodySmall)
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
@@ -291,7 +291,7 @@ struct CommunityChatView: View {
         ChatComposer(
             text: $vm.draft,
             focused: $isComposerFocused,
-            accent: .field,
+            accent: .rose,
             placeholder: "Share something…",
             isSending: vm.isSending,
             onSend: { Task { await vm.send(communityId: community.id, senderId: userId) } },
@@ -299,7 +299,7 @@ struct CommunityChatView: View {
                 Button { showPrompts.toggle() } label: {
                     Image(systemName: "lightbulb.fill")
                         .font(.title3)
-                        .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                        .foregroundStyle(HarvestTheme.Colors.accent)
                         .frame(width: 36, height: 36)
                 }
             }
@@ -364,15 +364,15 @@ private struct ReactionChips: View {
                         Text(group.emoji).font(.system(size: 12))
                         Text("\(group.count)")
                             .font(.system(size: 11, weight: .semibold))
-                            .foregroundStyle(group.mine ? HarvestTheme.Colors.fieldGreenLight : HarvestTheme.Colors.textSecondary)
+                            .foregroundStyle(group.mine ? HarvestTheme.Colors.accent : HarvestTheme.Colors.textSecondary)
                     }
                     .padding(.horizontal, 8)
                     .padding(.vertical, 3)
                     .background(
-                        Capsule().fill(group.mine ? HarvestTheme.Colors.fieldGreenSoft : HarvestTheme.Colors.wineRaised)
+                        Capsule().fill(group.mine ? HarvestTheme.Colors.primarySoft : HarvestTheme.Colors.wineRaised)
                     )
                     .overlay(
-                        Capsule().stroke(group.mine ? HarvestTheme.Colors.fieldGreenBorder : .clear, lineWidth: 1)
+                        Capsule().stroke(group.mine ? HarvestTheme.Colors.rose.opacity(0.22) : .clear, lineWidth: 1)
                     )
                 }
                 .buttonStyle(.plain)
@@ -438,7 +438,7 @@ private struct CommunityBubble: View {
                         .font(HarvestTheme.Typography.caption)
                         .foregroundStyle(onTapSender == nil
                                          ? HarvestTheme.Colors.textTertiary
-                                         : HarvestTheme.Colors.fieldGreenLight)
+                                         : HarvestTheme.Colors.accent)
                         .contentShape(Rectangle())
                         .onTapGesture { onTapSender?() }
                         .padding(.leading, HarvestTheme.Spacing.xs)
@@ -457,7 +457,7 @@ private struct CommunityBubble: View {
                     .padding(.vertical, HarvestTheme.Spacing.sm)
                     .frame(minWidth: isBlurred ? 150 : nil, minHeight: isBlurred ? 44 : nil, alignment: .leading)
                     .blur(radius: isBlurred ? 7 : 0)
-                    .chatBubble(accent: .field, isMine: isMine, shape: shape)
+                    .chatBubble(accent: .rose, isMine: isMine, shape: shape)
                     .overlay {
                         if isBlurred { blurOverlay }
                     }
@@ -489,12 +489,12 @@ private struct CommunityBubble: View {
     private var replyQuote: some View {
         HStack(spacing: HarvestTheme.Spacing.xs) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(HarvestTheme.Colors.fieldGreen)
+                .fill(HarvestTheme.Colors.rose)
                 .frame(width: 3)
             VStack(alignment: .leading, spacing: 1) {
                 Text(quotedSenderName ?? "Member")
                     .font(HarvestTheme.Typography.caption.weight(.semibold))
-                    .foregroundStyle(HarvestTheme.Colors.fieldGreenLight)
+                    .foregroundStyle(HarvestTheme.Colors.accent)
                 Text(quoted.map { $0.isRemoved ? "Message removed" : $0.content } ?? "…")
                     .font(HarvestTheme.Typography.caption)
                     .foregroundStyle(HarvestTheme.Colors.textSecondary)
@@ -505,7 +505,7 @@ private struct CommunityBubble: View {
         .padding(.vertical, HarvestTheme.Spacing.xs)
         .background {
             RoundedRectangle(cornerRadius: HarvestTheme.Radius.md)
-                .fill(HarvestTheme.Colors.fieldGreenSoft)
+                .fill(HarvestTheme.Colors.primarySoft)
         }
         .fixedSize(horizontal: false, vertical: true)
         .contentShape(Rectangle())
