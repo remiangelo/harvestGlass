@@ -85,8 +85,25 @@ final class MessageGroupingTests: XCTestCase {
         XCTAssertTrue(p.isFirstInGroup)
     }
 
-    func testParsesTimestampWithFractionalSeconds() {
+    func testParsesTimestampWithMillisecondPrecision() {
+        XCTAssertNotNil(MessageGrouping.date(from: "2026-08-04T10:15:30.123+00:00"))
+    }
+
+    /// Postgres emits six fractional digits; ISO8601DateFormatter accepts three.
+    func testParsesTimestampWithMicrosecondPrecision() {
         XCTAssertNotNil(MessageGrouping.date(from: "2026-08-04T10:15:30.123456+00:00"))
+    }
+
+    func testParsesMicrosecondTimestampWithZuluSuffix() {
+        XCTAssertNotNil(MessageGrouping.date(from: "2026-08-04T10:15:30.123456Z"))
+    }
+
+    func testMicrosecondTrimmingKeepsTheSameInstant() {
+        let millis = MessageGrouping.date(from: "2026-08-04T10:15:30.123Z")
+        let micros = MessageGrouping.date(from: "2026-08-04T10:15:30.123456Z")
+        XCTAssertNotNil(millis)
+        XCTAssertNotNil(micros)
+        XCTAssertEqual(millis!.timeIntervalSince1970, micros!.timeIntervalSince1970, accuracy: 0.001)
     }
 
     func testParsesTimestampWithoutFractionalSeconds() {

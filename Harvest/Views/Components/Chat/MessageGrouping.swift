@@ -29,9 +29,27 @@ enum MessageGrouping {
     /// Parses a Supabase timestamp, which may or may not carry fractional
     /// seconds. Formatters are cached — the previous per-call
     /// `ISO8601DateFormatter()` ran once per bubble per redraw.
+    ///
+    /// Postgres emits up to six fractional digits but `ISO8601DateFormatter`
+    /// only accepts three, so an unparseable string gets its fraction trimmed
+    /// and retried. Without that, every timestamp would come back nil and
+    /// grouping, separators, and time labels would all quietly disappear.
     static func date(from iso: String?) -> Date? {
         guard let iso else { return nil }
-        return fractional.date(from: iso) ?? whole.date(from: iso)
+        if let parsed = fractional.date(from: iso) { return parsed }
+        if let parsed = whole.date(from: iso) { return parsed }
+        guard let trimmed = trimmingFractionalSeconds(iso) else { return nil }
+        return fractional.date(from: trimmed) ?? whole.date(from: trimmed)
+    }
+
+    /// "…:30.123456+00:00" → "…:30.123+00:00". nil when there is nothing to trim.
+    private static func trimmingFractionalSeconds(_ iso: String) -> String? {
+        guard let dot = iso.firstIndex(of: ".") else { return nil }
+        let firstDigit = iso.index(after: dot)
+        let end = iso[firstDigit...].firstIndex(where: { !$0.isNumber }) ?? iso.endIndex
+        guard iso.distance(from: firstDigit, to: end) > 3 else { return nil }
+        let keepThrough = iso.index(firstDigit, offsetBy: 3)
+        return String(iso[..<keepThrough]) + String(iso[end...])
     }
 
     static func position(
