@@ -9,6 +9,7 @@ struct CommunityChatView: View {
     @State private var reportTarget: (senderId: String, messageId: String)? = nil
     @State private var selectedProfile: UserProfile?
     @State private var isLoadingProfile = false
+    @State private var showMembers = false
     @FocusState private var isComposerFocused: Bool
     private let profileService = ProfileService()
     private var userId: String { authViewModel.currentUserId ?? "" }
@@ -199,6 +200,18 @@ struct CommunityChatView: View {
         .toolbarBackground(HarvestTheme.Colors.background, for: .navigationBar)
         .toolbarBackground(.visible, for: .navigationBar)
         .toolbarColorScheme(.light, for: .navigationBar)
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button { showMembers = true } label: {
+                    Image(systemName: "person.2.fill")
+                }
+                .tint(HarvestTheme.Colors.rose)
+                .accessibilityLabel("View members")
+            }
+        }
+        .sheet(isPresented: $showMembers) {
+            RoomMembersView(authViewModel: authViewModel, community: community)
+        }
         .task { await vm.start(communityId: community.id) }
         .onDisappear { vm.stop() }
         .sheet(isPresented: $showPrompts) {

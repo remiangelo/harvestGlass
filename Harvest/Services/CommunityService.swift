@@ -168,6 +168,30 @@ struct CommunityService {
         return rows.map(\.users)
     }
 
+    /// Full profiles for everyone active in a room, for the member roster.
+    /// Heavier than `members(communityId:)` — that one fetches only what a
+    /// message bubble needs, this one fetches what the roster filters on.
+    func memberProfiles(communityId: String) async throws -> [UserProfile] {
+        struct Row: Decodable { let users: UserProfile }
+        let rows: [Row] = try await client
+            .from("community_members")
+            .select("""
+                users(
+                    id, email, nickname, age, bio, location, gender, photos,
+                    hobbies, interested_in, looking_for, height_cm, smoking,
+                    drinking, cannabis, spiritual_orientation, children_status,
+                    relationship_status, is_banned
+                )
+            """)
+            .eq("community_id", value: communityId)
+            .eq("status", value: "active")
+            .execute()
+            .value
+        // Banned members stay out of the roster even if the membership row
+        // survives — the ban action deactivates matches, not memberships.
+        return rows.map(\.users).filter { $0.isBanned != true }
+    }
+
     func prompts(communityId: String) async throws -> [CommunityPrompt] {
         // Room-specific OR global (community_id is null).
         try await client
