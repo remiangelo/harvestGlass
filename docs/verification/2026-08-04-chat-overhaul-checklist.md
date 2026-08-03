@@ -82,6 +82,32 @@ The app inverted from a near-black plum to a cream page. Walk **every** tab.
 - [ ] Blur/reveal, report, block, unmatch, Ready to Move all still work.
 - [ ] Tapping the transcript still dismisses the keyboard.
 
+## Second round (feedback fixes)
+- [ ] Last message is fully visible above the composer — not clipped.
+- [ ] Opening the keyboard keeps the newest message in view.
+- [ ] Chat avatars are noticeably bigger (36pt); grouped rows still line up
+      and reaction chips clear the avatar gutter.
+- [ ] Tab bar: active item is **rose**, inactive is muted, bar is a light tint.
+      (It was hardcoded to the old dark hexes and missed the repalette.)
+- [ ] The Field and room chat read as predominantly **rose**.
+- [ ] Green survives ONLY on: mention text, @-suggestion chips, the
+      mentions-me bubble edge, the joined-room card border, and leaf marks.
+
+## Member roster
+- [ ] `person.2.fill` in the room chat's top-right opens the member list.
+- [ ] Members load; you are excluded from your own roster.
+- [ ] Search matches name, location, and bio.
+- [ ] Age and gender filters work and are available on a **free** account.
+- [ ] On free: Advanced and Premium sections show the paywall gate.
+- [ ] On Grow: looking-for / smoking / drinking / cannabis unlock; Premium
+      still gated.
+- [ ] On Gold: faith and children unlock too.
+- [ ] Filter icon fills in when filters are active; "Clear filters" resets
+      the attributes but keeps the search text.
+- [ ] Empty result shows the "no one matches" state, not a blank screen.
+- [ ] Tapping a member opens their profile with "Send a Seed".
+- [ ] A banned member does not appear in the roster.
+
 ## Field
 - [ ] Banner renders above the room list; leaf watermark clipped to the card.
 - [ ] Both mode pills visible; nothing overflows at the largest Dynamic Type size.
