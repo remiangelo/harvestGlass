@@ -6,15 +6,16 @@ final class RoomMembersViewModel {
     var members: [UserProfile] = []
     var filter = RoomMemberFilter()
     var userTier: TierName = .seed
+    var filterLevel: FieldFilterLevel = .none
     var isLoading = false
     var error: String?
 
     private let service = CommunityService()
     private let subscriptionService = SubscriptionService()
 
-    /// Mirrors FiltersViewModel so the roster gates exactly like Discover does.
-    var canAccessAdvanced: Bool { userTier == .green || userTier == .gold }
-    var canAccessFull: Bool { userTier == .gold }
+    /// Mirrors FiltersViewModel — both read the level off the tier row.
+    var canAccessAdvanced: Bool { filterLevel.unlocksAdvanced }
+    var canAccessFull: Bool { filterLevel.unlocksFull }
 
     /// Members matching the filter, excluding the viewer, alphabetical.
     func visibleMembers(excluding currentUserId: String) -> [UserProfile] {
@@ -38,6 +39,7 @@ final class RoomMembersViewModel {
            let tiers = try? await subscriptionService.getSubscriptionTiers(),
            let tier = tiers.first(where: { $0.id == sub.tierId }) {
             userTier = tier.name
+            filterLevel = tier.fieldFilterLevel
         }
     }
 

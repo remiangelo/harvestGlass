@@ -193,7 +193,8 @@ struct ProfileDetailView: View {
                 if let currentProfile {
                     CompatibilityView(
                         currentProfile: currentProfile,
-                        otherProfile: profile
+                        otherProfile: profile,
+                        authViewModel: authViewModel
                     )
                 }
             }

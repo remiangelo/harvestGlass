@@ -22,7 +22,17 @@ struct ValuesView: View {
                     case .main:
                         mainContent
                     case .tips:
-                        tipsSection
+                        if viewModel.hasGrowthFeatures {
+                            tipsSection
+                        } else {
+                            PremiumGateView(
+                                featureName: "Values-Based Dating Tips",
+                                requiredTier: "Gold",
+                                authViewModel: authViewModel
+                            )
+                            .frame(minHeight: 220)
+                            .padding(.horizontal)
+                        }
                     }
                 }
                 .padding(.vertical)

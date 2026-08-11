@@ -19,60 +19,98 @@ struct MindfulMessagingService {
         }
     }
 
-    private static let aggressive: Set<String> = [
-        "stupid", "idiot", "dumb", "ugly", "fat", "disgusting", "pathetic", "loser",
-        "worthless", "useless", "shut up", "hate you", "kill", "die", "trash", "garbage",
-        "moron", "retard", "freak", "psycho", "crazy", "insane", "bitch", "bastard",
-        "damn", "hell", "screw you", "piss off", "get lost", "nobody likes you",
-        "waste of space", "piece of", "go away", "leave me alone", "don't talk to me",
-        "you're nothing", "you suck", "terrible", "horrible", "disgusted", "sick of you",
-        "can't stand you", "annoying", "irritating", "infuriating", "rage", "furious",
-        "punch", "hit", "slap", "hurt", "destroy", "ruin", "wreck", "break",
-        "smash", "crush", "obliterate", "demolish", "annihilate", "murder", "stab",
-        "choke", "strangle", "suffocate", "drown", "burn", "torture", "abuse",
-        "attack", "assault", "threaten", "intimidate", "bully", "harass",
-        "fuck", "fuck you", "fuck off", "fucking", "motherfucker", "mother fucker",
-        "shit", "bullshit", "dipshit", "asshole", "ass hole", "arsehole", "arse hole",
-        "dick", "dickhead", "prick", "cock", "cunt", "twat", "pussy",
-        "slut", "whore", "hoe", "skank", "trashy", "scumbag", "scum",
-        "piece of shit", "piece of crap", "bastard", "jackass", "douche", "douchebag",
-        "eat shit", "go to hell", "screw off", "shut the fuck up", "fuckin",
-        "f off", "fk you", "f u", "wtf"
+    /// One category's vocabulary, split by how much context a term needs.
+    ///
+    /// `standalone` terms are concerning wherever they appear. `directed`
+    /// terms are only concerning when aimed at the other person, so they
+    /// require a second-person word in the same clause — that is what keeps
+    /// "I need to kill some time" apart from "I'll kill you", and what stops
+    /// a gardening app flagging "my new hoe".
+    private struct Lexicon {
+        let category: String
+        let weight: Int
+        let standalone: Set<String>
+        let directed: Set<String>
+    }
+
+    private static let aggressiveStandalone: Set<String> = [
+        "fuck", "fucking", "fuckin", "fuck you", "fuck off", "motherfucker",
+        "mother fucker", "shit", "bullshit", "dipshit", "eat shit",
+        "piece of shit", "piece of crap", "asshole", "ass hole", "arsehole",
+        "arse hole", "jackass", "dickhead", "prick", "cunt", "twat", "bitch",
+        "bastard", "douche", "douchebag", "scumbag", "slut", "whore", "skank",
+        "retard", "moron", "wtf", "shut up", "shut the fuck up", "screw you",
+        "screw off", "piss off", "fk you", "f off", "f u",
+        "hate you", "you suck", "you're nothing", "nobody likes you",
+        "waste of space", "sick of you", "can't stand you",
+        "hurt you", "kill you", "kill yourself", "kys"
     ]
 
-    private static let possessive: Set<String> = [
-        "you're mine", "belong to me", "my property", "can't leave", "won't let you",
-        "you need me", "no one else", "only mine", "i own you", "control you",
-        "you can't", "not allowed", "permission", "forbid", "demand"
+    /// Insults and threats — harmless as ordinary vocabulary, concerning when
+    /// pointed at someone.
+    private static let aggressiveDirected: Set<String> = [
+        "stupid", "idiot", "dumb", "ugly", "fat", "disgusting", "pathetic",
+        "loser", "worthless", "useless", "freak", "psycho", "annoying",
+        "trash", "garbage", "scum", "hoe", "pussy",
+        "kill", "murder", "stab", "choke", "strangle", "suffocate", "drown",
+        "punch", "slap", "destroy", "ruin", "torture", "die"
     ]
 
-    private static let pressuring: Set<String> = [
-        "meet now", "come over", "right now", "tonight", "hurry up", "don't be scared",
-        "what are you afraid of", "prove it", "show me", "why won't you", "just do it",
-        "stop being", "don't be a", "man up", "grow up", "be brave", "trust me",
-        "i promise", "nothing will happen", "no one will know"
+    private static let possessiveStandalone: Set<String> = [
+        "you're mine", "belong to me", "my property", "i own you", "control you",
+        "won't let you", "you need me", "only mine", "can't leave me",
+        "i forbid you", "not allowed to talk"
     ]
 
-    private static let manipulative: Set<String> = [
-        "if you loved me", "no one will ever", "you'll never find", "lucky to have me",
-        "do this for me", "owe me", "after everything", "ungrateful", "guilt",
-        "you made me", "your fault", "blame you", "responsible for"
+    private static let pressuringStandalone: Set<String> = [
+        "don't be scared", "what are you afraid of", "why won't you",
+        "nothing will happen", "no one will know", "man up", "prove it"
     ]
 
-    private static let sexualPressure: Set<String> = [
-        "send pics", "send nudes", "show me your", "what are you wearing",
-        "take it off", "undress", "naked", "strip"
+    private static let manipulativeStandalone: Set<String> = [
+        "if you loved me", "if you really loved me", "no one will ever",
+        "you'll never find", "lucky to have me", "you owe me", "nobody else will",
+        "after everything i did", "you made me", "all your fault", "i blame you",
+        "guilt trip", "ungrateful"
     ]
 
-    private static let excessiveIntensity: Set<String> = [
-        "i love you", "soul mate", "meant to be", "destiny", "marry me", "forever",
-        "can't live without", "obsessed", "addicted to you", "need you"
+    private static let sexualPressureStandalone: Set<String> = [
+        "send pics", "send nudes", "send me pics", "nudes", "dick pic", "dick pics",
+        "show me your body", "show me your tits", "what are you wearing",
+        "take it off", "undress", "get naked", "strip for me"
     ]
 
-    private static let personalInfo: Set<String> = [
+    private static let sexualPressureDirected: Set<String> = ["naked"]
+
+    /// Love-bombing markers only. Ordinary affection ("I love you", "forever")
+    /// was removed: warning people for saying it, and blurring it for the
+    /// person receiving it, is worse than missing the rare early over-step.
+    private static let excessiveIntensityStandalone: Set<String> = [
+        "marry me", "can't live without you", "addicted to you", "obsessed with you",
+        "soul mate", "soulmate", "you're my everything", "meant to be together"
+    ]
+
+    private static let personalInfoStandalone: Set<String> = [
         "social security", "ssn", "bank account", "credit card", "routing number",
-        "password", "login", "venmo me", "cashapp", "send money", "wire transfer",
-        "bitcoin", "crypto wallet"
+        "password", "login credentials", "venmo me", "cashapp", "send money",
+        "wire transfer", "bitcoin", "cryptocurrency", "crypto wallet", "gift card"
+    ]
+
+    private static let lexicons: [Lexicon] = [
+        Lexicon(category: "aggressive", weight: 20,
+                standalone: aggressiveStandalone, directed: aggressiveDirected),
+        Lexicon(category: "possessive", weight: 25,
+                standalone: possessiveStandalone, directed: []),
+        Lexicon(category: "pressuring", weight: 15,
+                standalone: pressuringStandalone, directed: []),
+        Lexicon(category: "manipulative", weight: 20,
+                standalone: manipulativeStandalone, directed: []),
+        Lexicon(category: "sexual_pressure", weight: 25,
+                standalone: sexualPressureStandalone, directed: sexualPressureDirected),
+        Lexicon(category: "excessive_intensity", weight: 10,
+                standalone: excessiveIntensityStandalone, directed: []),
+        Lexicon(category: "personal_info", weight: 30,
+                standalone: personalInfoStandalone, directed: [])
     ]
 
     private static let phonePatterns: [String] = [
@@ -133,18 +171,13 @@ struct MindfulMessagingService {
 
     /// Lightweight synchronous filter for clearly objectionable user-generated text
     /// (profanity, slurs, violent or sexually explicit language). Used to screen
-    /// profile fields (nickname, bio) before they're saved. Word-boundary matched so
-    /// innocuous substrings (e.g. "class" containing "ass") don't trip it.
+    /// profile fields (nickname, bio) before they're saved. Only the standalone
+    /// terms apply: a bio has no one to direct an insult at, so context-dependent
+    /// words like "trash" or "hoe" would just block innocent bios.
     static func containsObjectionableContent(_ text: String) -> Bool {
-        let lower = text.lowercased()
-        let terms = aggressive.union(sexualPressure)
-        for term in terms {
-            let pattern = "\\b\(NSRegularExpression.escapedPattern(for: term))\\b"
-            if lower.range(of: pattern, options: .regularExpression) != nil {
-                return true
-            }
-        }
-        return false
+        let normalized = KeywordMatcher.normalize(text)
+        let terms = aggressiveStandalone.union(sexualPressureStandalone)
+        return terms.contains { KeywordMatcher.contains($0, in: normalized) }
     }
 
     /// Synchronous, on-device keyword flag for an *incoming* message. Returns the
@@ -165,8 +198,23 @@ struct MindfulMessagingService {
         do {
             let messages: [OpenAIService.ChatMessage] = [
                 .init(role: "system", content: """
-                    You are a dating safety analyst. Analyze the following message for concerning patterns. \
-                    Respond with JSON: {"needsReview": bool, "severity": "low"|"medium"|"high", \
+                    You are a dating safety analyst reviewing one outgoing message.
+
+                    Flag ONLY what would concern a reasonable person on a dating app: \
+                    insults, threats, coercion, sexual pressure, controlling or manipulative \
+                    language, or requests for money and sensitive personal data.
+
+                    Ordinary conversation is not a concern. Greetings ("hi", "hello", "hey!!"), \
+                    small talk, compliments, jokes, flirting, emoji, repeated punctuation or \
+                    capitals for emphasis, enthusiasm, plans to meet, and short or low-effort \
+                    messages are all fine — return needsReview false for them.
+
+                    You are seeing the message without its conversation, so when it reads two \
+                    ways, assume the ordinary one. If you are not confident, return \
+                    needsReview false: a false alarm on a harmless message costs more here \
+                    than a missed borderline one.
+
+                    Respond with JSON only: {"needsReview": bool, "severity": "low"|"medium"|"high", \
                     "reason": "brief explanation", "category": "aggressive"|"possessive"|"pressuring"|\
                     "manipulative"|"sexual_pressure"|"excessive_intensity"|"personal_info"|"none"}
                     """),
@@ -184,6 +232,22 @@ struct MindfulMessagingService {
                let needsReview = json["needsReview"] as? Bool,
                needsReview {
                 let severity = MindfulAnalysis.Severity(rawValue: json["severity"] as? String ?? "low") ?? .low
+
+                // The model judges a single message with no conversation around
+                // it, and its low-severity calls are where the harmless ones
+                // ("hi!!", an enthusiastic compliment) land. Anything genuinely
+                // low-severity is already covered by the lexicons above.
+                guard severity != .low else {
+                    return MindfulAnalysis(
+                        category: nil,
+                        needsReview: false,
+                        severity: .low,
+                        reason: "",
+                        growthLesson: nil,
+                        flaggedWords: []
+                    )
+                }
+
                 let reason = json["reason"] as? String ?? "This message may need review."
                 let category = json["category"] as? String ?? "general"
                 let lesson = Self.growthLessons[category]
@@ -206,32 +270,29 @@ struct MindfulMessagingService {
     }
 
     private func keywordAnalysis(_ text: String) -> MindfulAnalysis {
-        let lowered = text.lowercased()
-        let normalized = normalizeForMatching(text)
+        let normalized = KeywordMatcher.normalize(text)
+        let clauses = KeywordMatcher.clauses(text)
         var flaggedWords: [String] = []
         var highestCategory: String?
         var highestWeight = 0
 
-        let categories: [(Set<String>, String, Int)] = [
-            (Self.aggressive, "aggressive", 20),
-            (Self.possessive, "possessive", 25),
-            (Self.pressuring, "pressuring", 15),
-            (Self.manipulative, "manipulative", 20),
-            (Self.sexualPressure, "sexual_pressure", 25),
-            (Self.excessiveIntensity, "excessive_intensity", 10),
-            (Self.personalInfo, "personal_info", 30)
-        ]
+        for lexicon in Self.lexicons {
+            var matched = false
 
-        for (keywords, category, weight) in categories {
-            for keyword in keywords {
-                let normalizedKeyword = normalizeForMatching(keyword)
-                if lowered.contains(keyword) || normalized.contains(normalizedKeyword) {
-                    flaggedWords.append(keyword)
-                    if weight > highestWeight {
-                        highestWeight = weight
-                        highestCategory = category
-                    }
-                }
+            for keyword in lexicon.standalone where KeywordMatcher.contains(keyword, in: normalized) {
+                flaggedWords.append(keyword)
+                matched = true
+            }
+
+            for keyword in lexicon.directed
+            where KeywordMatcher.containsDirected(keyword, inClauses: clauses) {
+                flaggedWords.append(keyword)
+                matched = true
+            }
+
+            if matched, lexicon.weight > highestWeight {
+                highestWeight = lexicon.weight
+                highestCategory = lexicon.category
             }
         }
 
@@ -262,18 +323,5 @@ struct MindfulMessagingService {
             growthLesson: lesson,
             flaggedWords: flaggedWords
         )
-    }
-
-    private func normalizeForMatching(_ text: String) -> String {
-        let lowered = text.lowercased()
-        let scalars = lowered.unicodeScalars.map { scalar -> Character in
-            if CharacterSet.alphanumerics.contains(scalar) || CharacterSet.whitespaces.contains(scalar) {
-                return Character(scalar)
-            }
-            return " "
-        }
-        return String(scalars)
-            .replacingOccurrences(of: "\\s+", with: " ", options: .regularExpression)
-            .trimmingCharacters(in: .whitespacesAndNewlines)
     }
 }

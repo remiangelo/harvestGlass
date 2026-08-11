@@ -12,15 +12,12 @@ struct SubscriptionService {
         let description: String
         let priceMonthly: Double
         let priceWeekly: Double
-        let matchesPerWeek: Int?
-        let maxDistanceMiles: Int?
         let gardenerConversationsPerDay: Int?
         let gardenerCharacterLimit: Int
-        let hasValuesMatching: Bool
-        let hasBasicFilters: Bool
-        let hasAdvancedFilters: Bool
-        let hasFullFilters: Bool
-        let canSeeLikes: Bool
+        let gardenerScreenshotsPerDay: Int
+        let fieldFilterLevel: FieldFilterLevel
+        let hasDeepSoilInsights: Bool
+        let hasGrowthFeatures: Bool
         let canDisableMindfulMessaging: Bool
         let sortOrder: Int
         let dailySeedLimit: Int
@@ -31,15 +28,12 @@ struct SubscriptionService {
             case priceMonthly = "price_monthly"
             case priceWeekly = "price_weekly"
             case legacyPriceYearly = "price_yearly"
-            case matchesPerWeek = "matches_per_week"
-            case maxDistanceMiles = "max_distance_miles"
             case gardenerConversationsPerDay = "gardener_conversations_per_day"
             case gardenerCharacterLimit = "gardener_character_limit"
-            case hasValuesMatching = "has_values_matching"
-            case hasBasicFilters = "has_basic_filters"
-            case hasAdvancedFilters = "has_advanced_filters"
-            case hasFullFilters = "has_full_filters"
-            case canSeeLikes = "can_see_likes"
+            case gardenerScreenshotsPerDay = "gardener_screenshots_per_day"
+            case fieldFilterLevel = "field_filter_level"
+            case hasDeepSoilInsights = "has_deep_soil_insights"
+            case hasGrowthFeatures = "has_growth_features"
             case canDisableMindfulMessaging = "can_disable_mindful_messaging"
             case sortOrder = "sort_order"
             case dailySeedLimit = "daily_seed_limit"
@@ -55,15 +49,12 @@ struct SubscriptionService {
             let weeklyPrice = try Self.decodeDouble(in: container, forKey: .priceWeekly)
             let legacyPrice = try Self.decodeDouble(in: container, forKey: .legacyPriceYearly)
             priceWeekly = weeklyPrice ?? legacyPrice ?? 0
-            matchesPerWeek = try Self.decodeInt(in: container, forKey: .matchesPerWeek)
-            maxDistanceMiles = try Self.decodeInt(in: container, forKey: .maxDistanceMiles)
             gardenerConversationsPerDay = try Self.decodeInt(in: container, forKey: .gardenerConversationsPerDay)
-            gardenerCharacterLimit = try Self.decodeInt(in: container, forKey: .gardenerCharacterLimit) ?? 1000
-            hasValuesMatching = try container.decodeIfPresent(Bool.self, forKey: .hasValuesMatching) ?? false
-            hasBasicFilters = try container.decodeIfPresent(Bool.self, forKey: .hasBasicFilters) ?? false
-            hasAdvancedFilters = try container.decodeIfPresent(Bool.self, forKey: .hasAdvancedFilters) ?? false
-            hasFullFilters = try container.decodeIfPresent(Bool.self, forKey: .hasFullFilters) ?? false
-            canSeeLikes = try container.decodeIfPresent(Bool.self, forKey: .canSeeLikes) ?? false
+            gardenerCharacterLimit = try Self.decodeInt(in: container, forKey: .gardenerCharacterLimit) ?? 2000
+            gardenerScreenshotsPerDay = try Self.decodeInt(in: container, forKey: .gardenerScreenshotsPerDay) ?? 1
+            fieldFilterLevel = try container.decodeIfPresent(FieldFilterLevel.self, forKey: .fieldFilterLevel) ?? .none
+            hasDeepSoilInsights = try container.decodeIfPresent(Bool.self, forKey: .hasDeepSoilInsights) ?? false
+            hasGrowthFeatures = try container.decodeIfPresent(Bool.self, forKey: .hasGrowthFeatures) ?? false
             canDisableMindfulMessaging = try container.decodeIfPresent(Bool.self, forKey: .canDisableMindfulMessaging) ?? false
             sortOrder = try Self.decodeInt(in: container, forKey: .sortOrder) ?? 0
             dailySeedLimit = try Self.decodeInt(in: container, forKey: .dailySeedLimit) ?? 3
@@ -103,15 +94,12 @@ struct SubscriptionService {
                 description: description,
                 priceMonthly: priceMonthly,
                 priceWeekly: priceWeekly,
-                matchesPerWeek: matchesPerWeek,
-                maxDistanceMiles: maxDistanceMiles,
                 gardenerConversationsPerDay: gardenerConversationsPerDay,
                 gardenerCharacterLimit: gardenerCharacterLimit,
-                hasValuesMatching: hasValuesMatching,
-                hasBasicFilters: hasBasicFilters,
-                hasAdvancedFilters: hasAdvancedFilters,
-                hasFullFilters: hasFullFilters,
-                canSeeLikes: canSeeLikes,
+                gardenerScreenshotsPerDay: gardenerScreenshotsPerDay,
+                fieldFilterLevel: fieldFilterLevel,
+                hasDeepSoilInsights: hasDeepSoilInsights,
+                hasGrowthFeatures: hasGrowthFeatures,
                 canDisableMindfulMessaging: canDisableMindfulMessaging,
                 sortOrder: sortOrder,
                 dailySeedLimit: dailySeedLimit
@@ -144,6 +132,23 @@ struct SubscriptionService {
             .execute()
             .value
         return tierDTOs.map(\.tier)
+    }
+
+    /// The user's active tier, falling back to the free Seed row. Returns nil
+    /// only when the tier table itself can't be read — callers treat that as
+    /// "locked", which is the safe default for a paid gate.
+    func currentTier(userId: String) async -> SubscriptionTier? {
+        do {
+            let tiers = try await getSubscriptionTiers()
+            if let sub = try await getUserSubscription(userId: userId),
+               let tier = tiers.first(where: { $0.id == sub.tierId }) {
+                return tier
+            }
+            return tiers.first(where: { $0.name == .seed })
+        } catch {
+            print("Warning: Failed to resolve current tier: \(error)")
+            return nil
+        }
     }
 
     func getUserSubscription(userId: String) async throws -> UserSubscription? {

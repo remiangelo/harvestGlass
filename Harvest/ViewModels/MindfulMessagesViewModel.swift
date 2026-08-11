@@ -54,11 +54,12 @@ final class MindfulMessagesViewModel {
             conversations = sortConversationsByRecentActivity(loadedConversations)
             inboundLikes = loadedInboundLikes
 
+            // Swipe-era leftover: "Likes You" predates Seeds and has no gate of
+            // its own now that can_see_likes is gone. Any paid plan sees it,
+            // which is what the old column encoded.
             if let subscription,
                let currentTier = tiers.first(where: { $0.id == subscription.tierId }) {
-                canSeeLikes = currentTier.canSeeLikes
-            } else if let seedTier = tiers.first(where: { $0.name == .seed }) {
-                canSeeLikes = seedTier.canSeeLikes
+                canSeeLikes = currentTier.isPaid
             } else {
                 canSeeLikes = false
             }

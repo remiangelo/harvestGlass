@@ -157,7 +157,7 @@ private struct CommunityCard: View {
                 }
 
                 if let count = community.memberCount, count > 0 {
-                    Label("\(count) gardener\(count == 1 ? "" : "s")", systemImage: "leaf.fill")
+                    Label("\(count) member\(count == 1 ? "" : "s")", systemImage: "leaf.fill")
                         .font(HarvestTheme.Typography.caption)
                         .foregroundStyle(HarvestTheme.Colors.accent)
                 }

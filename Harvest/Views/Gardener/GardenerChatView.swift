@@ -155,12 +155,13 @@ struct GardenerChatView: View {
 
             Divider()
 
-            // Input bar
-            if viewModel.isAtLimit {
+            // Input bar. Chat characters and screenshot reviews are separate
+            // allowances now, so the bar only locks outright once both are spent.
+            if viewModel.isAtLimit && viewModel.isAtScreenshotLimit {
                 HStack {
                     Image(systemName: "lock.fill")
                         .foregroundStyle(HarvestTheme.Colors.textTertiary)
-                    Text("Character limit reached. Upgrade for more!")
+                    Text("You've used today's Gardener allowance. Upgrade for more!")
                         .font(HarvestTheme.Typography.bodySmall)
                         .foregroundStyle(HarvestTheme.Colors.textSecondary)
                     Spacer()
@@ -186,10 +187,12 @@ struct GardenerChatView: View {
                     PhotosPicker(selection: $pickedPhoto, matching: .images) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.title3)
-                            .foregroundStyle(HarvestTheme.Colors.accent)
+                            .foregroundStyle(viewModel.isAtScreenshotLimit
+                                             ? HarvestTheme.Colors.textTertiary
+                                             : HarvestTheme.Colors.accent)
                             .frame(width: 36, height: 36)
                     }
-                    .disabled(viewModel.isSending)
+                    .disabled(viewModel.isSending || viewModel.isAtScreenshotLimit)
 
                     TextField(
                         "",
@@ -238,9 +241,14 @@ struct GardenerChatView: View {
                             (!viewModel.hasPendingScreenshot
                              && viewModel.messageText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
                             || viewModel.isSending
+                            // Out of characters still leaves a staged
+                            // screenshot sendable — different budget.
+                            || (viewModel.isAtLimit && !viewModel.hasPendingScreenshot)
                         )
 
-                        Text("\(viewModel.remainingChars)")
+                        Text(viewModel.hasPendingScreenshot
+                             ? "\(viewModel.remainingScreenshots)📷"
+                             : "\(viewModel.remainingChars)")
                             .font(.system(size: 9))
                             .foregroundStyle(viewModel.remainingChars < 500 ? HarvestTheme.Colors.warning : HarvestTheme.Colors.textTertiary)
                     }

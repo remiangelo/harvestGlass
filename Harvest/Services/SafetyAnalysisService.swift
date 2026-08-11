@@ -4,17 +4,25 @@ import Supabase
 struct SafetyAnalysisService {
     private var client: SupabaseClient { SupabaseManager.shared.client }
 
+    /// Matched as whole words by `KeywordMatcher`, so bare verbs no longer fire
+    /// on ordinary sentences. Terms that only mean something when aimed at the
+    /// other person are spelled out with their object ("kill you", not "kill") —
+    /// a red flag here costs the other person 25-30 safety points and can gate
+    /// contact sharing, so the bar is a phrase that has no innocent reading.
     private static let redFlagKeywords: [RedFlagCategory: Set<String>] = [
         .financial: ["send money", "wire transfer", "bank account", "western union", "moneygram",
-                     "gift card", "bitcoin", "crypto", "venmo me", "cashapp", "paypal me",
-                     "investment opportunity", "financial help", "loan", "borrow money"],
+                     "gift card", "bitcoin", "crypto wallet", "cryptocurrency", "venmo me",
+                     "cashapp", "paypal me", "investment opportunity", "financial help",
+                     "loan me", "lend me money", "borrow money"],
         .personalInfo: ["social security", "ssn", "credit card number", "routing number",
                         "password", "login credentials", "home address", "work address"],
-        .catfishing: ["can't video call", "camera broken", "too shy for video", "deployed overseas",
-                      "oil rig", "military deployment", "can't meet yet"],
-        .manipulation: ["if you loved me", "nobody else will", "you owe me", "after everything",
-                        "you're nothing without", "no one will ever", "lucky to have me"],
-        .harassment: ["kill", "hurt you", "find you", "stalk", "revenge", "destroy you",
+        .catfishing: ["can't video call", "camera broken", "camera is broken", "too shy for video",
+                      "deployed overseas", "oil rig", "military deployment", "can't meet yet"],
+        .manipulation: ["if you loved me", "nobody else will", "you owe me",
+                        "after everything i did", "you're nothing without",
+                        "no one will ever", "lucky to have me"],
+        .harassment: ["kill you", "kill yourself", "hurt you", "i'll find you", "i will find you",
+                      "stalk", "stalker", "revenge", "destroy you",
                       "ruin your life", "expose you", "tell everyone"],
         .inappropriate: ["send nudes", "explicit photos", "what are you wearing",
                          "take it off", "show me your body"],
@@ -134,7 +142,7 @@ struct SafetyAnalysisService {
     func analyzeMessage(_ message: String, analysisId: String) async throws -> [RedFlagReport] {
         guard var analysis = try await getAnalysisById(analysisId) else { return [] }
 
-        let reports = detectFlags(in: message)
+        let reports = Self.detectFlags(in: message)
         guard !reports.isEmpty else { return [] }
 
         analysis.redFlags += reports
@@ -311,7 +319,7 @@ struct SafetyAnalysisService {
         for message in messages {
             guard normalized(message.senderId) == normalized(otherUserId) else { continue }
             guard let content = message.content, !content.isEmpty else { continue }
-            let detected = detectFlags(in: content, messageId: message.id)
+            let detected = Self.detectFlags(in: content, messageId: message.id)
             snapshots.append(contentsOf: detected)
         }
 
@@ -476,12 +484,14 @@ struct SafetyAnalysisService {
         return rows.first?.created_at
     }
 
-    private func detectFlags(in text: String, messageId: String? = nil) -> [SafetyFlagSnapshot] {
-        let lowered = text.lowercased()
+    /// Internal and static, not private: a pure function over the lexicon, and
+    /// unit tested directly.
+    static func detectFlags(in text: String, messageId: String? = nil) -> [SafetyFlagSnapshot] {
+        let normalized = KeywordMatcher.normalize(text)
         var reports: [SafetyFlagSnapshot] = []
 
         for (category, keywords) in Self.redFlagKeywords {
-            for keyword in keywords where lowered.contains(keyword) {
+            for keyword in keywords where KeywordMatcher.contains(keyword, in: normalized) {
                 reports.append(
                     SafetyFlagSnapshot(
                         id: UUID().uuidString,
@@ -576,7 +586,7 @@ struct SafetyAnalysisService {
             .execute()
     }
 
-    private func isoNow() -> String {
+    private static func isoNow() -> String {
         ISO8601DateFormatter().string(from: Date())
     }
 

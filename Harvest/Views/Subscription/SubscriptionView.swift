@@ -143,10 +143,12 @@ struct SubscriptionView: View {
                 VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                     featureRow("Seeds per day", value: "\(tier.dailySeedLimit)")
                     featureRow("Receive Seeds", value: "Unlimited")
-                    featureRow("Gardener access", value: gardenerAccessLabel(tier.name))
-                    featureCheck("Deeper Soil & value insights", enabled: tier.name != .seed)
-                    featureCheck("Advanced compatibility insights", enabled: tier.name != .seed)
-                    featureCheck("Premium growth features", enabled: tier.name == .gold)
+                    featureRow("Gardener chat", value: "\(tier.gardenerCharacterLimit.formatted()) chars/day")
+                    featureRow("Screenshot reviews", value: "\(tier.gardenerScreenshotsPerDay)/day")
+                    featureRow("Room member filters", value: fieldFilterLabel(tier.fieldFilterLevel))
+                    featureCheck("Deeper Soil & value insights", enabled: tier.hasDeepSoilInsights)
+                    featureCheck("Advanced compatibility insights", enabled: tier.hasDeepSoilInsights)
+                    featureCheck("Premium growth features", enabled: tier.hasGrowthFeatures)
                 }
 
                 if isCurrent {
@@ -209,11 +211,11 @@ struct SubscriptionView: View {
         }
     }
 
-    private func gardenerAccessLabel(_ name: TierName) -> String {
-        switch name {
-        case .seed: return "Limited"
-        case .green: return "More"
-        case .gold: return "Full"
+    private func fieldFilterLabel(_ level: FieldFilterLevel) -> String {
+        switch level {
+        case .none: return "Search only"
+        case .advanced: return "Advanced"
+        case .full: return "All filters"
         }
     }
 

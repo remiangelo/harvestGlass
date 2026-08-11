@@ -41,11 +41,6 @@ struct GardenerService {
 
     // MARK: - Screenshot review
 
-    /// What a screenshot costs against the daily character budget. A vision
-    /// call is far more expensive than a text turn, and the budget is measured
-    /// in characters, so it is charged a flat rate rather than its caption.
-    static let screenshotCharacterCost = 1_000
-
     /// Shown verbatim when the image isn't a conversation. Fixed in the app
     /// rather than written by the model so the promise is worded identically
     /// every time — and so it invites a retry, because detection is a

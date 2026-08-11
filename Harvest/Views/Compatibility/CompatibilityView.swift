@@ -3,6 +3,9 @@ import SwiftUI
 struct CompatibilityView: View {
     let currentProfile: UserProfile
     let otherProfile: UserProfile
+    /// Optional so the view still renders where no auth context is threaded
+    /// through; without it the locked state simply omits the upgrade button.
+    var authViewModel: AuthViewModel? = nil
 
     private enum Perspective: Hashable { case yours, theirs }
 
@@ -10,6 +13,9 @@ struct CompatibilityView: View {
     @State private var isLoading = true
     @State private var loadError: String?
     @State private var perspective: Perspective = .yours
+    /// The radar and the value chips are free. The interpretation on top of
+    /// them — overlap scoring and the written read — is the paid part.
+    @State private var hasAdvancedInsights = false
 
     @State private var myNeedScores = AxisScores()
     @State private var myBringScores = AxisScores()
@@ -24,6 +30,7 @@ struct CompatibilityView: View {
     private let valuesService = ValuesService()
     private let questionsService = QuestionsService()
     private let compatibilityService = CompatibilityService()
+    private let subscriptionService = SubscriptionService()
 
     var body: some View {
         NavigationStack {
@@ -63,8 +70,13 @@ struct CompatibilityView: View {
                             secondaryChips: theirNeeds
                         )
 
-                        overlapSection
-                        blurbSection
+                        if hasAdvancedInsights {
+                            overlapSection
+                            blurbSection
+                        } else {
+                            advancedInsightsLock
+                                .padding(.horizontal)
+                        }
                     }
                 }
                 .padding(.vertical)
@@ -164,6 +176,27 @@ struct CompatibilityView: View {
             }
         }
         .padding(.horizontal)
+    }
+
+    @ViewBuilder
+    private var advancedInsightsLock: some View {
+        if let authViewModel {
+            PremiumGateView(
+                featureName: "Value overlap & the written read",
+                requiredTier: "Grow",
+                authViewModel: authViewModel
+            )
+            .frame(minHeight: 200)
+        } else {
+            GlassCard {
+                VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
+                    SectionHeader(title: "Advanced compatibility insights")
+                    Text("Value overlap and the written read are part of Grow.")
+                        .font(HarvestTheme.Typography.bodySmall)
+                        .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                }
+            }
+        }
     }
 
     private var overlapSection: some View {
@@ -286,6 +319,10 @@ struct CompatibilityView: View {
         let myAnswers = (try? await myAnswersTask) ?? [:]
         let theirAnswers = (try? await theirAnswersTask) ?? [:]
         let allQuestions = (try? await questionsTask) ?? []
+
+        hasAdvancedInsights = await subscriptionService
+            .currentTier(userId: currentProfile.id)?
+            .hasDeepSoilInsights ?? false
 
         // Raw per-category scores: the radar tiers them for display, and cosine
         // (used for the blurb / matching) is scale-invariant so raw is fine here too.

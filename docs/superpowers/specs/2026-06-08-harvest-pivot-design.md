@@ -202,11 +202,20 @@ Implemented as a Postgres function `available_communities(user_id) returns setof
 
 **Goal:** Redefine tiers and enforce Seed send limits.
 
-| Tier | Price | Daily Seeds sent | Receive | Gardener | Soil insights | Notes |
-|---|---|---|---|---|---|---|
-| 🌱 **Seed** (Free) | $0 | **3** | Unlimited | Limited | Basic | Soil assessment, basic profile, Field access, receive unlimited Seeds |
-| 🌿 **Green** | $19.99/mo | **5** | Unlimited | More | Deeper + advanced compatibility | More reflection features |
-| 🌳 **Gold** | $24.99/mo | **25** | Unlimited | Full | Premium growth features | Future: Growth Path modules + free in-person events (Phase 7) |
+> **Updated 2026-08-11** — "Limited / More / Full" Gardener access is now
+> concrete numbers, and the swipe-era gates (matches per week, distance, who
+> likes you, `has_*_filters`) are gone. Prices unchanged. See
+> `supabase/migrations/20260811100000_subscription_tiers_restructure.sql`.
+
+| Tier | Price | Daily Seeds sent | Receive | Gardener chat | Screenshot reviews | Room filters | Soil / growth |
+|---|---|---|---|---|---|---|---|
+| 🌱 **Seed** (Free) | $0 | **3** | Unlimited | 2,000 chars/day | 1/day | Search only | Soil assessment, basic profile, Field access |
+| 🌿 **Green** | $19.99/mo | **5** | Unlimited | 10,000 chars/day | 5/day | Advanced | Deeper Soil + advanced compatibility insights |
+| 🌳 **Gold** | $24.99/mo | **25** | Unlimited | 25,000 chars/day | 20/day | All filters | Everything in Green + premium growth features (Tips) |
+
+Screenshot reviews have their own daily allowance — they are no longer charged
+1,000 characters against the chat budget, which used to mean one review spent a
+free user's whole day.
 
 - Add `daily_seed_limit` (and feature flags) to `subscription_tiers`; seed the three tiers.
 - Enforce send limit server-side in the Seeds insert path (reuse `RateLimitService` pattern); surface remaining/limit in UI.

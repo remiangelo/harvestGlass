@@ -11,7 +11,9 @@ final class GardenerViewModel {
     var dailyQuiz: DailyQuiz?
     var showDailyQuiz = false
     var todayCharUsage = 0
-    var characterLimit = 1000
+    var characterLimit = 2000
+    var screenshotsUsedToday = 0
+    var screenshotLimit = 1
     var currentTier: SubscriptionTier?
     var error: String?
     var rateLimitWarning: String?
@@ -26,6 +28,14 @@ final class GardenerViewModel {
 
     var remainingChars: Int {
         max(0, characterLimit - todayCharUsage)
+    }
+
+    var remainingScreenshots: Int {
+        max(0, screenshotLimit - screenshotsUsedToday)
+    }
+
+    var isAtScreenshotLimit: Bool {
+        remainingScreenshots == 0
     }
 
     func loadChat(userId: String) async {
@@ -57,12 +67,11 @@ final class GardenerViewModel {
             return
         }
 
-        // A vision call is charged a flat rate, not the caption's length.
-        let cost = GardenerService.screenshotCharacterCost
+        // Screenshot reviews have their own daily allowance — they no longer
+        // spend the chat character budget.
         do {
-            let limitCheck = try await rateLimitService.checkGardenerLimit(
+            let limitCheck = try await rateLimitService.checkScreenshotLimit(
                 userId: userId,
-                messageLength: cost,
                 userTier: tier
             )
             if !limitCheck.canSend {
@@ -71,7 +80,7 @@ final class GardenerViewModel {
                 return
             }
         } catch {
-            print("Warning: Rate limit check failed: \(error)")
+            print("Warning: Screenshot limit check failed: \(error)")
             // Continue with send - don't block user due to rate limit check failure
         }
 
@@ -102,7 +111,12 @@ final class GardenerViewModel {
                 createdAt: ISO8601DateFormatter().string(from: Date())
             )
         )
-        todayCharUsage += cost
+        screenshotsUsedToday += 1
+        do {
+            try await rateLimitService.trackScreenshotReview(userId: userId)
+        } catch {
+            print("Warning: Failed to record screenshot review usage: \(error)")
+        }
 
         do {
             let response = try await gardenerService.sendScreenshot(
@@ -234,35 +248,34 @@ final class GardenerViewModel {
         dailyQuiz?.isAnswered = true
     }
 
+    /// Adopts a tier's allowances and reads today's usage back for both budgets.
+    private func applyTierLimits(_ tier: SubscriptionTier, userId: String) async throws {
+        currentTier = tier
+        characterLimit = tier.gardenerCharacterLimit
+        screenshotLimit = tier.gardenerScreenshotsPerDay
+
+        let limitCheck = try await rateLimitService.checkGardenerLimit(
+            userId: userId,
+            messageLength: 0,
+            userTier: tier
+        )
+        todayCharUsage = max(0, limitCheck.characterLimit - limitCheck.remainingCharacters)
+        screenshotsUsedToday = try await rateLimitService.screenshotsUsedToday(userId: userId)
+    }
+
     private func loadTierLimits(userId: String) async {
         do {
             if let sub = try await subscriptionService.getUserSubscription(userId: userId) {
                 let tiers = try await subscriptionService.getSubscriptionTiers()
                 if let tier = tiers.first(where: { $0.id == sub.tierId }) {
-                    currentTier = tier
-                    characterLimit = tier.gardenerCharacterLimit
-
-                    // Get current rate limit status
-                    let limitCheck = try await rateLimitService.checkGardenerLimit(
-                        userId: userId,
-                        messageLength: 0,
-                        userTier: tier
-                    )
-                    todayCharUsage = max(0, limitCheck.characterLimit - limitCheck.remainingCharacters)
+                    try await applyTierLimits(tier, userId: userId)
                     return
                 }
             } else {
                 // No subscription - load seed tier
                 let tiers = try await subscriptionService.getSubscriptionTiers()
                 if let seedTier = tiers.first(where: { $0.name == .seed }) {
-                    currentTier = seedTier
-                    characterLimit = seedTier.gardenerCharacterLimit
-                    let limitCheck = try await rateLimitService.checkGardenerLimit(
-                        userId: userId,
-                        messageLength: 0,
-                        userTier: seedTier
-                    )
-                    todayCharUsage = max(0, limitCheck.characterLimit - limitCheck.remainingCharacters)
+                    try await applyTierLimits(seedTier, userId: userId)
                     return
                 }
             }
@@ -270,26 +283,28 @@ final class GardenerViewModel {
             print("Warning: Failed to load tier limits: \(error)")
         }
 
-        currentTier = SubscriptionTier(
+        // Offline fallback: the free tier's allowances, so the composer stays
+        // usable rather than locking someone out on a failed lookup.
+        let fallback = SubscriptionTier(
             id: "",
             name: .seed,
             displayName: "Seed",
             description: "",
             priceMonthly: 0,
             priceWeekly: 0,
-            matchesPerWeek: 10,
-            maxDistanceMiles: 25,
             gardenerConversationsPerDay: nil,
-            gardenerCharacterLimit: 1000,
-            hasValuesMatching: false,
-            hasBasicFilters: true,
-            hasAdvancedFilters: false,
-            hasFullFilters: false,
-            canSeeLikes: false,
+            gardenerCharacterLimit: 2000,
+            gardenerScreenshotsPerDay: 1,
+            fieldFilterLevel: .none,
+            hasDeepSoilInsights: false,
+            hasGrowthFeatures: false,
             canDisableMindfulMessaging: false,
             sortOrder: 0
         )
-        characterLimit = 1000
+        currentTier = fallback
+        characterLimit = fallback.gardenerCharacterLimit
+        screenshotLimit = fallback.gardenerScreenshotsPerDay
         todayCharUsage = 0
+        screenshotsUsedToday = 0
     }
 }

@@ -5,6 +5,9 @@ import Observation
 final class FiltersViewModel {
     var filters = FilterPreferences()
     var userTier: TierName = .seed
+    /// Comes from the tier row, not from the tier's name — the table decides
+    /// what a plan buys.
+    var filterLevel: FieldFilterLevel = .none
     var isLoading = false
     var error: String?
     var isSaved = false
@@ -12,13 +15,9 @@ final class FiltersViewModel {
     private let filterService = FilterService()
     private let subscriptionService = SubscriptionService()
 
-    var canAccessAdvanced: Bool {
-        userTier == .green || userTier == .gold
-    }
+    var canAccessAdvanced: Bool { filterLevel.unlocksAdvanced }
 
-    var canAccessFull: Bool {
-        userTier == .gold
-    }
+    var canAccessFull: Bool { filterLevel.unlocksFull }
 
     func loadFilters(userId: String) async {
         isLoading = true
@@ -30,6 +29,7 @@ final class FiltersViewModel {
                 let tiers = try await subscriptionService.getSubscriptionTiers()
                 if let tier = tiers.first(where: { $0.id == sub.tierId }) {
                     userTier = tier.name
+                    filterLevel = tier.fieldFilterLevel
                 }
             }
         } catch {

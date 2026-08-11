@@ -90,30 +90,50 @@ extension MockSupabaseClient {
         )
     }
 
+    /// Mirrors the production tier rows (see
+    /// 20260811100000_subscription_tiers_restructure.sql) so tests exercise the
+    /// same allowances users get.
     static func createTestTier(
         name: TierName = .seed,
-        matchesPerWeek: Int? = 10,
-        gardenerConversationsPerDay: Int? = 1,
-        gardenerCharacterLimit: Int = 1000
+        gardenerConversationsPerDay: Int? = nil,
+        gardenerCharacterLimit: Int? = nil,
+        gardenerScreenshotsPerDay: Int? = nil
     ) -> SubscriptionTier {
-        SubscriptionTier(
+        let defaultCharacters: Int
+        let defaultScreenshots: Int
+        let filterLevel: FieldFilterLevel
+
+        switch name {
+        case .seed:
+            defaultCharacters = 2_000
+            defaultScreenshots = 1
+            filterLevel = .none
+        case .green:
+            defaultCharacters = 10_000
+            defaultScreenshots = 5
+            filterLevel = .advanced
+        case .gold:
+            defaultCharacters = 25_000
+            defaultScreenshots = 20
+            filterLevel = .full
+        }
+
+        return SubscriptionTier(
             id: "test-tier-\(name.rawValue)",
             name: name,
             displayName: name.rawValue.capitalized,
             description: "Test \(name.rawValue) tier",
-            priceMonthly: name == .seed ? 0 : 9.99,
-            priceWeekly: name == .seed ? 0 : 2.99,
-            matchesPerWeek: matchesPerWeek,
-            maxDistanceMiles: 25,
+            priceMonthly: name == .seed ? 0 : (name == .green ? 19.99 : 24.99),
+            priceWeekly: name == .seed ? 0 : 6.99,
             gardenerConversationsPerDay: gardenerConversationsPerDay,
-            gardenerCharacterLimit: gardenerCharacterLimit,
-            hasValuesMatching: name != .seed,
-            hasBasicFilters: true,
-            hasAdvancedFilters: name == .gold,
-            hasFullFilters: name == .gold,
-            canSeeLikes: name == .gold,
+            gardenerCharacterLimit: gardenerCharacterLimit ?? defaultCharacters,
+            gardenerScreenshotsPerDay: gardenerScreenshotsPerDay ?? defaultScreenshots,
+            fieldFilterLevel: filterLevel,
+            hasDeepSoilInsights: name != .seed,
+            hasGrowthFeatures: name == .gold,
             canDisableMindfulMessaging: name == .gold,
-            sortOrder: 0
+            sortOrder: 0,
+            dailySeedLimit: name == .seed ? 3 : (name == .green ? 5 : 25)
         )
     }
 }

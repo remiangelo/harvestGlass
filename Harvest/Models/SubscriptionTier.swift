@@ -27,6 +27,28 @@ enum TierName: String, Codable, Sendable {
     }
 }
 
+/// How much of the member-roster and profile filtering a tier unlocks.
+///
+/// The roster and the profile filters used to branch on `TierName`, which meant
+/// the tier table and the code could disagree about what a plan bought. The
+/// table is the source of truth now.
+enum FieldFilterLevel: String, Codable, Sendable {
+    case none
+    case advanced
+    case full
+
+    /// Unknown values decode as `.none` rather than throwing: a filter that
+    /// silently stays locked is a better failure than a tier that won't load.
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let rawValue = try container.decode(String.self).lowercased()
+        self = FieldFilterLevel(rawValue: rawValue) ?? .none
+    }
+
+    var unlocksAdvanced: Bool { self != .none }
+    var unlocksFull: Bool { self == .full }
+}
+
 struct SubscriptionTier: Codable, Identifiable, Sendable {
     let id: String
     let name: TierName
@@ -34,15 +56,14 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
     let description: String
     let priceMonthly: Double
     let priceWeekly: Double
-    let matchesPerWeek: Int?
-    let maxDistanceMiles: Int?
     let gardenerConversationsPerDay: Int?
     let gardenerCharacterLimit: Int
-    let hasValuesMatching: Bool
-    let hasBasicFilters: Bool
-    let hasAdvancedFilters: Bool
-    let hasFullFilters: Bool
-    let canSeeLikes: Bool
+    /// Screenshot reviews per day. Separate from the character budget — a
+    /// review no longer eats the day's chat allowance.
+    let gardenerScreenshotsPerDay: Int
+    let fieldFilterLevel: FieldFilterLevel
+    let hasDeepSoilInsights: Bool
+    let hasGrowthFeatures: Bool
     let canDisableMindfulMessaging: Bool
     let sortOrder: Int
     let dailySeedLimit: Int
@@ -56,21 +77,22 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         }
     }
 
+    /// Any paid plan. Used by the legacy "Likes You" list, which the swipe-era
+    /// `can_see_likes` column used to gate.
+    var isPaid: Bool { priceMonthly > 0 }
+
     enum CodingKeys: String, CodingKey {
         case id, name, description
         case displayName = "display_name"
         case priceMonthly = "price_monthly"
         case priceWeekly = "price_weekly"
         case legacyPriceYearly = "price_yearly"
-        case matchesPerWeek = "matches_per_week"
-        case maxDistanceMiles = "max_distance_miles"
         case gardenerConversationsPerDay = "gardener_conversations_per_day"
         case gardenerCharacterLimit = "gardener_character_limit"
-        case hasValuesMatching = "has_values_matching"
-        case hasBasicFilters = "has_basic_filters"
-        case hasAdvancedFilters = "has_advanced_filters"
-        case hasFullFilters = "has_full_filters"
-        case canSeeLikes = "can_see_likes"
+        case gardenerScreenshotsPerDay = "gardener_screenshots_per_day"
+        case fieldFilterLevel = "field_filter_level"
+        case hasDeepSoilInsights = "has_deep_soil_insights"
+        case hasGrowthFeatures = "has_growth_features"
         case canDisableMindfulMessaging = "can_disable_mindful_messaging"
         case sortOrder = "sort_order"
         case dailySeedLimit = "daily_seed_limit"
@@ -83,15 +105,12 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         description: String,
         priceMonthly: Double,
         priceWeekly: Double,
-        matchesPerWeek: Int?,
-        maxDistanceMiles: Int?,
         gardenerConversationsPerDay: Int?,
         gardenerCharacterLimit: Int,
-        hasValuesMatching: Bool,
-        hasBasicFilters: Bool,
-        hasAdvancedFilters: Bool,
-        hasFullFilters: Bool,
-        canSeeLikes: Bool,
+        gardenerScreenshotsPerDay: Int = 1,
+        fieldFilterLevel: FieldFilterLevel = .none,
+        hasDeepSoilInsights: Bool = false,
+        hasGrowthFeatures: Bool = false,
         canDisableMindfulMessaging: Bool,
         sortOrder: Int,
         dailySeedLimit: Int = 3
@@ -102,15 +121,12 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         self.description = description
         self.priceMonthly = priceMonthly
         self.priceWeekly = priceWeekly
-        self.matchesPerWeek = matchesPerWeek
-        self.maxDistanceMiles = maxDistanceMiles
         self.gardenerConversationsPerDay = gardenerConversationsPerDay
         self.gardenerCharacterLimit = gardenerCharacterLimit
-        self.hasValuesMatching = hasValuesMatching
-        self.hasBasicFilters = hasBasicFilters
-        self.hasAdvancedFilters = hasAdvancedFilters
-        self.hasFullFilters = hasFullFilters
-        self.canSeeLikes = canSeeLikes
+        self.gardenerScreenshotsPerDay = gardenerScreenshotsPerDay
+        self.fieldFilterLevel = fieldFilterLevel
+        self.hasDeepSoilInsights = hasDeepSoilInsights
+        self.hasGrowthFeatures = hasGrowthFeatures
         self.canDisableMindfulMessaging = canDisableMindfulMessaging
         self.sortOrder = sortOrder
         self.dailySeedLimit = dailySeedLimit
@@ -127,15 +143,12 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         priceWeekly = try container.decodeIfPresent(Double.self, forKey: .priceWeekly)
             ?? container.decodeIfPresent(Double.self, forKey: .legacyPriceYearly)
             ?? 0
-        matchesPerWeek = try container.decodeIfPresent(Int.self, forKey: .matchesPerWeek)
-        maxDistanceMiles = try container.decodeIfPresent(Int.self, forKey: .maxDistanceMiles)
         gardenerConversationsPerDay = try container.decodeIfPresent(Int.self, forKey: .gardenerConversationsPerDay)
         gardenerCharacterLimit = try container.decode(Int.self, forKey: .gardenerCharacterLimit)
-        hasValuesMatching = try container.decode(Bool.self, forKey: .hasValuesMatching)
-        hasBasicFilters = try container.decode(Bool.self, forKey: .hasBasicFilters)
-        hasAdvancedFilters = try container.decode(Bool.self, forKey: .hasAdvancedFilters)
-        hasFullFilters = try container.decode(Bool.self, forKey: .hasFullFilters)
-        canSeeLikes = try container.decode(Bool.self, forKey: .canSeeLikes)
+        gardenerScreenshotsPerDay = try container.decodeIfPresent(Int.self, forKey: .gardenerScreenshotsPerDay) ?? 1
+        fieldFilterLevel = try container.decodeIfPresent(FieldFilterLevel.self, forKey: .fieldFilterLevel) ?? .none
+        hasDeepSoilInsights = try container.decodeIfPresent(Bool.self, forKey: .hasDeepSoilInsights) ?? false
+        hasGrowthFeatures = try container.decodeIfPresent(Bool.self, forKey: .hasGrowthFeatures) ?? false
         canDisableMindfulMessaging = try container.decode(Bool.self, forKey: .canDisableMindfulMessaging)
         sortOrder = try container.decode(Int.self, forKey: .sortOrder)
         dailySeedLimit = try container.decodeIfPresent(Int.self, forKey: .dailySeedLimit) ?? 3
@@ -150,15 +163,12 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         try container.encode(description, forKey: .description)
         try container.encode(priceMonthly, forKey: .priceMonthly)
         try container.encode(priceWeekly, forKey: .priceWeekly)
-        try container.encodeIfPresent(matchesPerWeek, forKey: .matchesPerWeek)
-        try container.encodeIfPresent(maxDistanceMiles, forKey: .maxDistanceMiles)
         try container.encodeIfPresent(gardenerConversationsPerDay, forKey: .gardenerConversationsPerDay)
         try container.encode(gardenerCharacterLimit, forKey: .gardenerCharacterLimit)
-        try container.encode(hasValuesMatching, forKey: .hasValuesMatching)
-        try container.encode(hasBasicFilters, forKey: .hasBasicFilters)
-        try container.encode(hasAdvancedFilters, forKey: .hasAdvancedFilters)
-        try container.encode(hasFullFilters, forKey: .hasFullFilters)
-        try container.encode(canSeeLikes, forKey: .canSeeLikes)
+        try container.encode(gardenerScreenshotsPerDay, forKey: .gardenerScreenshotsPerDay)
+        try container.encode(fieldFilterLevel, forKey: .fieldFilterLevel)
+        try container.encode(hasDeepSoilInsights, forKey: .hasDeepSoilInsights)
+        try container.encode(hasGrowthFeatures, forKey: .hasGrowthFeatures)
         try container.encode(canDisableMindfulMessaging, forKey: .canDisableMindfulMessaging)
         try container.encode(sortOrder, forKey: .sortOrder)
         try container.encode(dailySeedLimit, forKey: .dailySeedLimit)

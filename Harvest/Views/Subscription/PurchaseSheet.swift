@@ -67,13 +67,22 @@ struct PurchaseSheet: View {
                             VStack(alignment: .leading, spacing: HarvestTheme.Spacing.sm) {
                                 featureRow("Seeds per day", value: "\(tier.dailySeedLimit)")
                                 featureRow("Receive Seeds", value: "Unlimited")
-                                featureRow("Gardener chats/day", value: tier.gardenerConversationsPerDay.map { "\($0)" } ?? "Unlimited")
+                                featureRow("Gardener chat", value: "\(tier.gardenerCharacterLimit.formatted()) characters/day")
+                                featureRow("Screenshot reviews", value: "\(tier.gardenerScreenshotsPerDay)/day")
 
-                                if tier.name != .seed {
+                                switch tier.fieldFilterLevel {
+                                case .none:
+                                    EmptyView()
+                                case .advanced:
+                                    featureCheck("Advanced room member filters")
+                                case .full:
+                                    featureCheck("Every room member filter")
+                                }
+                                if tier.hasDeepSoilInsights {
                                     featureCheck("Deeper Soil & value insights")
                                     featureCheck("Advanced compatibility insights")
                                 }
-                                if tier.name == .gold {
+                                if tier.hasGrowthFeatures {
                                     featureCheck("Premium relationship growth features")
                                 }
                             }

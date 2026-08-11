@@ -18,7 +18,7 @@ struct EventsComingSoonBanner: View {
                 .font(HarvestTheme.Typography.h3)
                 .foregroundStyle(HarvestTheme.Colors.textPrimary)
 
-            Text("Online and in person. Gather with gardeners near you — and everywhere.")
+            Text("Online and in person. Gather with members near you — and everywhere.")
                 .font(HarvestTheme.Typography.bodySmall)
                 .foregroundStyle(HarvestTheme.Colors.textSecondary)
                 .fixedSize(horizontal: false, vertical: true)

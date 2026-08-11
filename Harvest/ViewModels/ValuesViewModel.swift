@@ -25,10 +25,15 @@ final class ValuesViewModel {
     var toggleError: String?
     var saveError: String?
 
+    /// Gold's "premium growth features" — the Tips library is what that buys
+    /// today. Defaults to locked so a failed tier lookup can't hand it out.
+    var hasGrowthFeatures = false
+
     private let valuesService = ValuesService()
     private let questionsService = QuestionsService()
     private let profileService = ProfileService()
     private let blurbService = BlurbService()
+    private let subscriptionService = SubscriptionService()
 
     // MARK: - Derived state
 
@@ -76,6 +81,7 @@ final class ValuesViewModel {
             allValues = (try? await allValuesTask) ?? []
             allQuestions = (try? await allQuestionsTask) ?? []
             answers = (try? await answersTask) ?? [:]
+            hasGrowthFeatures = await subscriptionService.currentTier(userId: userId)?.hasGrowthFeatures ?? false
             loadError = nil
         } catch {
             loadError = error.localizedDescription
