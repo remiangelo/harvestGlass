@@ -41,6 +41,8 @@ struct LocationBackfillService {
     static func geocode(_ query: String) async -> CLLocationCoordinate2D? {
         guard let request = MKGeocodingRequest(addressString: query) else { return nil }
         guard let items = try? await request.mapItems, let first = items.first else { return nil }
-        return first.location?.coordinate
+        // MKMapItem.location is non-optional on iOS 26 — the old placemark-era
+        // optional chaining doesn't compile.
+        return first.location.coordinate
     }
 }

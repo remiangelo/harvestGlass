@@ -128,8 +128,11 @@ struct RateLimitService {
                 "matches_count": AnyJSON.double(0),
                 "gardener_conversations_today": AnyJSON.double(0),
                 "gardener_last_reset_date": AnyJSON.string(Self.dateFormatter.string(from: Date())),
+                // gardener_screenshots_today is deliberately not written here:
+                // it arrives with migration 20260811100000 and defaults to 0.
+                // Naming it before that migration lands fails the whole insert,
+                // which would silently drop every user to free-tier limits.
                 "gardener_characters_used_today": AnyJSON.double(0),
-                "gardener_screenshots_today": AnyJSON.double(0),
                 "updated_at": AnyJSON.string(Self.timestampFormatter.string(from: Date()))
             ])
             .select()
