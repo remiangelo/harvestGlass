@@ -1,6 +1,7 @@
 package com.harvestglass.harvest.di
 
 import com.harvestglass.harvest.data.SupabaseManager
+import com.harvestglass.harvest.data.service.AuthService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -20,4 +21,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideClient(): SupabaseClient = SupabaseManager.client
+
+    @Provides
+    @Singleton
+    fun provideAuthService(client: SupabaseClient) = AuthService(client)
 }
