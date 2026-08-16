@@ -31,6 +31,7 @@ import com.harvestglass.harvest.data.model.Community
 import com.harvestglass.harvest.ui.auth.AuthUiState
 import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
+import com.harvestglass.harvest.ui.field.CommunityChatScreen
 import com.harvestglass.harvest.ui.field.FieldScreen
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
@@ -63,6 +64,16 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
     // iOS lands on The Field (selection = 1).
     var selected by remember { mutableStateOf(HarvestTab.FIELD) }
     var openRoom by remember { mutableStateOf<Community?>(null) }
+
+    val room = openRoom
+    if (room != null) {
+        CommunityChatScreen(
+            community = room,
+            userId = state.currentUserId.orEmpty(),
+            onBack = { openRoom = null }
+        )
+        return
+    }
 
     Scaffold(
         containerColor = HarvestTheme.Colors.background,
