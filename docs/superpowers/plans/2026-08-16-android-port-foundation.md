@@ -385,7 +385,7 @@ Expected: `BUILD SUCCESSFUL`. If a supabase-kt or KSP coordinate fails to resolv
 - [ ] **Step 8: Install and run on the emulator**
 
 ```bash
-"$LOCALAPPDATA/Android/Sdk/emulator/emulator" -avd Medium_Phone -no-snapshot-load &
+"$LOCALAPPDATA/Android/Sdk/emulator/emulator" -avd Medium_Phone_API_36.0 -no-snapshot-load &
 "$LOCALAPPDATA/Android/Sdk/platform-tools/adb" wait-for-device
 ./gradlew :app:installDebug
 "$LOCALAPPDATA/Android/Sdk/platform-tools/adb" shell am start -n com.harvestglass.harvest/.MainActivity

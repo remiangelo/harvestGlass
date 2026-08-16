@@ -147,7 +147,7 @@ cases are ported as the Kotlin equivalents rather than rewritten from scratch.
 
 Verified present on the development machine: Android SDK platform 35,
 build-tools 35.0.0/35.0.1/36.0.0, an API 36 Google Play emulator image, and an
-existing `Medium_Phone` AVD. JDK 21 is on `PATH`.
+existing `Medium_Phone_API_36.0` AVD. JDK 21 is on `PATH`.
 
 `JAVA_HOME` points at `jdk-11.0.2`, below AGP 8.x's minimum of 17. This is
 pinned via `org.gradle.java.home` in `gradle.properties` rather than by changing
