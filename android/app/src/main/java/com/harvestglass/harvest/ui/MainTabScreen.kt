@@ -27,9 +27,11 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
+import com.harvestglass.harvest.data.model.Community
 import com.harvestglass.harvest.ui.auth.AuthUiState
 import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
+import com.harvestglass.harvest.ui.field.FieldScreen
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
@@ -60,6 +62,7 @@ fun deepLinkTab(link: String): HarvestTab? = when {
 fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
     // iOS lands on The Field (selection = 1).
     var selected by remember { mutableStateOf(HarvestTab.FIELD) }
+    var openRoom by remember { mutableStateOf<Community?>(null) }
 
     Scaffold(
         containerColor = HarvestTheme.Colors.background,
@@ -85,7 +88,10 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
     ) { padding ->
         Box(Modifier.fillMaxSize().padding(padding)) {
             when (selected) {
-                // FIELD is wired to the real screen in Task 11.
+                HarvestTab.FIELD -> FieldScreen(
+                    userId = state.currentUserId.orEmpty(),
+                    onOpenRoom = { openRoom = it }
+                )
                 HarvestTab.PROFILE -> ComingLaterScreen(tab = selected, onSignOut = onSignOut)
                 else -> ComingLaterScreen(tab = selected, onSignOut = null)
             }
