@@ -1,0 +1,8 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- statusBarColor is HarvestTheme.Colors.wineBlack, matching the iOS nav bar. -->
+    <style name="Theme.Harvest" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:statusBarColor">#E6C6B6</item>
+        <item name="android:windowLightStatusBar">true</item>
+    </style>
+</resources>
