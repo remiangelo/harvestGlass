@@ -3,6 +3,7 @@ package com.harvestglass.harvest.di
 import com.harvestglass.harvest.data.SupabaseManager
 import com.harvestglass.harvest.data.service.AuthService
 import com.harvestglass.harvest.data.service.CommunityService
+import com.harvestglass.harvest.data.service.ProfileService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -30,4 +31,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideCommunityService(client: SupabaseClient) = CommunityService(client)
+
+    @Provides
+    @Singleton
+    fun provideProfileService(client: SupabaseClient) = ProfileService(client)
 }
