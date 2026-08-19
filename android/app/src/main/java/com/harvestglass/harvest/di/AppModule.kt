@@ -1,14 +1,17 @@
 package com.harvestglass.harvest.di
 
+import android.content.Context
 import com.harvestglass.harvest.data.SupabaseManager
 import com.harvestglass.harvest.data.service.AuthService
 import com.harvestglass.harvest.data.service.CommunityService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.QuestionsService
 import com.harvestglass.harvest.data.service.ValuesService
+import com.harvestglass.harvest.util.Geocoding
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
+import dagger.hilt.android.qualifiers.ApplicationContext
 import dagger.hilt.components.SingletonComponent
 import io.github.jan.supabase.SupabaseClient
 import javax.inject.Singleton
@@ -45,4 +48,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideQuestionsService(client: SupabaseClient) = QuestionsService(client)
+
+    @Provides
+    @Singleton
+    fun provideGeocoding(@ApplicationContext context: Context) = Geocoding(context)
 }
