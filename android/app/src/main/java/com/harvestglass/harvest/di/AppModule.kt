@@ -4,7 +4,10 @@ import android.content.Context
 import com.harvestglass.harvest.data.SupabaseManager
 import com.harvestglass.harvest.data.service.AuthService
 import com.harvestglass.harvest.data.service.CommunityService
+import com.harvestglass.harvest.data.service.ChatService
+import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.ProfileService
+import com.harvestglass.harvest.data.service.SeedService
 import com.harvestglass.harvest.data.service.QuestionsService
 import com.harvestglass.harvest.data.service.ValuesService
 import com.harvestglass.harvest.util.Geocoding
@@ -52,4 +55,17 @@ object AppModule {
     @Provides
     @Singleton
     fun provideGeocoding(@ApplicationContext context: Context) = Geocoding(context)
+
+    @Provides
+    @Singleton
+    fun provideSeedService(client: SupabaseClient) = SeedService(client)
+
+    @Provides
+    @Singleton
+    fun provideChatService(client: SupabaseClient) = ChatService(client)
+
+    @Provides
+    @Singleton
+    fun provideMatchService(client: SupabaseClient, profileService: ProfileService) =
+        MatchService(client, profileService)
 }
