@@ -38,18 +38,29 @@ class ValuesServiceTest {
     }
 
     @Test
-    fun `the fallback question bank covers the ten onboarding questions`() {
+    fun `the fallback bank covers the full pool in display order`() {
         val bank = QuestionsService.DEFAULT_QUESTIONS
-        assertEquals(10, bank.size)
-        assertEquals((1..10).toList(), bank.map { it.displayOrder })
+        assertEquals(35, bank.size)
+        assertEquals((1..35).toList(), bank.map { it.displayOrder })
         assertEquals("q1", bank.first().id)
     }
 
     @Test
-    fun `onboarding questions split five need and five bring`() {
-        val bank = QuestionsService.DEFAULT_QUESTIONS
-        assertEquals(5, bank.count { it.weighting == QuestionWeighting.NEED })
-        assertEquals(5, bank.count { it.weighting == QuestionWeighting.BRING })
+    fun `the ten onboarding questions split five need and five bring`() {
+        val onboarding = QuestionsService.DEFAULT_QUESTIONS.filter { it.displayOrder <= 10 }
+        assertEquals(10, onboarding.size)
+        assertEquals(5, onboarding.count { it.weighting == QuestionWeighting.NEED })
+        assertEquals(5, onboarding.count { it.weighting == QuestionWeighting.BRING })
+    }
+
+    @Test
+    fun `the deep dive is twelve need, twelve bring and one both`() {
+        // Asserted by the Swift source's own comment: Q11-Q35 = 12 NEED, 12 BRING, 1 BOTH.
+        val deepDive = QuestionsService.DEFAULT_QUESTIONS.filter { it.displayOrder > 10 }
+        assertEquals(25, deepDive.size)
+        assertEquals(12, deepDive.count { it.weighting == QuestionWeighting.NEED })
+        assertEquals(12, deepDive.count { it.weighting == QuestionWeighting.BRING })
+        assertEquals(1, deepDive.count { it.weighting == QuestionWeighting.BOTH })
     }
 
     @Test

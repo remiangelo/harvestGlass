@@ -90,12 +90,9 @@ class QuestionsService(private val client: SupabaseClient) {
         )
 
         /**
-         * Built-in fallback bank.
-         *
-         * Onboarding presents only Q1–Q10, so only those are ported here. The
-         * deep-dive pool (Q11–Q35) is reached from the Values tab and lands
-         * with that screen in P2b — porting it now would be data no P2a code
-         * path can reach.
+         * Built-in fallback bank, used when the `questions` table is empty or
+         * unreachable. Q1–Q10 are what onboarding presents; Q11–Q35 are the
+         * deep-dive pool reached from the Values tab.
          */
         val DEFAULT_QUESTIONS: List<Question> = listOf(
             // Onboarding (Q1-Q10): 5 NEED, 5 BRING
@@ -207,6 +204,283 @@ class QuestionsService(private val client: SupabaseClient) {
                     Triple("b", "A space where honesty feels safe.", ValueAxis.INTEGRITY),
                     Triple("c", "Warmth, closeness, or playfulness.", ValueAxis.CONNECTION),
                     Triple("d", "Meaningful conversation about dreams, purpose, or direction.", ValueAxis.GROWTH)
+                )
+            ),
+
+            // Deep-dive (Q11-Q35): 12 NEED, 12 BRING, 1 BOTH
+            makeQuestion(
+                id = "q11",
+                prompt = "Someone shares something vulnerable with you. What do you naturally try to offer?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I try to understand what they are feeling.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I stay steady and present with them.", ValueAxis.STABILITY),
+                    Triple("c", "I treat their honesty with respect.", ValueAxis.INTEGRITY),
+                    Triple("d", "I move closer emotionally so they do not feel alone.", ValueAxis.CONNECTION)
+                )
+            ),
+            makeQuestion(
+                id = "q12",
+                prompt = "Plans change at the last minute. What matters most to you?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They care how the change affects me.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "They communicate early and follow through later.", ValueAxis.STABILITY),
+                    Triple("c", "They handle the change with respect.", ValueAxis.INTEGRITY),
+                    Triple("d", "They try to handle it better next time.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q13",
+                prompt = "You feel misunderstood. What helps most?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They ask questions before assuming.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "They keep the conversation calm.", ValueAxis.STABILITY),
+                    Triple("c", "They speak plainly and fairly.", ValueAxis.INTEGRITY),
+                    Triple("d", "They reassure me through closeness.", ValueAxis.CONNECTION)
+                )
+            ),
+            makeQuestion(
+                id = "q14",
+                prompt = "When you make a mistake, what do you naturally try to do afterward?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I try to understand the impact.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I try to show steadier behavior over time.", ValueAxis.STABILITY),
+                    Triple("c", "I own my part clearly.", ValueAxis.INTEGRITY),
+                    Triple("d", "I reflect on what I can learn from it.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q15",
+                prompt = "When you imagine building a life with someone, what do you most need to feel secure?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They are dependable in daily life.", ValueAxis.STABILITY),
+                    Triple("b", "They live by strong character.", ValueAxis.INTEGRITY),
+                    Triple("c", "They keep closeness active.", ValueAxis.CONNECTION),
+                    Triple("d", "They move toward purpose with me.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q16",
+                prompt = "Someone you love is nervous before something important. What feels most natural for you to offer?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I notice what they are feeling and try to comfort them.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I help them face the moment honestly.", ValueAxis.INTEGRITY),
+                    Triple("c", "I stay close and present.", ValueAxis.CONNECTION),
+                    Triple("d", "I remind them what they are capable of.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q17",
+                prompt = "What makes you feel respected?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They consider my feelings.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "They treat my time with care.", ValueAxis.STABILITY),
+                    Triple("c", "They honor my boundaries.", ValueAxis.INTEGRITY),
+                    Triple("d", "They take my goals seriously.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q18",
+                prompt = "When life gets stressful, what do you hope someone can count on you for?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I try to be emotionally aware and caring.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I try to stay steady under pressure.", ValueAxis.STABILITY),
+                    Triple("c", "I try to act with character even when it is hard.", ValueAxis.INTEGRITY),
+                    Triple("d", "I try to keep warmth alive between us.", ValueAxis.CONNECTION)
+                )
+            ),
+            makeQuestion(
+                id = "q19",
+                prompt = "You are excited about a personal goal. What response would mean the most?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They understand why it matters to me.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "They help me stay grounded.", ValueAxis.STABILITY),
+                    Triple("c", "They celebrate with me.", ValueAxis.CONNECTION),
+                    Triple("d", "They encourage me toward my potential.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q20",
+                prompt = "When attraction starts feeling more serious, what do you most want to bring into the connection?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I want to be emotionally present and aware.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I want my actions to reflect my character.", ValueAxis.INTEGRITY),
+                    Triple("c", "I want the spark to feel mutual and alive.", ValueAxis.CONNECTION),
+                    Triple("d", "I want to build toward something meaningful.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q21",
+                prompt = "A conversation gets tense. What do you need most from the other person?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They listen beneath the words.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "They keep the tone steady.", ValueAxis.STABILITY),
+                    Triple("c", "They stay fair and truthful.", ValueAxis.INTEGRITY),
+                    Triple("d", "They reach for closeness after.", ValueAxis.CONNECTION)
+                )
+            ),
+            makeQuestion(
+                id = "q22",
+                prompt = "What do you most naturally do to help someone feel chosen?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I remember what matters to them.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I try to show up consistently over time.", ValueAxis.STABILITY),
+                    Triple("c", "I make real time for them.", ValueAxis.CONNECTION),
+                    Triple("d", "I build toward the future with them.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q23",
+                prompt = "You share a concern. What response builds the most confidence?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "They receive it with care.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "They answer honestly.", ValueAxis.INTEGRITY),
+                    Triple("c", "They soften toward me.", ValueAxis.CONNECTION),
+                    Triple("d", "They look for a better way forward.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q24",
+                prompt = "What do you most want to be dependable for in a relationship?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "Doing what I said I would do.", ValueAxis.STABILITY),
+                    Triple("b", "Handling responsibility with character.", ValueAxis.INTEGRITY),
+                    Triple("c", "Continuing to invest in closeness.", ValueAxis.CONNECTION),
+                    Triple("d", "Learning how to show up better over time.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q25",
+                prompt = "You are spending a quiet evening together. What feels most meaningful to you?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "The conversation feels emotionally real.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "The peace feels easy and steady.", ValueAxis.STABILITY),
+                    Triple("c", "I feel safe being truthful.", ValueAxis.INTEGRITY),
+                    Triple("d", "The closeness feels warm and natural.", ValueAxis.CONNECTION)
+                )
+            ),
+            makeQuestion(
+                id = "q26",
+                prompt = "When you are under pressure, what do you hope your character shows?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I still care about people's feelings.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I can remain steady.", ValueAxis.STABILITY),
+                    Triple("c", "My values hold even when it is hard.", ValueAxis.INTEGRITY),
+                    Triple("d", "I can respond, reflect, and grow.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q27",
+                prompt = "What kind of apology means the most to you?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "One that shows they understand my heart.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "One that takes full ownership.", ValueAxis.INTEGRITY),
+                    Triple("c", "One that brings us close again.", ValueAxis.CONNECTION),
+                    Triple("d", "One that leads to new growth.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q28",
+                prompt = "What do you most want to offer so someone feels free to be themselves?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I try to understand their emotions.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I treat their truth with respect.", ValueAxis.INTEGRITY),
+                    Triple("c", "I enjoy their personality.", ValueAxis.CONNECTION),
+                    Triple("d", "I give them room to become more fully themselves.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q29",
+                prompt = "What makes love feel alive to you?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "Feeling safe in the rhythm.", ValueAxis.STABILITY),
+                    Triple("b", "Feeling secure in trust.", ValueAxis.INTEGRITY),
+                    Triple("c", "Feeling wanted, playful, and close.", ValueAxis.CONNECTION),
+                    Triple("d", "Feeling inspired together.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q30",
+                prompt = "When you disagree about something important, what do you naturally try to bring?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I try to care about their perspective.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I try to handle the disagreement with respect.", ValueAxis.INTEGRITY),
+                    Triple("c", "I try to protect the bond while talking.", ValueAxis.CONNECTION),
+                    Triple("d", "I try to search for a wiser path forward.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q31",
+                prompt = "What makes someone feel like a safe long-term choice?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "Their emotional care feels real.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "Their patterns are dependable.", ValueAxis.STABILITY),
+                    Triple("c", "Their character is clear.", ValueAxis.INTEGRITY),
+                    Triple("d", "Their love feels warm and active.", ValueAxis.CONNECTION)
+                )
+            ),
+            makeQuestion(
+                id = "q32",
+                prompt = "Shared spiritual or philosophical values feel meaningful when they shape what?",
+                weighting = QuestionWeighting.BOTH,
+                options = listOf(
+                    Triple("a", "The way we make life decisions.", ValueAxis.STABILITY),
+                    Triple("b", "The way we treat people.", ValueAxis.INTEGRITY),
+                    Triple("c", "The depth of closeness between us.", ValueAxis.CONNECTION),
+                    Triple("d", "The meaning we build together.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q33",
+                prompt = "What makes you feel supportive in a relationship?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "I can sense what someone may need emotionally.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "I protect their dignity.", ValueAxis.INTEGRITY),
+                    Triple("c", "I make them feel loved in real time.", ValueAxis.CONNECTION),
+                    Triple("d", "I believe in where they are going.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q34",
+                prompt = "What do you hope someone notices about what you bring?",
+                weighting = QuestionWeighting.BRING,
+                options = listOf(
+                    Triple("a", "How deeply I care.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "How steady I try to be.", ValueAxis.STABILITY),
+                    Triple("c", "How seriously I take trust.", ValueAxis.INTEGRITY),
+                    Triple("d", "How much I am growing.", ValueAxis.GROWTH)
+                )
+            ),
+            makeQuestion(
+                id = "q35",
+                prompt = "When you imagine healthy love, what feels most like home?",
+                weighting = QuestionWeighting.NEED,
+                options = listOf(
+                    Triple("a", "Being understood with care.", ValueAxis.EMOTIONAL_INTELLIGENCE),
+                    Triple("b", "Feeling steady and safe.", ValueAxis.STABILITY),
+                    Triple("c", "Feeling close, wanted, and joyful.", ValueAxis.CONNECTION),
+                    Triple("d", "Growing into something meaningful together.", ValueAxis.GROWTH)
                 )
             )
         )

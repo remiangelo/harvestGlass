@@ -18,5 +18,14 @@ data class UserProfile(
     val gender: String? = null,
     val photos: List<String>? = null,
     @SerialName("onboarding_completed") val onboardingCompleted: Boolean? = null,
-    @SerialName("is_banned") val isBanned: Boolean? = null
+    @SerialName("is_banned") val isBanned: Boolean? = null,
+
+    // Values / Soil tab display settings.
+    @SerialName("values_blurb") val valuesBlurb: String? = null,
+    @SerialName("show_values_brought") val showValuesBrought: Boolean? = null,
+    @SerialName("show_values_sought") val showValuesSought: Boolean? = null,
+    @SerialName("show_values_blurb") val showValuesBlurb: Boolean? = null,
+    @SerialName("show_values_graph") val showValuesGraph: Boolean? = null,
+    /** "need" | "bring" — which side the profile radar shows. */
+    @SerialName("profile_graph_side") val profileGraphSide: String? = null
 )
