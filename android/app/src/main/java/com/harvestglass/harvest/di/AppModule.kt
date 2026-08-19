@@ -4,6 +4,8 @@ import com.harvestglass.harvest.data.SupabaseManager
 import com.harvestglass.harvest.data.service.AuthService
 import com.harvestglass.harvest.data.service.CommunityService
 import com.harvestglass.harvest.data.service.ProfileService
+import com.harvestglass.harvest.data.service.QuestionsService
+import com.harvestglass.harvest.data.service.ValuesService
 import dagger.Module
 import dagger.Provides
 import dagger.hilt.InstallIn
@@ -35,4 +37,12 @@ object AppModule {
     @Provides
     @Singleton
     fun provideProfileService(client: SupabaseClient) = ProfileService(client)
+
+    @Provides
+    @Singleton
+    fun provideValuesService(client: SupabaseClient) = ValuesService(client)
+
+    @Provides
+    @Singleton
+    fun provideQuestionsService(client: SupabaseClient) = QuestionsService(client)
 }
