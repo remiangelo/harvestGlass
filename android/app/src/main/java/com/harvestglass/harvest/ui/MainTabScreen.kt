@@ -33,6 +33,7 @@ import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.field.CommunityChatScreen
 import com.harvestglass.harvest.ui.field.FieldScreen
+import com.harvestglass.harvest.ui.values.ValuesScreen
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
@@ -103,6 +104,7 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
                     userId = state.currentUserId.orEmpty(),
                     onOpenRoom = { openRoom = it }
                 )
+                HarvestTab.SOIL -> ValuesScreen(userId = state.currentUserId.orEmpty())
                 HarvestTab.PROFILE -> ComingLaterScreen(tab = selected, onSignOut = onSignOut)
                 else -> ComingLaterScreen(tab = selected, onSignOut = null)
             }
