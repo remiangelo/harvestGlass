@@ -43,9 +43,12 @@ each Swift file has an obvious counterpart and future features port by analogy.
 | `Utilities/*.swift` | `util/*.kt` |
 | `supabase-swift` | `supabase-kt` (postgrest, auth, realtime, storage) |
 
-- **Shell:** single `MainActivity`, Navigation Compose, bottom bar mirroring
-  `MainTabView` — Soil, The Field, Gardener, Seeds, Profile, defaulting to The
-  Field (index 1) exactly as iOS does.
+- **Shell:** single `MainActivity`, bottom bar mirroring `MainTabView` — Soil,
+  The Field, Gardener, Seeds, Profile, defaulting to The Field (index 1)
+  exactly as iOS does. Tab selection is plain hoisted state; iOS `TabView`
+  keeps no back stack across tabs either, so a nav graph would buy nothing
+  here. Navigation Compose is reserved for the multi-step flows that do need
+  a back stack (onboarding, the values questionnaire) and enters with them.
 - **DI:** Hilt. 22 services sharing one client makes manual wiring unwieldy.
 - **Images:** Coil, against Supabase Storage URLs (`profile-photos` bucket).
 - **Root gating:** the `isLoading → LaunchScreen`, `needsOnboarding → Onboarding`,
@@ -62,10 +65,13 @@ identical token names and identical values, including the historical `wine*`
 naming (which means "surface, deepest to most lifted" and denotes light tints,
 not darks) and the comment explaining why.
 
-Tokens are exposed through a `CompositionLocal`, **not** Material3's
+Tokens live on a plain `object HarvestTheme`, **not** Material3's
 `ColorScheme`, so names survive verbatim instead of being force-fit into
-`primary`/`onPrimary`/`surfaceVariant`. Material3 is substrate only; its default
-styling is overridden.
+`primary`/`onPrimary`/`surfaceVariant`. A `CompositionLocal` would add an
+indirection that buys nothing: the palette is compile-time constant and never
+varies by branch of the tree — the app is light-only. `HarvestAppTheme` seeds
+Material3 with matching values so stock components don't clash, but call sites
+read `HarvestTheme.Colors.*` directly.
 
 Typography in the iOS app resolves to system fonts — no `.ttf`/`.otf` is bundled
 and no `UIAppFonts` key is declared, so the `Orange Squash` / `DM Serif Display`
