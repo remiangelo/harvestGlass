@@ -47,8 +47,12 @@ each Swift file has an obvious counterpart and future features port by analogy.
   The Field, Gardener, Seeds, Profile, defaulting to The Field (index 1)
   exactly as iOS does. Tab selection is plain hoisted state; iOS `TabView`
   keeps no back stack across tabs either, so a nav graph would buy nothing
-  here. Navigation Compose is reserved for the multi-step flows that do need
-  a back stack (onboarding, the values questionnaire) and enters with them.
+  here. Navigation Compose is **not** a dependency: the onboarding wizard,
+  the one flow that looked like it needed a back stack, turned out to be a
+  linear sequence over a single shared draft — a nav graph there would have
+  meant two sources of truth for the current step. It renders the step from
+  `currentStep` and wires the system back button to `previousStep()` instead.
+  Only `hilt-navigation-compose` is used, for `hiltViewModel()`.
 - **DI:** Hilt. 22 services sharing one client makes manual wiring unwieldy.
 - **Images:** Coil, against Supabase Storage URLs (`profile-photos` bucket).
 - **Root gating:** the `isLoading → LaunchScreen`, `needsOnboarding → Onboarding`,

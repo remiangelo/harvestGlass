@@ -140,16 +140,36 @@ class OnboardingViewModel @Inject constructor(
         it.copy(selectedGoals = it.selectedGoals.toggled(goal))
     }
 
-    fun toggleInterestedIn(option: String) = _state.update {
-        it.copy(interestedIn = it.interestedIn.toggled(option))
+    /**
+     * "Everyone" is an interlock, not just another option (InterestedInStepView):
+     * picking it selects every option; clearing it clears them all; and
+     * deselecting any single option also drops "everyone", since the set is no
+     * longer everyone.
+     */
+    fun toggleInterestedIn(option: String) = _state.update { s ->
+        val selected = s.interestedIn.contains(option)
+        val next = when {
+            option == EVERYONE && selected -> emptySet()
+            option == EVERYONE -> INTERESTED_IN_OPTIONS
+            selected -> s.interestedIn - option - EVERYONE
+            else -> s.interestedIn + option
+        }
+        s.copy(interestedIn = next)
     }
 
-    fun toggleValueBrought(valueId: String) = _state.update {
-        it.copy(selectedValuesBrought = it.selectedValuesBrought.toggled(valueId))
+    /** Capped at [MAX_VALUE_SELECTIONS] per side, as ValuesStepView enforces. */
+    fun toggleValueBrought(valueId: String) = _state.update { s ->
+        s.copy(selectedValuesBrought = s.selectedValuesBrought.cappedToggle(valueId))
     }
 
-    fun toggleValueSought(valueId: String) = _state.update {
-        it.copy(selectedValuesSought = it.selectedValuesSought.toggled(valueId))
+    fun toggleValueSought(valueId: String) = _state.update { s ->
+        s.copy(selectedValuesSought = s.selectedValuesSought.cappedToggle(valueId))
+    }
+
+    private fun Set<String>.cappedToggle(id: String): Set<String> = when {
+        contains(id) -> this - id
+        size < MAX_VALUE_SELECTIONS -> this + id
+        else -> this
     }
 
     fun answerReflection(questionId: String, optionId: String) = _state.update {
@@ -308,5 +328,10 @@ class OnboardingViewModel @Inject constructor(
 
     companion object {
         const val ONBOARDING_QUESTION_COUNT = 10
+        const val MAX_VALUE_SELECTIONS = 3
+        const val EVERYONE = "everyone"
+
+        /** Stored values, lowercased, from InterestedInStepView. */
+        val INTERESTED_IN_OPTIONS = setOf("men", "women", "non-binary", EVERYONE)
     }
 }

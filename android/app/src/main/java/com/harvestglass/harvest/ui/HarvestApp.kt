@@ -19,6 +19,7 @@ import com.harvestglass.harvest.ui.auth.AuthViewModel
 import com.harvestglass.harvest.ui.auth.LoginScreen
 import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
+import com.harvestglass.harvest.ui.onboarding.OnboardingContainer
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
@@ -44,48 +45,12 @@ fun HarvestApp(authViewModel: AuthViewModel = hiltViewModel()) {
             onRegister = authViewModel::register
         )
 
-        state.needsOnboarding -> OnboardingPlaceholderScreen(onSignOut = authViewModel::logout)
+        state.needsOnboarding -> OnboardingContainer(
+            userId = state.currentUserId.orEmpty(),
+            onComplete = { authViewModel.checkSession() },
+            onSignOut = authViewModel::logout
+        )
 
         else -> MainTabScreen(state = state, onSignOut = authViewModel::logout)
-    }
-}
-
-/**
- * Deliberate, labelled stub. The real onboarding flow ports in P2 and
- * replaces this wholesale; until then an incomplete profile is directed to
- * the iOS app rather than being silently let through.
- */
-@Composable
-fun OnboardingPlaceholderScreen(onSignOut: () -> Unit) {
-    Box(
-        modifier = Modifier
-            .fillMaxSize()
-            .background(HarvestTheme.Colors.background)
-            .padding(HarvestTheme.Spacing.lg),
-        contentAlignment = Alignment.Center
-    ) {
-        GlassCard {
-            Column(
-                horizontalAlignment = Alignment.CenterHorizontally,
-                verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.md)
-            ) {
-                Text(
-                    text = "Finish setting up your profile",
-                    style = HarvestTheme.Typography.h4,
-                    color = HarvestTheme.Colors.textPrimary
-                )
-                Text(
-                    text = "Onboarding is not on Android yet. Complete your profile in the iOS app and sign back in here.",
-                    style = HarvestTheme.Typography.bodySmall,
-                    color = HarvestTheme.Colors.textSecondary,
-                    textAlign = TextAlign.Center
-                )
-                GlassButton(
-                    title = "Sign Out",
-                    style = HarvestButtonKind.SECONDARY,
-                    onClick = onSignOut
-                )
-            }
-        }
     }
 }
