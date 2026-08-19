@@ -23,12 +23,20 @@ Both are **deferred to the Gardener/AI subsystem**. The local keyword half of mi
 messaging is already ported as `ObjectionableContent` (P2a) and can be reused when that
 subsystem lands.
 
-**`MatchService` is ported in part**: only `reportUser`, `blockUser` and `unmatchUser`.
-Those are safety-critical and user-facing, and three methods do not justify deferring the
-whole chat. The rest of `MatchService` (the matching queue) ports with Discover.
+**Correction made while reading the source.** This plan initially deferred
+`MindfulMessagesView` as "the mindful inbox". It is not an inbox — it *is* the
+Conversations segment of the Seeds tab, and the only mindful thing it does is call
+`mindful.localFlag(...)` to mask a preview line. That is the pure keyword path, already
+ported as `ObjectionableContent` in P2a. So the conversation list is in scope.
 
-`MindfulMessagesView` (445 lines — the mindful inbox) is **not** in this plan; it is a
-separate screen belonging to the same AI subsystem.
+**`MatchService` is ported in part**: `getConversations` and its helpers
+(`getBlockedUserIds`, `hydrateConversationPreviewIfNeeded`, `shouldHighlightConversation`),
+plus the three safety actions `reportUser`, `blockUser`, `unmatchUser`. That requires the
+`Match` model as well. The matching queue and inbound likes stay with Discover.
+
+**Inbound likes / "Likes You"** are deferred: they are swipe-era, and the `canSeeLikes`
+gate needs the subscription tier lookup that P2b already left to the Subscription
+subsystem.
 
 ## Global Constraints
 
