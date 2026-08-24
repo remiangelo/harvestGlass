@@ -21,7 +21,11 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.text.AnnotatedString
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
@@ -71,6 +75,8 @@ fun ChatBubble(
     quoted: CommunityMessage?,
     quotedSenderName: String?,
     timeLabel: String = "",
+    mentionNicknames: List<String> = emptyList(),
+    mentionsMe: Boolean = false,
     onLongPress: () -> Unit
 ) {
     val shape = chatBubbleShape(isMine, position.isFirstInGroup, position.isLastInGroup)
@@ -117,7 +123,11 @@ fun ChatBubble(
                             ).border(1.dp, Color.White.copy(alpha = 0.16f), shape)
                         } else {
                             Modifier.background(HarvestTheme.Colors.wineCard, shape)
-                                .border(1.dp, HarvestTheme.Colors.border, shape)
+                                .border(
+                                    if (mentionsMe) 2.dp else 1.dp,
+                                    if (mentionsMe) accent.light else HarvestTheme.Colors.border,
+                                    shape
+                                )
                         }
                     )
                     .padding(horizontal = HarvestTheme.Spacing.md, vertical = 10.dp)
@@ -132,7 +142,15 @@ fun ChatBubble(
                 }
 
                 Text(
-                    text = message.content,
+                    text = highlightMentions(
+                        content = message.content,
+                        nicknames = mentionNicknames,
+                        highlight = if (isMine) {
+                            HarvestTheme.Colors.textInverse
+                        } else {
+                            accent.light
+                        }
+                    ),
                     style = HarvestTheme.Typography.bodyRegular,
                     color = if (isMine) {
                         HarvestTheme.Colors.textInverse
@@ -254,6 +272,46 @@ private fun ReactionRow(reactions: List<CommunityReaction>) {
                     )
                 }
             }
+        }
+    }
+}
+
+
+/**
+ * Bolds and tints any "@nickname" the message actually mentions.
+ *
+ * Only nicknames resolved from the message's `mentions` id array are
+ * highlighted, so a literal "@someone" that was never a real mention stays
+ * plain text — matching iOS.
+ */
+internal fun highlightMentions(
+    content: String,
+    nicknames: List<String>,
+    highlight: Color
+): AnnotatedString {
+    if (nicknames.isEmpty()) return AnnotatedString(content)
+
+    return buildAnnotatedString {
+        var index = 0
+        while (index < content.length) {
+            val next = nicknames
+                .mapNotNull { nick ->
+                    val at = content.indexOf("@$nick", index, ignoreCase = true)
+                    if (at >= 0) at to nick else null
+                }
+                .minByOrNull { it.first }
+
+            if (next == null) {
+                append(content.substring(index))
+                return@buildAnnotatedString
+            }
+
+            val (at, nick) = next
+            append(content.substring(index, at))
+            withStyle(SpanStyle(color = highlight, fontWeight = FontWeight.SemiBold)) {
+                append(content.substring(at, at + nick.length + 1))
+            }
+            index = at + nick.length + 1
         }
     }
 }

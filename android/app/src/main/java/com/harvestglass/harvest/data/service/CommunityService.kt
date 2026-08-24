@@ -5,6 +5,7 @@ import com.harvestglass.harvest.data.model.CommunityMessage
 import com.harvestglass.harvest.data.model.CommunityPrompt
 import com.harvestglass.harvest.data.model.CommunityReaction
 import com.harvestglass.harvest.data.model.CommunitySender
+import com.harvestglass.harvest.data.model.UserProfile
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.postgrest.query.Columns
@@ -165,6 +166,40 @@ class CommunityService(private val client: SupabaseClient) {
             }
             .decodeList<Row>()
             .map { it.users }
+    }
+
+    /**
+     * Full profiles for everyone active in a room, for the member roster.
+     * Heavier than [members] — that one fetches only what a bubble needs.
+     *
+     * Banned members stay out even if the membership row survives: the ban
+     * action deactivates matches, not memberships.
+     */
+    suspend fun memberProfiles(communityId: String): List<UserProfile> {
+        @Serializable
+        data class Row(val users: UserProfile)
+
+        return client.postgrest.from("community_members")
+            .select(
+                Columns.raw(
+                    """
+                    users(
+                        id, email, nickname, age, bio, location, gender, photos,
+                        hobbies, interested_in, looking_for, height_cm, smoking,
+                        drinking, cannabis, spiritual_orientation, children_status,
+                        relationship_status, is_banned
+                    )
+                    """.trimIndent()
+                )
+            ) {
+                filter {
+                    eq("community_id", communityId)
+                    eq("status", "active")
+                }
+            }
+            .decodeList<Row>()
+            .map { it.users }
+            .filter { it.isBanned != true }
     }
 
     // MARK: - Reactions

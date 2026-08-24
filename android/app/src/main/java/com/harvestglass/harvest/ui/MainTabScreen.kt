@@ -33,6 +33,7 @@ import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.field.CommunityChatScreen
 import com.harvestglass.harvest.ui.field.FieldScreen
+import com.harvestglass.harvest.ui.field.RoomMembersScreen
 import com.harvestglass.harvest.ui.chat.ChatDetailScreen
 import com.harvestglass.harvest.ui.seeds.SeedsScreen
 import com.harvestglass.harvest.ui.values.ValuesScreen
@@ -68,6 +69,17 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
     var selected by remember { mutableStateOf(HarvestTab.FIELD) }
     var openRoom by remember { mutableStateOf<Community?>(null) }
     var openChat by remember { mutableStateOf<Pair<String, String>?>(null) }
+    var openMembers by remember { mutableStateOf<String?>(null) }
+
+    val members = openMembers
+    if (members != null) {
+        RoomMembersScreen(
+            communityId = members,
+            userId = state.currentUserId.orEmpty(),
+            onBack = { openMembers = null }
+        )
+        return
+    }
 
     val chat = openChat
     if (chat != null) {
@@ -85,7 +97,8 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
         CommunityChatScreen(
             community = room,
             userId = state.currentUserId.orEmpty(),
-            onBack = { openRoom = null }
+            onBack = { openRoom = null },
+            onOpenMembers = { openMembers = it }
         )
         return
     }

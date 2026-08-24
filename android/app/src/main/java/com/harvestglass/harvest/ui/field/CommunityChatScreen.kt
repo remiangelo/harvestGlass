@@ -1,6 +1,7 @@
 package com.harvestglass.harvest.ui.field
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -10,6 +11,8 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.ArrowCircleUp
 import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material.icons.filled.Group
+import androidx.compose.material.icons.filled.Lightbulb
 import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
@@ -29,6 +32,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harvestglass.harvest.data.model.Community
 import com.harvestglass.harvest.data.model.CommunityMessage
+import com.harvestglass.harvest.data.model.CommunityPrompt
 import com.harvestglass.harvest.data.model.CommunityReaction
 import com.harvestglass.harvest.ui.components.chat.ChatAccent
 import com.harvestglass.harvest.ui.components.chat.ChatBubble
@@ -36,6 +40,9 @@ import com.harvestglass.harvest.ui.components.chat.ChatComposer
 import com.harvestglass.harvest.ui.components.chat.DateSeparator
 import com.harvestglass.harvest.ui.components.chat.MessageGrouping
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
+import com.harvestglass.harvest.ui.components.chat.SwipeToReply
+import com.harvestglass.harvest.ui.theme.HarvestButton
+import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -59,12 +66,14 @@ fun CommunityChatScreen(
     community: Community,
     userId: String,
     onBack: () -> Unit,
+    onOpenMembers: (String) -> Unit = {},
     viewModel: CommunityChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     val accent = COMMUNITY_CHAT_ACCENT
     val listState = rememberLazyListState()
     var reactingTo by remember { mutableStateOf<CommunityMessage?>(null) }
+    var showPrompts by remember { mutableStateOf(false) }
 
     LaunchedEffect(community.id) { viewModel.start(community.id, userId) }
 
@@ -75,6 +84,18 @@ fun CommunityChatScreen(
         }
     }
 
+    if (showPrompts) {
+        PromptPicker(
+            prompts = state.prompts,
+            onPick = {
+                viewModel.updateDraft(it)
+                showPrompts = false
+            },
+            onDismiss = { showPrompts = false }
+        )
+        return
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -83,7 +104,11 @@ fun CommunityChatScreen(
             // last message being clipped behind it.
             .imePadding()
     ) {
-        TopBar(title = community.name, onBack = onBack)
+        TopBar(
+            title = community.name,
+            onBack = onBack,
+            onOpenMembers = { onOpenMembers(community.id) }
+        )
 
         Box(Modifier.weight(1f)) {
             ChatBackdrop(accent)
@@ -104,7 +129,7 @@ fun CommunityChatScreen(
                 }
 
                 if (state.messages.isEmpty()) {
-                    item("empty") { CommunityEmptyState() }
+                    item("empty") { CommunityEmptyState(onUseIcebreaker = { showPrompts = true }) }
                 }
 
                 itemsIndexed(state.messages) { message ->
@@ -115,6 +140,7 @@ fun CommunityChatScreen(
                     }
 
                     val quoted = state.quotedMessage(message)
+                    SwipeToReply(onReply = { viewModel.setReplyTarget(message) }) {
                     ChatBubble(
                         message = message,
                         sender = state.senders[message.senderId],
@@ -126,8 +152,11 @@ fun CommunityChatScreen(
                         quotedSenderName = quoted?.let { state.senders[it.senderId]?.nickname },
                         // Metadata once per run, matching iOS.
                         timeLabel = if (position.isLastInGroup) timeLabel(message) else "",
+                        mentionNicknames = state.mentionedNicknames(message),
+                        mentionsMe = message.mentions.orEmpty().contains(userId),
                         onLongPress = { reactingTo = message }
                     )
+                    }
                 }
             }
         }
@@ -163,7 +192,18 @@ fun CommunityChatScreen(
             accent = accent,
             placeholder = "Message ${community.name}",
             isSending = state.isSending,
-            onSend = { viewModel.send() }
+            onSend = { viewModel.send() },
+            accessory = {
+                Icon(
+                    imageVector = Icons.Filled.Lightbulb,
+                    contentDescription = "Icebreakers",
+                    tint = HarvestTheme.Colors.accent,
+                    modifier = Modifier
+                        .size(36.dp)
+                        .clickable { showPrompts = true }
+                        .padding(HarvestTheme.Spacing.xs)
+                )
+            }
         )
     }
 }
@@ -180,7 +220,7 @@ private inline fun androidx.compose.foundation.lazy.LazyListScope.itemsIndexed(
 }
 
 @Composable
-private fun TopBar(title: String, onBack: () -> Unit) {
+private fun TopBar(title: String, onBack: () -> Unit, onOpenMembers: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
@@ -200,7 +240,14 @@ private fun TopBar(title: String, onBack: () -> Unit) {
         Text(
             text = title,
             style = HarvestTheme.Typography.h4,
-            color = HarvestTheme.Colors.textPrimary
+            color = HarvestTheme.Colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            imageVector = Icons.Filled.Group,
+            contentDescription = "Members",
+            tint = HarvestTheme.Colors.textPrimary,
+            modifier = Modifier.clickable { onOpenMembers() }
         )
     }
 }
@@ -323,7 +370,7 @@ private fun LoadEarlierRow(isLoading: Boolean, onClick: () -> Unit) {
 }
 
 @Composable
-private fun CommunityEmptyState() {
+private fun CommunityEmptyState(onUseIcebreaker: () -> Unit) {
     Column(
         horizontalAlignment = Alignment.CenterHorizontally,
         verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
@@ -342,6 +389,70 @@ private fun CommunityEmptyState() {
             style = HarvestTheme.Typography.bodySmall,
             color = HarvestTheme.Colors.textSecondary
         )
+        HarvestButton(
+            text = "Use an icebreaker",
+            kind = HarvestButtonKind.SECONDARY,
+            icon = Icons.Filled.Lightbulb,
+            onClick = onUseIcebreaker
+        )
+    }
+}
+
+/** Port of PromptPicker in CommunityChatView.swift. */
+@Composable
+private fun PromptPicker(
+    prompts: List<CommunityPrompt>,
+    onPick: (String) -> Unit,
+    onDismiss: () -> Unit
+) {
+    Column(
+        Modifier
+            .fillMaxSize()
+            .background(HarvestTheme.Colors.background)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier
+                .fillMaxWidth()
+                .background(HarvestTheme.Colors.wineBlack)
+                .statusBarsPadding()
+                .padding(HarvestTheme.Spacing.md)
+        ) {
+            Text(
+                text = "Icebreakers",
+                style = HarvestTheme.Typography.h4,
+                color = HarvestTheme.Colors.textPrimary,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "Cancel",
+                style = HarvestTheme.Typography.bodyRegular,
+                color = HarvestTheme.Colors.textPrimary,
+                modifier = Modifier.clickable { onDismiss() }
+            )
+        }
+
+        LazyColumn(
+            verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
+            contentPadding = PaddingValues(HarvestTheme.Spacing.md),
+            modifier = Modifier.navigationBarsPadding()
+        ) {
+            items(prompts.size, key = { prompts[it].id }) { index ->
+                val prompt = prompts[index]
+                val shape = RoundedCornerShape(HarvestTheme.Radius.lg)
+                Text(
+                    text = prompt.text,
+                    style = HarvestTheme.Typography.bodyRegular,
+                    color = HarvestTheme.Colors.textPrimary,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .background(HarvestTheme.Colors.glassFill, shape)
+                        .border(1.dp, HarvestTheme.Colors.border, shape)
+                        .clickable { onPick(prompt.text) }
+                        .padding(HarvestTheme.Spacing.md)
+                )
+            }
+        }
     }
 }
 
