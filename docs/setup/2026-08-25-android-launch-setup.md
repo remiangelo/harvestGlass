@@ -59,19 +59,43 @@ handles either real newlines or the `\n` escapes the JSON file uses.
 
 ---
 
-## 2. Apply the push migration
+## 2. Apply the push migrations — all three
 
-`supabase/migrations/20260825120000_android_push_support.sql`
+**This is bigger than it looked.** Probing the live project on 2026-08-25 found
+`user_devices` does not exist (`42P01`). None of the push migrations were ever
+applied, and `send-push` had never been deployed either — so the triggers in
+`20260524130000` have been calling a 404, and **push has never worked on iOS
+either.** That is pre-existing, not something the Android work introduced.
 
-It widens one CHECK constraint so the `platform` column accepts `'android'`
-alongside `'ios'`. Until it runs, every Android token registration fails and no
-Android device can receive anything.
+Every other table the app needs is present and healthy: `safety_analyses`,
+`red_flag_reports`, `ready_to_move_checks`, all four gardener tables,
+`user_usage`, `user_subscriptions`, `swipes`, `user_reports`, `user_blocks`.
+The three tier rows are configured, and the quiz bank has 6 questions.
 
-```
+Apply these three **in order** — each depends on the one before:
+
+1. `20260524120000_push_notifications.sql` — creates `user_devices`
+2. `20260524130000_push_notification_triggers.sql` — the pg_net triggers
+3. `20260825120000_android_push_support.sql` — widens `platform` to accept
+   `'android'`
+
+```bash
 supabase db push
 ```
 
-Or paste the file into the SQL editor.
+Or paste each into the SQL editor, oldest first.
+
+**Migration 2 has a prerequisite of its own.** Its header comment requires two
+Vault secrets to exist *before* it runs, or the triggers will have nothing to
+call:
+
+```sql
+select vault.create_secret(
+  'https://jutzlxdboayvmcuqwodn.supabase.co/functions/v1/send-push',
+  'send_push_url'
+);
+select vault.create_secret('<your service_role JWT>', 'send_push_service_role');
+```
 
 **One thing that looks like a bug and isn't:** Android tokens are stored in a
 column called `apns_token`. Renaming it would have meant touching the iOS app,
@@ -80,19 +104,26 @@ holds "the push token for this device", whatever service issues it.
 
 ---
 
-## 3. Deploy the two Edge Functions
+## 3. Deploy the two Edge Functions — done
 
+Both are deployed and live as of 2026-08-25:
+
+```bash
+supabase functions deploy send-push --use-api
+supabase functions deploy verify-play-purchase --use-api
 ```
-supabase functions deploy send-push
-supabase functions deploy verify-play-purchase
-```
 
-`send-push` gained an FCM branch. `verify-play-purchase` is new — it's what
-stops a modified APK granting itself Gold, so subscriptions don't work without
-it.
+`--use-api` bundles through the Management API instead of Docker, which this
+machine doesn't have running.
 
-Neither has been typechecked locally (no Deno on this machine). If the deploy
-reports a type error, tell me and I'll fix it.
+Both were smoke-tested after deploying and boot correctly.
+`verify-play-purchase` was exercised through its real paths: missing fields →
+400, unknown product → 400 (so the StoreKit product ids loaded), and a caller
+claiming to be a different user → **403**, which is the check that stops one
+account upgrading another.
+
+`send-push` boots but returns 500 on a real call, because it queries
+`user_devices` — see task 2. It will work once the migrations are applied.
 
 ---
 
