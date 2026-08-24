@@ -51,6 +51,7 @@ import androidx.compose.ui.unit.dp
 import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
+import com.harvestglass.harvest.ui.compatibility.CompatibilityScreen
 import com.harvestglass.harvest.ui.components.ChipView
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.components.ReportSheet
@@ -71,13 +72,13 @@ fun MemberProfileScreen(
     viewerId: String,
     onClose: () -> Unit,
     showSeedAction: Boolean = true,
-    onOpenCompatibility: ((String) -> Unit)? = null,
     viewModel: MemberProfileViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showReport by remember { mutableStateOf(false) }
     var showBlockConfirm by remember { mutableStateOf(false) }
     var showSendSeed by remember { mutableStateOf(false) }
+    var showCompatibility by remember { mutableStateOf(false) }
 
     LaunchedEffect(profileId) { viewModel.load(profileId, viewerId) }
 
@@ -85,6 +86,15 @@ fun MemberProfileScreen(
     LaunchedEffect(state.blocked) { if (state.blocked) onClose() }
 
     val profile = state.profile
+
+    if (showCompatibility && profile != null) {
+        CompatibilityScreen(
+            viewerId = viewerId,
+            otherUserId = profile.id,
+            onDone = { showCompatibility = false }
+        )
+        return
+    }
 
     if (showReport && profile != null) {
         ReportSheet(
@@ -242,9 +252,11 @@ fun MemberProfileScreen(
                     LabelledCard("About", bio)
                 }
 
-                if (profile != null && onOpenCompatibility != null) {
+                // iOS gates this on having the viewer's own profile loaded;
+                // here the viewer id is always present, so it always shows.
+                if (profile != null && profile.id != viewerId) {
                     SecondaryAction("See Compatibility", Icons.Filled.QueryStats) {
-                        onOpenCompatibility(profile.id)
+                        showCompatibility = true
                     }
                 }
 
