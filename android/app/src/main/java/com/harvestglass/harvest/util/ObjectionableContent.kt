@@ -5,9 +5,10 @@ package com.harvestglass.harvest.util
  * plus the `KeywordMatcher` rules it relies on
  * (Harvest/Utilities/KeywordMatcher.swift).
  *
- * Onboarding's nickname step is the only consumer here. The full mindful
- * messaging analysis — the directed lexicons, clause splitting, and the
- * OpenAI-backed `analyzeMessage` — ports with the P2 chat phase.
+ * Consumers: onboarding's nickname gate, the conversation-list preview mask,
+ * and blur-on-receive in 1:1 chat. The full mindful messaging analysis — the
+ * directed lexicons, clause splitting, and the OpenAI-backed `analyzeMessage` —
+ * ports with the AI subsystem.
  *
  * Both lists used to be scanned with a plain `contains`, which matched *inside*
  * words: "hello" hit "hell", "breakfast" hit "break". Every match here is
@@ -34,8 +35,6 @@ object ObjectionableContent {
         "show me your body", "show me your tits", "what are you wearing",
         "take it off", "undress", "get naked", "strip for me"
     )
-
-    private val TERMS: Set<String> = AGGRESSIVE_STANDALONE + SEXUAL_PRESSURE_STANDALONE
 
     /** Apostrophe variants stripped so "can't" and "cant" are one keyword. */
     private val APOSTROPHES = charArrayOf('\'', '’', '‘', 'ʼ', '`', '´')
@@ -77,9 +76,29 @@ object ObjectionableContent {
     }
 
     /** True when the text carries a standalone aggressive or sexual-pressure term. */
-    fun contains(text: String): Boolean {
+    fun contains(text: String): Boolean = category(text) != null
+
+    /**
+     * Which lexicon the text trips, or null. Category names match the Swift
+     * `MindfulAnalysis.category` strings so the recipient-facing hint in a
+     * blurred chat bubble reads the same as on iOS.
+     *
+     * Only the two lexicons ported here can be reported. The remaining ones
+     * (manipulative, possessive, pressuring, excessive_intensity,
+     * personal_info) live in MindfulMessagingService and land with the AI
+     * subsystem; until then their terms simply do not trip the check, exactly
+     * as they did not before.
+     */
+    fun category(text: String): String? {
         val normalized = normalize(text)
-        if (normalized.isEmpty()) return false
-        return TERMS.any { containsKeyword(it, normalized) }
+        if (normalized.isEmpty()) return null
+        return when {
+            AGGRESSIVE_STANDALONE.any { containsKeyword(it, normalized) } -> CATEGORY_AGGRESSIVE
+            SEXUAL_PRESSURE_STANDALONE.any { containsKeyword(it, normalized) } -> CATEGORY_SEXUAL_PRESSURE
+            else -> null
+        }
     }
+
+    const val CATEGORY_AGGRESSIVE = "aggressive"
+    const val CATEGORY_SEXUAL_PRESSURE = "sexual_pressure"
 }

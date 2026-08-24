@@ -33,6 +33,8 @@ import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.field.CommunityChatScreen
 import com.harvestglass.harvest.ui.field.FieldScreen
+import com.harvestglass.harvest.ui.chat.ChatDetailScreen
+import com.harvestglass.harvest.ui.seeds.SeedsScreen
 import com.harvestglass.harvest.ui.values.ValuesScreen
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
@@ -65,6 +67,18 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
     // iOS lands on The Field (selection = 1).
     var selected by remember { mutableStateOf(HarvestTab.FIELD) }
     var openRoom by remember { mutableStateOf<Community?>(null) }
+    var openChat by remember { mutableStateOf<Pair<String, String>?>(null) }
+
+    val chat = openChat
+    if (chat != null) {
+        ChatDetailScreen(
+            conversationId = chat.first,
+            userId = state.currentUserId.orEmpty(),
+            partnerUserId = chat.second,
+            onBack = { openChat = null }
+        )
+        return
+    }
 
     val room = openRoom
     if (room != null) {
@@ -105,6 +119,12 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
                     onOpenRoom = { openRoom = it }
                 )
                 HarvestTab.SOIL -> ValuesScreen(userId = state.currentUserId.orEmpty())
+                HarvestTab.SEEDS -> SeedsScreen(
+                    userId = state.currentUserId.orEmpty(),
+                    onOpenConversation = { conversationId, partnerId ->
+                        openChat = conversationId to partnerId
+                    }
+                )
                 HarvestTab.PROFILE -> ComingLaterScreen(tab = selected, onSignOut = onSignOut)
                 else -> ComingLaterScreen(tab = selected, onSignOut = null)
             }
