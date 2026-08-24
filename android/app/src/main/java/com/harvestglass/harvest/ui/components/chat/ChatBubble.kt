@@ -1,6 +1,7 @@
 package com.harvestglass.harvest.ui.components.chat
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -77,7 +78,9 @@ fun ChatBubble(
     timeLabel: String = "",
     mentionNicknames: List<String> = emptyList(),
     mentionsMe: Boolean = false,
-    onLongPress: () -> Unit
+    onLongPress: () -> Unit,
+    /** Tapping the avatar or name opens the sender's profile, as on iOS. */
+    onSenderTap: (() -> Unit)? = null
 ) {
     val shape = chatBubbleShape(isMine, position.isFirstInGroup, position.isLastInGroup)
 
@@ -93,7 +96,15 @@ fun ChatBubble(
         verticalAlignment = Alignment.Bottom
     ) {
         if (!isMine) {
-            Avatar(sender, visible = position.isLastInGroup)
+            Avatar(
+                sender,
+                visible = position.isLastInGroup,
+                modifier = if (onSenderTap != null) {
+                    Modifier.clickable { onSenderTap() }
+                } else {
+                    Modifier
+                }
+            )
             Box(Modifier.size(HarvestTheme.Spacing.sm))
         }
 
@@ -104,10 +115,18 @@ fun ChatBubble(
                     style = HarvestTheme.Typography.caption,
                     fontWeight = FontWeight.SemiBold,
                     color = accent.light,
-                    modifier = Modifier.padding(
-                        start = HarvestTheme.Spacing.sm,
-                        bottom = HarvestTheme.Spacing.xxs
-                    )
+                    modifier = Modifier
+                        .then(
+                            if (onSenderTap != null) {
+                                Modifier.clickable { onSenderTap() }
+                            } else {
+                                Modifier
+                            }
+                        )
+                        .padding(
+                            start = HarvestTheme.Spacing.sm,
+                            bottom = HarvestTheme.Spacing.xxs
+                        )
                 )
             }
 
@@ -181,9 +200,13 @@ fun ChatBubble(
 private val AVATAR_SIZE = 36.dp
 
 @Composable
-private fun Avatar(sender: CommunitySender?, visible: Boolean) {
+private fun Avatar(
+    sender: CommunitySender?,
+    visible: Boolean,
+    modifier: Modifier = Modifier
+) {
     Box(
-        Modifier
+        modifier
             .size(AVATAR_SIZE)
             .clip(CircleShape)
             .background(

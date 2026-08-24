@@ -34,6 +34,8 @@ import com.harvestglass.harvest.data.model.Community
 import com.harvestglass.harvest.data.model.CommunityMessage
 import com.harvestglass.harvest.data.model.CommunityPrompt
 import com.harvestglass.harvest.data.model.CommunityReaction
+import com.harvestglass.harvest.ui.components.ReportSheet
+import com.harvestglass.harvest.ui.components.ReportTarget
 import com.harvestglass.harvest.ui.components.chat.ChatAccent
 import com.harvestglass.harvest.ui.components.chat.ChatBubble
 import com.harvestglass.harvest.ui.components.chat.ChatComposer
@@ -43,6 +45,7 @@ import com.harvestglass.harvest.ui.components.chat.MessagePosition
 import com.harvestglass.harvest.ui.components.chat.SwipeToReply
 import com.harvestglass.harvest.ui.theme.HarvestButton
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
+import com.harvestglass.harvest.ui.profile.MemberProfileScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 import java.time.ZoneId
 import java.time.format.DateTimeFormatter
@@ -73,6 +76,8 @@ fun CommunityChatScreen(
     val accent = COMMUNITY_CHAT_ACCENT
     val listState = rememberLazyListState()
     var reactingTo by remember { mutableStateOf<CommunityMessage?>(null) }
+    var reportTarget by remember { mutableStateOf<CommunityMessage?>(null) }
+    var openProfileId by remember { mutableStateOf<String?>(null) }
     var showPrompts by remember { mutableStateOf(false) }
 
     LaunchedEffect(community.id) { viewModel.start(community.id, userId) }
@@ -82,6 +87,26 @@ fun CommunityChatScreen(
         if (state.messages.isNotEmpty()) {
             listState.animateScrollToItem(state.messages.lastIndex)
         }
+    }
+
+    openProfileId?.let { id ->
+        MemberProfileScreen(
+            profileId = id,
+            viewerId = userId,
+            onClose = { openProfileId = null }
+        )
+        return
+    }
+
+    reportTarget?.let { message ->
+        ReportSheet(
+            target = ReportTarget.CommunityMessage(message.id),
+            onSubmit = { category, description, _ ->
+                viewModel.reportMessage(message.senderId, message.id, category, description)
+            },
+            onDismiss = { reportTarget = null }
+        )
+        return
     }
 
     if (showPrompts) {
@@ -154,7 +179,14 @@ fun CommunityChatScreen(
                         timeLabel = if (position.isLastInGroup) timeLabel(message) else "",
                         mentionNicknames = state.mentionedNicknames(message),
                         mentionsMe = message.mentions.orEmpty().contains(userId),
-                        onLongPress = { reactingTo = message }
+                        onLongPress = { reactingTo = message },
+                        // Your own bubble opens nothing; the Profile tab is
+                        // where you look at yourself.
+                        onSenderTap = if (message.senderId != userId) {
+                            { openProfileId = message.senderId }
+                        } else {
+                            null
+                        }
                     )
                     }
                 }
@@ -177,6 +209,12 @@ fun CommunityChatScreen(
                 onPick = { emoji ->
                     viewModel.toggleReaction(target.id, emoji)
                     reactingTo = null
+                },
+                // Reporting your own message would only ever be a misfire.
+                onReport = if (target.senderId != userId) {
+                    { reportTarget = target; reactingTo = null }
+                } else {
+                    null
                 },
                 onDismiss = { reactingTo = null }
             )
@@ -279,7 +317,11 @@ private fun ChatBackdrop(accent: ChatAccent) {
 }
 
 @Composable
-private fun ReactionPicker(onPick: (String) -> Unit, onDismiss: () -> Unit) {
+private fun ReactionPicker(
+    onPick: (String) -> Unit,
+    onReport: (() -> Unit)?,
+    onDismiss: () -> Unit
+) {
     Row(
         horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
         verticalAlignment = Alignment.CenterVertically,
@@ -296,6 +338,16 @@ private fun ReactionPicker(onPick: (String) -> Unit, onDismiss: () -> Unit) {
             )
         }
         Spacer(Modifier.weight(1f))
+        onReport?.let { report ->
+            Text(
+                text = "Report",
+                style = HarvestTheme.Typography.bodySmall,
+                color = HarvestTheme.Colors.error,
+                modifier = Modifier
+                    .padding(end = HarvestTheme.Spacing.md)
+                    .clickable { report() }
+            )
+        }
         Text(
             text = "Cancel",
             style = HarvestTheme.Typography.bodySmall,

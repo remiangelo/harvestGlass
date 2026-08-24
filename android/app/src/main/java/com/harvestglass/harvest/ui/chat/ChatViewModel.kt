@@ -7,9 +7,11 @@ import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.ChatService
 import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.ProfileService
+import com.harvestglass.harvest.ui.components.ReportTarget
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,6 +23,8 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val partner: UserProfile? = null,
     val draft: String = "",
+    /** The partner is typing right now. Clears itself after 3s of silence. */
+    val isPartnerTyping: Boolean = false,
     val isLoading: Boolean = false,
     val isSending: Boolean = false,
     val error: String? = null
@@ -47,6 +51,9 @@ class ChatViewModel @Inject constructor(
     private var conversationId: String = ""
     private var userId: String = ""
     private var messageJob: Job? = null
+    private var typingJob: Job? = null
+    private var typingSendJob: Job? = null
+    private var typingDismissJob: Job? = null
 
     fun start(conversationId: String, userId: String, partnerUserId: String) {
         this.conversationId = conversationId
@@ -73,10 +80,44 @@ class ChatViewModel @Inject constructor(
                     }
                 }
             }
+
+            typingJob?.cancel()
+            typingJob = viewModelScope.launch {
+                chatService.subscribeToTyping(conversationId).collect { typistId ->
+                    // Your own keystrokes come back on the same channel.
+                    if (typistId == userId) return@collect
+
+                    _state.update { it.copy(isPartnerTyping = true) }
+
+                    // Typing has no "stopped" event, so the indicator expires
+                    // on its own and every new keystroke restarts the clock.
+                    typingDismissJob?.cancel()
+                    typingDismissJob = viewModelScope.launch {
+                        delay(TYPING_DISMISS_MS)
+                        _state.update { it.copy(isPartnerTyping = false) }
+                    }
+                }
+            }
         }
     }
 
-    fun onDraftChange(text: String) = _state.update { it.copy(draft = text) }
+    fun onDraftChange(text: String) {
+        _state.update { it.copy(draft = text) }
+        if (text.isNotEmpty()) scheduleTypingIndicator()
+    }
+
+    /**
+     * Broadcasts one "typing" ping per burst of keystrokes rather than one per
+     * character — the debounce is what keeps the channel quiet.
+     */
+    private fun scheduleTypingIndicator() {
+        typingSendJob?.cancel()
+        typingSendJob = viewModelScope.launch {
+            delay(TYPING_DEBOUNCE_MS)
+            if (conversationId.isEmpty() || userId.isEmpty()) return@launch
+            runCatching { chatService.sendTypingIndicator(conversationId, userId) }
+        }
+    }
 
     fun send(content: String = _state.value.draft) = viewModelScope.launch {
         if (_state.value.isSending) return@launch
@@ -102,10 +143,22 @@ class ChatViewModel @Inject constructor(
         runCatching { chatService.markAsRead(messageId) }
     }
 
-    fun report(reportedUserId: String, category: String, description: String) =
+    fun report(
+        reportedUserId: String,
+        category: String,
+        description: String,
+        target: ReportTarget = ReportTarget.Profile
+    ) =
         viewModelScope.launch {
             try {
-                matchService.reportUser(userId, reportedUserId, category, description)
+                matchService.reportUser(
+                    reporterId = userId,
+                    reportedUserId = reportedUserId,
+                    category = category,
+                    description = description,
+                    targetType = target.typeString,
+                    targetId = target.targetId
+                )
                 _state.update { it.copy(error = null) }
             } catch (e: Exception) {
                 _state.update { it.copy(error = e.userMessage()) }
@@ -133,5 +186,16 @@ class ChatViewModel @Inject constructor(
     override fun onCleared() {
         super.onCleared()
         messageJob?.cancel()
+        typingJob?.cancel()
+        typingSendJob?.cancel()
+        typingDismissJob?.cancel()
+    }
+
+    companion object {
+        /** One ping per burst of keystrokes, matching Swift's 500ms debounce. */
+        private const val TYPING_DEBOUNCE_MS = 500L
+
+        /** How long an indicator survives without another ping. */
+        private const val TYPING_DISMISS_MS = 3000L
     }
 }

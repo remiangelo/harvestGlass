@@ -7,6 +7,7 @@ import com.harvestglass.harvest.data.model.CommunityPrompt
 import com.harvestglass.harvest.data.model.CommunityReaction
 import com.harvestglass.harvest.data.model.CommunitySender
 import com.harvestglass.harvest.data.service.CommunityService
+import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.ReactionEvent
 import com.harvestglass.harvest.ui.components.chat.MessageGrouping
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
@@ -83,7 +84,8 @@ data class CommunityChatUiState(
  */
 @HiltViewModel
 class CommunityChatViewModel @Inject constructor(
-    private val service: CommunityService
+    private val service: CommunityService,
+    private val matchService: MatchService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CommunityChatUiState())
@@ -189,6 +191,31 @@ class CommunityChatViewModel @Inject constructor(
     fun updateDraft(text: String) = _state.update { it.copy(draft = text) }
 
     fun setReplyTarget(message: CommunityMessage?) = _state.update { it.copy(replyTarget = message) }
+
+    /**
+     * Files a report against one message. The message id rides along so a
+     * moderator lands on what was said, not just on the account.
+     */
+    fun reportMessage(
+        reportedUserId: String,
+        messageId: String,
+        category: String,
+        description: String
+    ) = viewModelScope.launch {
+        try {
+            matchService.reportUser(
+                reporterId = userId,
+                reportedUserId = reportedUserId,
+                category = category,
+                description = description,
+                targetType = "community_message",
+                targetId = messageId
+            )
+            _state.update { it.copy(error = null) }
+        } catch (e: Exception) {
+            _state.update { it.copy(error = e.userMessage()) }
+        }
+    }
 
     fun send(content: String = _state.value.draft) = viewModelScope.launch {
         // Commit 72f4202: gate re-entry so a double tap can't insert twice.

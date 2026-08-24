@@ -30,7 +30,9 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.harvestglass.harvest.data.model.Message
+import com.harvestglass.harvest.ui.components.ReportSheet
 import com.harvestglass.harvest.ui.components.chat.ChatAccent
+import com.harvestglass.harvest.ui.components.chat.TypingIndicator
 import com.harvestglass.harvest.ui.components.chat.DateSeparator
 import com.harvestglass.harvest.ui.components.chat.MessageGrouping
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
@@ -61,6 +63,7 @@ fun ChatDetailScreen(
     val state by viewModel.state.collectAsStateWithLifecycle()
     val listState = rememberLazyListState()
     val accent = ChatAccent.Rose
+    var showReport by remember { mutableStateOf(false) }
 
     LaunchedEffect(conversationId) { viewModel.start(conversationId, userId, partnerUserId) }
 
@@ -78,6 +81,16 @@ fun ChatDetailScreen(
             .forEach { viewModel.markRead(it.id) }
     }
 
+    if (showReport) {
+        ReportSheet(
+            onSubmit = { category, description, target ->
+                viewModel.report(partnerUserId, category, description, target)
+            },
+            onDismiss = { showReport = false }
+        )
+        return
+    }
+
     Column(
         Modifier
             .fillMaxSize()
@@ -88,9 +101,7 @@ fun ChatDetailScreen(
             title = state.partner?.nickname ?: "Chat",
             photoUrl = state.partner?.photos?.firstOrNull(),
             onBack = onBack,
-            onReport = {
-                viewModel.report(partnerUserId, "Reported from chat", "Reported from the chat menu.")
-            },
+            onReport = { showReport = true },
             onBlock = { viewModel.block(partnerUserId) }
         )
 
@@ -126,6 +137,10 @@ fun ChatDetailScreen(
                         timeLabel = if (position.isLastInGroup) timeLabel(message) else "",
                         accent = accent
                     )
+                }
+
+                if (state.isPartnerTyping) {
+                    item("typing") { TypingIndicator() }
                 }
             }
         }

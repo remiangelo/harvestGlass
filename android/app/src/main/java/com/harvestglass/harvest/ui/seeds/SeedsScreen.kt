@@ -31,12 +31,28 @@ import com.harvestglass.harvest.data.model.Seed
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.theme.HarvestButton
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.Search
+import androidx.compose.material3.LocalTextStyle
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
+import androidx.compose.ui.graphics.SolidColor
+import androidx.compose.ui.text.TextStyle
+import com.harvestglass.harvest.data.model.InboundLikeWithProfile
+import com.harvestglass.harvest.data.model.SwipeAction
+import com.harvestglass.harvest.ui.components.GlassBadge
+import com.harvestglass.harvest.ui.profile.MemberProfileScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 import com.harvestglass.harvest.util.ObjectionableContent
 
 /**
- * Port of Harvest/Views/Seeds/SeedsView.swift plus the conversation list from
- * MindfulMessagesView. All copy is verbatim.
+ * Port of Harvest/Views/Seeds/SeedsView.swift plus the whole inbox from
+ * MindfulMessagesView — search, Likes You, New Matches and the merged message
+ * list. All copy is verbatim.
  */
 @Composable
 fun SeedsScreen(
@@ -58,14 +74,32 @@ fun SeedsScreen(
         }
     }
 
+    var openProfileId by remember { mutableStateOf<String?>(null) }
+
+    openProfileId?.let { id ->
+        MemberProfileScreen(
+            profileId = id,
+            viewerId = userId,
+            onClose = {
+                openProfileId = null
+                // A Seed sent from here changes the sent list.
+                viewModel.load(userId)
+            }
+        )
+        return
+    }
+
     SeedsContent(
         state = state,
         currentUserId = userId,
         onSegmentChange = viewModel::setSegment,
         onRequestKindChange = viewModel::setRequestKind,
+        onSearchChange = viewModel::setSearch,
         onAccept = { viewModel.accept(it, userId) },
         onDecline = { viewModel.decline(it, userId) },
-        onOpenConversation = onOpenConversation
+        onOpenConversation = onOpenConversation,
+        onOpenProfile = { openProfileId = it },
+        onAnswerLike = { like, action -> viewModel.answerInboundLike(like, userId, action) }
     )
 }
 
@@ -75,9 +109,12 @@ fun SeedsContent(
     currentUserId: String,
     onSegmentChange: (SeedsSegment) -> Unit,
     onRequestKindChange: (RequestKind) -> Unit,
+    onSearchChange: (String) -> Unit = {},
     onAccept: (Seed) -> Unit,
     onDecline: (Seed) -> Unit,
-    onOpenConversation: (String, String) -> Unit
+    onOpenConversation: (String, String) -> Unit,
+    onOpenProfile: (String) -> Unit = {},
+    onAnswerLike: (InboundLikeWithProfile, SwipeAction) -> Unit = { _, _ -> }
 ) {
     Column(
         Modifier
@@ -111,10 +148,13 @@ fun SeedsContent(
                 onDecline = onDecline
             )
 
-            SeedsSegment.CONVERSATIONS -> ConversationsList(
-                conversations = state.conversations,
+            SeedsSegment.CONVERSATIONS -> Inbox(
+                state = state,
                 currentUserId = currentUserId,
-                onOpenConversation = onOpenConversation
+                onSearchChange = onSearchChange,
+                onOpenConversation = onOpenConversation,
+                onOpenProfile = onOpenProfile,
+                onAnswerLike = onAnswerLike
             )
         }
     }
@@ -348,6 +388,355 @@ private fun ConversationRow(
                         .background(HarvestTheme.Colors.rose, CircleShape)
                 )
             }
+        }
+    }
+}
+
+/**
+ * The Conversations segment: iOS's MindfulMessagesView body, minus its own
+ * navigation chrome — search, Likes You, New Matches, then Messages.
+ */
+@Composable
+private fun Inbox(
+    state: SeedsUiState,
+    currentUserId: String,
+    onSearchChange: (String) -> Unit,
+    onOpenConversation: (String, String) -> Unit,
+    onOpenProfile: (String) -> Unit,
+    onAnswerLike: (InboundLikeWithProfile, SwipeAction) -> Unit
+) {
+    val rows = state.unifiedMessages
+
+    LazyColumn(
+        verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.md),
+        contentPadding = PaddingValues(vertical = HarvestTheme.Spacing.sm)
+    ) {
+        item("search") {
+            SearchBar(state.search, onSearchChange)
+        }
+
+        if (state.inboundLikes.isNotEmpty()) {
+            item("likes-header") {
+                InboxSectionTitle("Likes You (${state.inboundLikes.size})")
+            }
+
+            if (state.canSeeLikes) {
+                items(state.inboundLikes, key = { "like-${it.id}" }) { like ->
+                    InboundLikeRow(
+                        like = like,
+                        onOpen = { onOpenProfile(like.profile.id) },
+                        onLikeBack = { onAnswerLike(like, SwipeAction.LIKE) },
+                        onPass = { onAnswerLike(like, SwipeAction.NOPE) }
+                    )
+                }
+            } else {
+                item("likes-gate") { LikesGate() }
+            }
+        }
+
+        if (state.newMatches.isNotEmpty()) {
+            item("matches-header") { InboxSectionTitle("New Matches") }
+            item("matches") {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.md),
+                    modifier = Modifier
+                        .horizontalScroll(rememberScrollState())
+                        .padding(horizontal = HarvestTheme.Spacing.md)
+                ) {
+                    state.newMatches.forEach { thread ->
+                        NewMatchBubble(thread) { onOpenProfile(thread.match.profile.id) }
+                    }
+                }
+            }
+        }
+
+        item("messages-header") { InboxSectionTitle("Messages") }
+
+        if (rows.isEmpty()) {
+            item("empty") {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .padding(top = HarvestTheme.Spacing.xxl)
+                ) {
+                    Text(text = "\uD83C\uDF31", fontSize = 40.sp)
+                    Text(
+                        text = "No conversations yet",
+                        style = HarvestTheme.Typography.h4,
+                        color = HarvestTheme.Colors.textPrimary
+                    )
+                }
+            }
+        } else {
+            items(rows, key = { it.conversationId }) { row ->
+                Box(Modifier.padding(horizontal = HarvestTheme.Spacing.md)) {
+                    InboxRowView(row) {
+                        onOpenConversation(row.conversationId, row.profile.id)
+                    }
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun InboxSectionTitle(title: String) {
+    Text(
+        text = title,
+        style = HarvestTheme.Typography.h4,
+        color = HarvestTheme.Colors.textPrimary,
+        modifier = Modifier.padding(horizontal = HarvestTheme.Spacing.md)
+    )
+}
+
+@Composable
+private fun SearchBar(query: String, onChange: (String) -> Unit) {
+    val shape = RoundedCornerShape(HarvestTheme.Radius.md)
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
+        modifier = Modifier
+            .padding(horizontal = HarvestTheme.Spacing.md)
+            .fillMaxWidth()
+            .background(HarvestTheme.Colors.blackSurface, shape)
+            .border(1.dp, HarvestTheme.Colors.border, shape)
+            .padding(HarvestTheme.Spacing.sm)
+    ) {
+        Icon(
+            Icons.Filled.Search,
+            contentDescription = null,
+            tint = HarvestTheme.Colors.textOnBlack,
+            modifier = Modifier.size(18.dp)
+        )
+        BasicTextField(
+            value = query,
+            onValueChange = onChange,
+            singleLine = true,
+            textStyle = LocalTextStyle.current.merge(
+                TextStyle(color = HarvestTheme.Colors.textOnBlack)
+            ),
+            cursorBrush = SolidColor(HarvestTheme.Colors.textOnBlack),
+            modifier = Modifier.weight(1f),
+            decorationBox = { innerTextField ->
+                Box(contentAlignment = Alignment.CenterStart) {
+                    if (query.isEmpty()) {
+                        Text(
+                            text = "Search conversations",
+                            style = HarvestTheme.Typography.bodyRegular,
+                            color = HarvestTheme.Colors.textTertiary
+                        )
+                    }
+                    innerTextField()
+                }
+            }
+        )
+    }
+}
+
+/**
+ * "Likes You" predates Seeds and has no gate of its own now that
+ * `can_see_likes` is gone — any paid plan sees it, which is what the old
+ * column encoded.
+ */
+@Composable
+private fun LikesGate() {
+    val shape = RoundedCornerShape(HarvestTheme.Radius.xl)
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(
+            HarvestTheme.Spacing.md,
+            Alignment.CenterVertically
+        ),
+        modifier = Modifier
+            .padding(horizontal = HarvestTheme.Spacing.md)
+            .fillMaxWidth()
+            .height(220.dp)
+            .background(HarvestTheme.Colors.blackSurface, shape)
+            .border(1.dp, HarvestTheme.Colors.border, shape)
+            .padding(HarvestTheme.Spacing.lg)
+    ) {
+        Icon(
+            Icons.Filled.Lock,
+            contentDescription = null,
+            tint = HarvestTheme.Colors.primary,
+            modifier = Modifier.size(32.dp)
+        )
+        Text(
+            text = "See who likes you",
+            style = HarvestTheme.Typography.h4,
+            color = HarvestTheme.Colors.textPrimary,
+            textAlign = TextAlign.Center
+        )
+        Text(
+            text = "Unlock with Gold",
+            style = HarvestTheme.Typography.bodySmall,
+            color = HarvestTheme.Colors.textSecondary
+        )
+    }
+}
+
+@Composable
+private fun InboundLikeRow(
+    like: InboundLikeWithProfile,
+    onOpen: () -> Unit,
+    onLikeBack: () -> Unit,
+    onPass: () -> Unit
+) {
+    Box(Modifier.padding(horizontal = HarvestTheme.Spacing.md)) {
+        GlassCard(
+            padding = HarvestTheme.Spacing.sm,
+            modifier = Modifier
+                .fillMaxWidth()
+                .clickable { onOpen() }
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm)
+            ) {
+                RoundPhoto(like.profile.primaryPhoto, like.profile.displayName, 50.dp)
+
+                Column(Modifier.weight(1f)) {
+                    Text(
+                        text = like.profile.displayName,
+                        style = HarvestTheme.Typography.bodyRegular,
+                        fontWeight = FontWeight.SemiBold,
+                        color = HarvestTheme.Colors.textPrimary
+                    )
+                    Text(
+                        text = if (like.swipe.action == SwipeAction.SUPER_LIKE) {
+                            "Super liked you"
+                        } else {
+                            "Liked you"
+                        },
+                        style = HarvestTheme.Typography.bodySmall,
+                        color = HarvestTheme.Colors.textSecondary,
+                        maxLines = 1
+                    )
+                }
+
+                if (like.swipe.action == SwipeAction.SUPER_LIKE) {
+                    GlassBadge(text = "Super Like", color = HarvestTheme.Colors.accent)
+                }
+
+                // iOS answers from the profile sheet; the row carries the two
+                // actions directly so a reply is one tap, not three.
+                Text(
+                    text = "Pass",
+                    style = HarvestTheme.Typography.bodySmall,
+                    color = HarvestTheme.Colors.textTertiary,
+                    modifier = Modifier
+                        .clickable { onPass() }
+                        .padding(HarvestTheme.Spacing.xs)
+                )
+                Text(
+                    text = "Like back",
+                    style = HarvestTheme.Typography.bodySmall,
+                    fontWeight = FontWeight.SemiBold,
+                    color = HarvestTheme.Colors.accent,
+                    modifier = Modifier
+                        .clickable { onLikeBack() }
+                        .padding(HarvestTheme.Spacing.xs)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun NewMatchBubble(thread: MatchThread, onOpen: () -> Unit) {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(6.dp),
+        modifier = Modifier
+            .width(80.dp)
+            .clickable { onOpen() }
+    ) {
+        Box(
+            Modifier
+                .size(68.dp)
+                .clip(CircleShape)
+                .border(2.dp, HarvestTheme.Colors.accent, CircleShape)
+        ) {
+            RoundPhoto(thread.match.profile.primaryPhoto, thread.match.profile.displayName, 68.dp)
+        }
+        Text(
+            text = thread.match.profile.displayName,
+            style = HarvestTheme.Typography.caption,
+            color = HarvestTheme.Colors.textPrimary,
+            maxLines = 1,
+            textAlign = TextAlign.Center
+        )
+    }
+}
+
+@Composable
+private fun InboxRowView(row: InboxRow, onOpen: () -> Unit) {
+    val preview = row.lastMessagePreview.orEmpty()
+
+    // Masks a preview that trips the local mindful-messaging keyword check,
+    // mirroring the in-chat blur-on-receive.
+    val masked = preview.isNotEmpty() && ObjectionableContent.contains(preview)
+
+    GlassCard(
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onOpen() }
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.md),
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            RoundPhoto(row.profile.primaryPhoto, row.profile.displayName, 55.dp)
+
+            Column(Modifier.weight(1f)) {
+                Text(
+                    text = row.profile.displayName,
+                    style = HarvestTheme.Typography.cardTitle,
+                    fontWeight = FontWeight.SemiBold,
+                    color = HarvestTheme.Colors.textPrimary
+                )
+                Text(
+                    text = if (masked) "Message hidden \u2014 tap to view" else preview,
+                    style = HarvestTheme.Typography.bodySmall,
+                    color = HarvestTheme.Colors.textSecondary,
+                    maxLines = 1
+                )
+            }
+
+            if (row.hasReplyHighlight) {
+                Box(
+                    Modifier
+                        .size(10.dp)
+                        .background(HarvestTheme.Colors.rose, CircleShape)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun RoundPhoto(url: String?, name: String, size: androidx.compose.ui.unit.Dp) {
+    if (url != null) {
+        AsyncImage(
+            model = url,
+            contentDescription = null,
+            contentScale = ContentScale.Crop,
+            modifier = Modifier.size(size).clip(CircleShape)
+        )
+    } else {
+        Box(
+            Modifier
+                .size(size)
+                .background(HarvestTheme.Colors.wineRaised, CircleShape),
+            contentAlignment = Alignment.Center
+        ) {
+            Text(
+                text = name.firstOrNull()?.uppercase() ?: "?",
+                style = HarvestTheme.Typography.h4,
+                color = HarvestTheme.Colors.textSecondary
+            )
         }
     }
 }

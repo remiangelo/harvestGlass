@@ -47,6 +47,7 @@ import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.components.GlassCardStyle
 import com.harvestglass.harvest.ui.theme.HarvestButton
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
+import com.harvestglass.harvest.ui.profile.MemberProfileScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
 /**
@@ -66,8 +67,18 @@ fun RoomMembersScreen(
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
     var showFilters by remember { mutableStateOf(false) }
+    var openProfileId by remember { mutableStateOf<String?>(null) }
 
     LaunchedEffect(communityId) { viewModel.load(communityId, userId) }
+
+    openProfileId?.let { id ->
+        MemberProfileScreen(
+            profileId = id,
+            viewerId = userId,
+            onClose = { openProfileId = null }
+        )
+        return
+    }
 
     if (showFilters) {
         RoomMemberFiltersSheet(
@@ -164,13 +175,15 @@ fun RoomMembersScreen(
                 }
             }
 
-            items(visible, key = { it.id }) { profile -> MemberRow(profile) }
+            items(visible, key = { it.id }) { profile ->
+                MemberRow(profile) { openProfileId = profile.id }
+            }
         }
     }
 }
 
 @Composable
-private fun MemberRow(profile: UserProfile) {
+private fun MemberRow(profile: UserProfile, onOpen: () -> Unit) {
     val shape = RoundedCornerShape(HarvestTheme.Radius.lg)
     Row(
         verticalAlignment = Alignment.CenterVertically,
@@ -179,6 +192,7 @@ private fun MemberRow(profile: UserProfile) {
             .fillMaxWidth()
             .background(HarvestTheme.Colors.wineCard, shape)
             .border(1.dp, HarvestTheme.Colors.border, shape)
+            .clickable { onOpen() }
             .padding(HarvestTheme.Spacing.md)
     ) {
         val photo = profile.primaryPhoto

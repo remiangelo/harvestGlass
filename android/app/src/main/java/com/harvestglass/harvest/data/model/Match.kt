@@ -3,10 +3,7 @@ package com.harvestglass.harvest.data.model
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
 
-/**
- * Mirrors Harvest/Models/Match.swift. Only the parts the conversation list
- * needs are ported; the matching queue lands with Discover.
- */
+/** Mirrors Harvest/Models/Match.swift. */
 @Serializable
 data class Match(
     val id: String,
@@ -25,4 +22,36 @@ data class Match(
             else -> null
         }
     }
+}
+
+/** Mirrors MatchWithProfile in Harvest/Models/Match.swift. */
+data class MatchWithProfile(val match: Match, val profile: UserProfile) {
+    val id: String get() = match.id
+}
+
+/**
+ * Mirrors SwipeAction in Harvest/Models/Swipe.swift.
+ *
+ * Swipes predate the Seeds pivot. Nothing creates a new one except a reply to
+ * an inbound like, which is why the enum is here and not in a Discover module.
+ */
+@Serializable
+enum class SwipeAction(val raw: String) {
+    @SerialName("like") LIKE("like"),
+    @SerialName("nope") NOPE("nope"),
+    @SerialName("super_like") SUPER_LIKE("super_like")
+}
+
+@Serializable
+data class Swipe(
+    val id: String,
+    @SerialName("swiper_id") val swiperId: String,
+    @SerialName("swiped_id") val swipedId: String,
+    val action: SwipeAction,
+    @SerialName("created_at") val createdAt: String? = null
+)
+
+/** Mirrors InboundLikeWithProfile in Harvest/Models/Match.swift. */
+data class InboundLikeWithProfile(val swipe: Swipe, val profile: UserProfile) {
+    val id: String get() = swipe.id
 }

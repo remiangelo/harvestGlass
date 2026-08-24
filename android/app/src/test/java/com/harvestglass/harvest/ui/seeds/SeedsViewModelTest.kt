@@ -5,6 +5,7 @@ import com.harvestglass.harvest.data.model.SeedStatus
 import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.SeedError
 import com.harvestglass.harvest.data.service.SeedService
+import com.harvestglass.harvest.data.service.SubscriptionService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
@@ -26,8 +27,9 @@ import org.junit.Test
 class SeedsViewModelTest {
     private val seedService: SeedService = mockk(relaxed = true)
     private val matchService: MatchService = mockk(relaxed = true)
+    private val subscriptionService: SubscriptionService = mockk(relaxed = true)
 
-    private fun vm() = SeedsViewModel(seedService, matchService)
+    private fun vm() = SeedsViewModel(seedService, matchService, subscriptionService)
 
     private val seed = Seed(
         id = "s1", senderId = "u2", recipientId = "u1",

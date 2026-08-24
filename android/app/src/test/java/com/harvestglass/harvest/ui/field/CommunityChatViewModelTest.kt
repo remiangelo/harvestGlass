@@ -3,6 +3,7 @@ package com.harvestglass.harvest.ui.field
 import com.harvestglass.harvest.data.model.CommunityMessage
 import com.harvestglass.harvest.data.model.CommunityReaction
 import com.harvestglass.harvest.data.service.CommunityService
+import com.harvestglass.harvest.data.service.MatchService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -19,6 +20,7 @@ import kotlinx.coroutines.test.runTest
 import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
@@ -26,6 +28,7 @@ import org.junit.Test
 @OptIn(ExperimentalCoroutinesApi::class)
 class CommunityChatViewModelTest {
     private val service: CommunityService = mockk(relaxed = true)
+    private val matchService: MatchService = mockk(relaxed = true)
     private lateinit var vm: CommunityChatViewModel
 
     private fun msg(id: String, at: String, sender: String = "u1") = CommunityMessage(
@@ -53,7 +56,7 @@ class CommunityChatViewModelTest {
             msg("m2", "2026-08-16T10:01:00.000001+00:00"),
             msg("m1", "2026-08-16T10:00:00.000001+00:00")
         )
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
 
         vm.start("c1", "u1"); advanceUntilIdle()
 
@@ -66,7 +69,7 @@ class CommunityChatViewModelTest {
         coEvery { service.post(any(), any(), any(), any(), any()) } coAnswers {
             delay(1_000); msg("m9", "2026-08-16T10:02:00.000001+00:00")
         }
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         // Commit 72f4202: a double tap must not insert twice.
@@ -80,7 +83,7 @@ class CommunityChatViewModelTest {
     @Test
     fun `blank content is not sent`() = runTest {
         coEvery { service.messagesPage(any(), any(), any()) } returns emptyList()
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("   "); advanceUntilIdle()
@@ -94,7 +97,7 @@ class CommunityChatViewModelTest {
         val posted = msg("m9", "2026-08-16T10:02:00.000001+00:00")
         coEvery { service.post(any(), any(), any(), any(), any()) } returns posted
         every { service.subscribeMessages("c1") } returns flowOf(posted)
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("hi"); advanceUntilIdle()
@@ -106,7 +109,7 @@ class CommunityChatViewModelTest {
     fun `a failed send hands the text back rather than losing it`() = runTest {
         coEvery { service.messagesPage(any(), any(), any()) } returns emptyList()
         coEvery { service.post(any(), any(), any(), any(), any()) } throws RuntimeException("offline")
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("a thought"); advanceUntilIdle()
@@ -119,7 +122,7 @@ class CommunityChatViewModelTest {
         coEvery { service.messagesPage(any(), any(), any()) } returns emptyList()
         coEvery { service.post(any(), any(), any(), any(), any()) } throws
             RuntimeException("CONTACT_INFO_BLOCKED")
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("call me on 555"); advanceUntilIdle()
@@ -134,7 +137,7 @@ class CommunityChatViewModelTest {
     fun `toggleReaction adds mine then removes it`() = runTest {
         val m = msg("m1", "2026-08-16T10:00:00.000001+00:00")
         coEvery { service.messagesPage(any(), any(), any()) } returns listOf(m)
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.toggleReaction("m1", "🌱"); advanceUntilIdle()
@@ -155,10 +158,33 @@ class CommunityChatViewModelTest {
             com.harvestglass.harvest.data.service.ReactionEvent.Added(r),
             com.harvestglass.harvest.data.service.ReactionEvent.Added(r)
         )
-        vm = CommunityChatViewModel(service)
+        vm = CommunityChatViewModel(service, matchService)
 
         vm.start("c1", "u1"); advanceUntilIdle()
 
         assertEquals(1, vm.state.value.reactions["m1"].orEmpty().count { it.userId == "u2" })
+    }
+
+    // A report on a message must carry the message id, not just the account —
+    // a moderator needs to see what was actually said.
+    @Test
+    fun `reporting a message files it against that message`() = runTest {
+        vm = CommunityChatViewModel(service, matchService)
+        vm.start("c1", "u1"); advanceUntilIdle()
+
+        vm.reportMessage("u2", "m7", "Harassment", "They kept it up after I asked them to stop.")
+        advanceUntilIdle()
+
+        coVerify {
+            matchService.reportUser(
+                reporterId = "u1",
+                reportedUserId = "u2",
+                category = "Harassment",
+                description = "They kept it up after I asked them to stop.",
+                targetType = "community_message",
+                targetId = "m7"
+            )
+        }
+        assertNull(vm.state.value.error)
     }
 }
