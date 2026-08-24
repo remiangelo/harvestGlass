@@ -29,17 +29,14 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.components.GlassCardStyle
 import com.harvestglass.harvest.ui.components.SectionHeader
+import com.harvestglass.harvest.ui.subscription.SubscriptionScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
 /** Which sub-screen Settings has pushed, if any. */
-enum class SettingsRoute { PRIVACY_POLICY, TERMS, GUIDELINES, HELP, SAFETY }
+enum class SettingsRoute { SUBSCRIPTION, PRIVACY_POLICY, TERMS, GUIDELINES, HELP, SAFETY }
 
 /**
  * Port of Harvest/Views/Settings/SettingsView.swift.
- *
- * The Subscription row is present but inert — Play Billing lands with the
- * Subscription subsystem, and an upgrade button that goes nowhere would be
- * worse than one that says so.
  */
 @Composable
 fun SettingsScreen(
@@ -57,6 +54,7 @@ fun SettingsScreen(
 
     route?.let { current ->
         when (current) {
+            SettingsRoute.SUBSCRIPTION -> SubscriptionScreen(userId, onBack = { route = null })
             SettingsRoute.PRIVACY_POLICY -> LegalScreen(LegalDocument.PrivacyPolicy) { route = null }
             SettingsRoute.TERMS -> LegalScreen(LegalDocument.Terms) { route = null }
             SettingsRoute.GUIDELINES -> LegalScreen(LegalDocument.Guidelines) { route = null }
@@ -83,17 +81,22 @@ fun SettingsScreen(
         ) {
             SectionHeader("Account")
             GlassCard(style = GlassCardStyle.LIGHT) {
-                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.fillMaxWidth()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { route = SettingsRoute.SUBSCRIPTION }
+                ) {
                     Text(
                         text = "Subscription",
                         style = HarvestTheme.Typography.bodyRegular,
                         color = HarvestTheme.Colors.textPrimary,
                         modifier = Modifier.weight(1f)
                     )
-                    Text(
-                        text = "Coming soon on Android",
-                        style = HarvestTheme.Typography.bodySmall,
-                        color = HarvestTheme.Colors.textTertiary
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = HarvestTheme.Colors.textTertiary
                     )
                 }
             }

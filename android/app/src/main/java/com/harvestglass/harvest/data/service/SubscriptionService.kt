@@ -15,6 +15,7 @@ import io.ktor.client.request.setBody
 import io.ktor.http.ContentType
 import io.ktor.http.contentType
 import io.ktor.http.isSuccess
+import java.time.Instant
 import kotlinx.serialization.json.buildJsonObject
 import kotlinx.serialization.json.put
 
@@ -79,6 +80,30 @@ class SubscriptionService(private val client: SupabaseClient) {
                 put("status", "active")
             }
         )
+    }
+
+    /**
+     * Drops the user back to the free tier when Play reports no live
+     * subscription. Mirrors `syncToSeedTier` in SubscriptionService.swift.
+     *
+     * Unlike an upgrade this runs client-side: a client can only ever lower its
+     * own entitlement, so there is nothing here worth forging.
+     */
+    suspend fun syncToSeedTier(userId: String) {
+        val seedTierId = tierId(TierName.SEED) ?: return
+        val now = Instant.now().toString()
+
+        client.postgrest.from("user_subscriptions").upsert(
+            buildJsonObject {
+                put("user_id", userId)
+                put("tier_id", seedTierId)
+                put("status", "active")
+                put("cancelled_at", now)
+                put("updated_at", now)
+            }
+        ) {
+            onConflict = "user_id"
+        }
     }
 
     private suspend fun tierId(name: TierName): String? {

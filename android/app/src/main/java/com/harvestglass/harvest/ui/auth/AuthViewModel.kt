@@ -4,6 +4,8 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.AuthService
+import com.harvestglass.harvest.data.service.ProfileService
+import com.harvestglass.harvest.data.service.SubscriptionService
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -35,7 +37,9 @@ data class AuthUiState(
 /** Mirrors Harvest/ViewModels/AuthViewModel.swift. */
 @HiltViewModel
 class AuthViewModel @Inject constructor(
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val profileService: ProfileService,
+    private val subscriptionService: SubscriptionService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(AuthUiState())
@@ -80,13 +84,34 @@ class AuthViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true, error = null) }
         runCatching { authService.signUp(email, password) }
             .onSuccess { userId ->
-                // iOS also creates the profile row and initialises the
-                // subscription here; both port with their features in P2.
+                if (userId != null) {
+                    // Signup fails if the profile row doesn't land — everything
+                    // downstream reads it. Swift throws here for the same reason.
+                    val created = runCatching { profileService.createProfile(userId, email) }
+                    if (created.isFailure) {
+                        _state.update {
+                            it.copy(
+                                isLoading = false,
+                                error = created.exceptionOrNull()?.userMessage()
+                            )
+                        }
+                        return@onSuccess
+                    }
+
+                    // Best-effort, as on iOS: a missing row just reads as the
+                    // free tier, which is what a new account gets anyway.
+                    runCatching { subscriptionService.initializeUserSubscription(userId) }
+                }
+
+                val profile = userId?.let {
+                    runCatching { authService.loadProfile(it) }.getOrNull()
+                }
                 _state.update {
                     it.copy(
                         isLoading = false,
                         isAuthenticated = userId != null,
-                        currentUserId = userId
+                        currentUserId = userId,
+                        profile = profile
                     )
                 }
             }

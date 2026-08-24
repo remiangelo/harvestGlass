@@ -12,6 +12,7 @@ ktor = "3.0.3"
 coil = "2.7.0"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
+billing = "7.1.1"
 junit = "4.13.2"
 mockk = "1.13.13"
 coroutinesTest = "1.9.0"
@@ -43,6 +44,7 @@ ktor-client-android = { module = "io.ktor:ktor-client-android", version.ref = "k
 coil-compose = { module = "io.coil-kt:coil-compose", version.ref = "coil" }
 firebase-bom = { module = "com.google.firebase:firebase-bom", version.ref = "firebaseBom" }
 firebase-messaging = { module = "com.google.firebase:firebase-messaging-ktx" }
+billing-ktx = { module = "com.android.billingclient:billing-ktx", version.ref = "billing" }
 junit = { module = "junit:junit", version.ref = "junit" }
 mockk = { module = "io.mockk:mockk", version.ref = "mockk" }
 kotlinx-coroutines-test = { module = "org.jetbrains.kotlinx:kotlinx-coroutines-test", version.ref = "coroutinesTest" }

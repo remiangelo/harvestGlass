@@ -43,6 +43,13 @@ data class SubscriptionTier(
 ) {
     val isPaid: Boolean get() = priceMonthly > 0
 
+    /**
+     * What the paywall calls this tier. The green tier is stored as "green" but
+     * sold as "Grow"; the others use their stored display name.
+     */
+    val marketingDisplayName: String
+        get() = if (name == TierName.GREEN) "Grow" else displayName
+
     val fieldFilterLevel: FieldFilterLevel get() = FieldFilterLevel.fromRaw(fieldFilterLevelRaw)
 
     companion object {

@@ -25,8 +25,10 @@ interface VerifyRequest {
 
 /** Product id → the tier name it grants. Mirrors ProductID in SubscriptionService.swift. */
 const PRODUCT_TIERS: Record<string, string> = {
-  grow_monthly: "green",
-  gold_monthly: "gold",
+  "com.harvestglass.harvest.grow.weekly": "green",
+  "com.harvestglass.harvest.grow.monthly": "green",
+  "com.harvestglass.harvest.gold.weekly": "gold",
+  "com.harvestglass.harvest.gold.monthly": "gold",
 };
 
 function base64url(input: Uint8Array | string): string {
@@ -166,6 +168,19 @@ Deno.serve(async (req) => {
   }
 
   const purchase = await playResponse.json();
+
+  // Google is the authority on which product this token actually bought. Without
+  // this check a cheap Grow token could be sent up claiming to be Gold.
+  const purchasedIds: string[] = (purchase.lineItems ?? [])
+    .map((item: { productId?: string }) => item.productId)
+    .filter(Boolean);
+
+  if (purchasedIds.length > 0 && !purchasedIds.includes(body.product_id)) {
+    console.error(
+      `Product mismatch: claimed ${body.product_id}, token is for ${purchasedIds.join(", ")}`,
+    );
+    return new Response("Purchase not verified", { status: 402 });
+  }
 
   // ACTIVE and IN_GRACE_PERIOD both still entitle the user; anything else does
   // not. A cancelled-but-not-yet-expired subscription reports ACTIVE until its
