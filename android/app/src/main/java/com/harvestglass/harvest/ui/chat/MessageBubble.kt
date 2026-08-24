@@ -40,7 +40,6 @@ import com.harvestglass.harvest.ui.components.chat.ChatAccent
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
 import com.harvestglass.harvest.ui.components.chat.chatBubbleShape
 import com.harvestglass.harvest.ui.theme.HarvestTheme
-import com.harvestglass.harvest.util.ObjectionableContent
 
 /**
  * Port of Harvest/Views/Chat/MessageBubbleView.swift.
@@ -56,13 +55,16 @@ fun MessageBubble(
     isSent: Boolean,
     position: MessagePosition,
     timeLabel: String = "",
-    accent: ChatAccent = ChatAccent.Rose
+    accent: ChatAccent = ChatAccent.Rose,
+    /**
+     * Which mindful lexicon this message trips, or null. Incoming messages
+     * only — the sender is warned about their own text before it is sent, not
+     * after. Resolved by the screen, which owns the service and the recipient's
+     * own mindful-messaging toggle.
+     */
+    flaggedCategory: String? = null
 ) {
     var revealed by remember(message.id) { mutableStateOf(false) }
-
-    // Incoming messages only: the sender is not warned about their own text
-    // here, that is the (deferred) pre-send check's job.
-    val flaggedCategory = if (isSent) null else ObjectionableContent.category(message.content.orEmpty())
     val isBlurred = flaggedCategory != null && !revealed
 
     val blurRadius by animateFloatAsState(

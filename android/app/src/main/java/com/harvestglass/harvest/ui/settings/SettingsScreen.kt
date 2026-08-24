@@ -139,6 +139,9 @@ fun SettingsScreen(
             SectionHeader("Safety")
             GlassCard(style = GlassCardStyle.LIGHT) {
                 NavRow("Safety Dashboard") { route = SettingsRoute.SAFETY }
+                ToggleRow("Mindful Messaging", state.mindfulMessagingEnabled) {
+                    viewModel.setMindfulMessagingEnabled(it)
+                }
             }
 
             SectionHeader("Support")

@@ -8,6 +8,8 @@ import com.harvestglass.harvest.data.model.CommunityReaction
 import com.harvestglass.harvest.data.model.CommunitySender
 import com.harvestglass.harvest.data.service.CommunityService
 import com.harvestglass.harvest.data.service.MatchService
+import com.harvestglass.harvest.data.service.MindfulAnalysis
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 import com.harvestglass.harvest.data.service.ReactionEvent
 import com.harvestglass.harvest.ui.components.chat.MessageGrouping
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
@@ -36,6 +38,10 @@ data class CommunityChatUiState(
     val hasMore: Boolean = false,
     val isLoadingOlder: Boolean = false,
     val isSending: Boolean = false,
+    /** Set when the pre-send check flags a message; drives the warning sheet. */
+    val mindfulWarning: MindfulAnalysis? = null,
+    /** The flagged text, held so "Send Anyway" posts exactly what was typed. */
+    val pendingSend: String? = null,
     val error: String? = null
 ) {
     /**
@@ -85,7 +91,8 @@ data class CommunityChatUiState(
 @HiltViewModel
 class CommunityChatViewModel @Inject constructor(
     private val service: CommunityService,
-    private val matchService: MatchService
+    private val matchService: MatchService,
+    private val mindful: MindfulMessagingService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(CommunityChatUiState())
@@ -217,12 +224,40 @@ class CommunityChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Runs the mindful check before posting. A flagged message opens the
+     * warning instead — the send is deferred, not cancelled.
+     */
     fun send(content: String = _state.value.draft) = viewModelScope.launch {
         // Commit 72f4202: gate re-entry so a double tap can't insert twice.
         if (_state.value.isSending) return@launch
         val text = content.trim()
         if (text.isEmpty()) return@launch
 
+        if (mindful.isEnabled) {
+            val analysis = mindful.analyzeMessage(text)
+            if (analysis.needsReview) {
+                _state.update { it.copy(mindfulWarning = analysis, pendingSend = text) }
+                return@launch
+            }
+        }
+
+        deliver(text)
+    }
+
+    /** Dismisses the warning and puts the text back in the composer. */
+    fun editFlaggedMessage() = _state.update {
+        it.copy(mindfulWarning = null, pendingSend = null, draft = it.pendingSend ?: it.draft)
+    }
+
+    /** The nudge is not a block: this posts the message as typed. */
+    fun sendAnyway() = viewModelScope.launch {
+        val text = _state.value.pendingSend ?: return@launch
+        _state.update { it.copy(mindfulWarning = null, pendingSend = null) }
+        deliver(text)
+    }
+
+    private suspend fun deliver(text: String) {
         // Clear up front. Leaving the text in place during the network call
         // is what made a second tap possible on iOS.
         _state.update { it.copy(isSending = true, draft = "", error = null) }

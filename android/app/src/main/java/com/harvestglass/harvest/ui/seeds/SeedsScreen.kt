@@ -47,7 +47,7 @@ import com.harvestglass.harvest.data.model.SwipeAction
 import com.harvestglass.harvest.ui.components.GlassBadge
 import com.harvestglass.harvest.ui.profile.MemberProfileScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
-import com.harvestglass.harvest.util.ObjectionableContent
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 
 /**
  * Port of Harvest/Views/Seeds/SeedsView.swift plus the whole inbox from
@@ -332,7 +332,7 @@ private fun ConversationRow(
 
     // Masks a preview that trips the local mindful-messaging keyword check,
     // mirroring the in-chat blur-on-receive.
-    val masked = preview.isNotEmpty() && ObjectionableContent.contains(preview)
+    val masked = preview.isNotEmpty() && MindfulMessagingService.containsObjectionableContent(preview)
 
     GlassCard(
         modifier = Modifier
@@ -677,7 +677,7 @@ private fun InboxRowView(row: InboxRow, onOpen: () -> Unit) {
 
     // Masks a preview that trips the local mindful-messaging keyword check,
     // mirroring the in-chat blur-on-receive.
-    val masked = preview.isNotEmpty() && ObjectionableContent.contains(preview)
+    val masked = preview.isNotEmpty() && MindfulMessagingService.containsObjectionableContent(preview)
 
     GlassCard(
         modifier = Modifier

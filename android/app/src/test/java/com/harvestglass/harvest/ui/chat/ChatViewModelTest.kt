@@ -3,6 +3,7 @@ package com.harvestglass.harvest.ui.chat
 import com.harvestglass.harvest.data.model.Message
 import com.harvestglass.harvest.data.service.ChatService
 import com.harvestglass.harvest.data.service.MatchService
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 import com.harvestglass.harvest.data.service.ProfileService
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -32,6 +33,9 @@ class ChatViewModelTest {
     private val chatService: ChatService = mockk(relaxed = true)
     private val profileService: ProfileService = mockk(relaxed = true)
     private val matchService: MatchService = mockk(relaxed = true)
+    private val mindful: MindfulMessagingService = mockk(relaxed = true) {
+        every { isEnabled } returns false
+    }
 
     private lateinit var vm: ChatViewModel
 
@@ -54,7 +58,7 @@ class ChatViewModelTest {
             msg("m1", "2026-08-20T10:00:00.000001+00:00"),
             msg("m2", "2026-08-20T10:01:00.000001+00:00")
         )
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
 
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
@@ -67,7 +71,7 @@ class ChatViewModelTest {
         coEvery { chatService.sendMessage(any(), any(), any()) } coAnswers {
             delay(1_000); msg("m9", "2026-08-20T10:02:00.000001+00:00")
         }
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
         vm.send("hello")
@@ -80,7 +84,7 @@ class ChatViewModelTest {
     @Test
     fun `blank content is not sent`() = runTest {
         coEvery { chatService.getMessages(any()) } returns emptyList()
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
         vm.send("   "); advanceUntilIdle()
@@ -94,7 +98,7 @@ class ChatViewModelTest {
         val posted = msg("m9", "2026-08-20T10:02:00.000001+00:00")
         coEvery { chatService.sendMessage(any(), any(), any()) } returns posted
         every { chatService.subscribeToMessages("c1") } returns flowOf(posted)
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
         vm.send("hi"); advanceUntilIdle()
@@ -107,7 +111,7 @@ class ChatViewModelTest {
         coEvery { chatService.getMessages(any()) } returns emptyList()
         val incoming = msg("m5", "2026-08-20T10:03:00.000001+00:00", sender = "u2")
         every { chatService.subscribeToMessages("c1") } returns flowOf(incoming)
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
 
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
@@ -118,7 +122,7 @@ class ChatViewModelTest {
     fun `a failed send hands the text back rather than losing it`() = runTest {
         coEvery { chatService.getMessages(any()) } returns emptyList()
         coEvery { chatService.sendMessage(any(), any(), any()) } throws RuntimeException("offline")
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
         vm.send("a thought"); advanceUntilIdle()
@@ -130,7 +134,7 @@ class ChatViewModelTest {
     @Test
     fun `blocking delegates to the match service`() = runTest {
         coEvery { chatService.getMessages(any()) } returns emptyList()
-        vm = ChatViewModel(chatService, profileService, matchService)
+        vm = ChatViewModel(chatService, profileService, matchService, mindful)
         vm.start("c1", "u1", "u2"); advanceUntilIdle()
 
         vm.block("u2"); advanceUntilIdle()

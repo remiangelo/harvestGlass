@@ -6,6 +6,8 @@ import com.harvestglass.harvest.data.model.Message
 import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.ChatService
 import com.harvestglass.harvest.data.service.MatchService
+import com.harvestglass.harvest.data.service.MindfulAnalysis
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.ui.components.ReportTarget
 import com.harvestglass.harvest.util.userMessage
@@ -23,6 +25,10 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val partner: UserProfile? = null,
     val draft: String = "",
+    /** Set when the pre-send check flags a message; drives the warning sheet. */
+    val mindfulWarning: MindfulAnalysis? = null,
+    /** The flagged text, held so "Send Anyway" posts exactly what was typed. */
+    val pendingSend: String? = null,
     /** The partner is typing right now. Clears itself after 3s of silence. */
     val isPartnerTyping: Boolean = false,
     val isLoading: Boolean = false,
@@ -42,7 +48,8 @@ data class ChatUiState(
 class ChatViewModel @Inject constructor(
     private val chatService: ChatService,
     private val profileService: ProfileService,
-    private val matchService: MatchService
+    private val matchService: MatchService,
+    private val mindful: MindfulMessagingService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ChatUiState())
@@ -119,11 +126,40 @@ class ChatViewModel @Inject constructor(
         }
     }
 
+    /**
+     * Runs the mindful check before sending. A flagged message opens the
+     * warning instead — the send is deferred, not cancelled, so "Send Anyway"
+     * still posts exactly what was typed.
+     */
     fun send(content: String = _state.value.draft) = viewModelScope.launch {
         if (_state.value.isSending) return@launch
         val text = content.trim()
         if (text.isEmpty()) return@launch
 
+        if (mindful.isEnabled) {
+            val analysis = mindful.analyzeMessage(text)
+            if (analysis.needsReview) {
+                _state.update { it.copy(mindfulWarning = analysis, pendingSend = text) }
+                return@launch
+            }
+        }
+
+        deliver(text)
+    }
+
+    /** Dismisses the warning and puts the text back in the composer. */
+    fun editFlaggedMessage() = _state.update {
+        it.copy(mindfulWarning = null, pendingSend = null, draft = it.pendingSend ?: it.draft)
+    }
+
+    /** The nudge is not a block: this posts the message as typed. */
+    fun sendAnyway() = viewModelScope.launch {
+        val text = _state.value.pendingSend ?: return@launch
+        _state.update { it.copy(mindfulWarning = null, pendingSend = null) }
+        deliver(text)
+    }
+
+    private suspend fun deliver(text: String) {
         _state.update { it.copy(isSending = true, draft = "", error = null) }
         try {
             val sent = chatService.sendMessage(conversationId, userId, text)
@@ -137,6 +173,15 @@ class ChatViewModel @Inject constructor(
         } finally {
             _state.update { it.copy(isSending = false) }
         }
+    }
+
+    /**
+     * Which lexicon an incoming message trips, or null when it is clean or the
+     * recipient has turned mindful messaging off.
+     */
+    fun flaggedCategory(content: String?): String? {
+        if (!mindful.isEnabled) return null
+        return mindful.localFlag(content.orEmpty())?.category
     }
 
     fun markRead(messageId: String) = viewModelScope.launch {

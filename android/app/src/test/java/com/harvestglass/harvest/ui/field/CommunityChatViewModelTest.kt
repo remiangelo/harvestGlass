@@ -4,6 +4,7 @@ import com.harvestglass.harvest.data.model.CommunityMessage
 import com.harvestglass.harvest.data.model.CommunityReaction
 import com.harvestglass.harvest.data.service.CommunityService
 import com.harvestglass.harvest.data.service.MatchService
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
@@ -29,6 +30,9 @@ import org.junit.Test
 class CommunityChatViewModelTest {
     private val service: CommunityService = mockk(relaxed = true)
     private val matchService: MatchService = mockk(relaxed = true)
+    private val mindful: MindfulMessagingService = mockk(relaxed = true) {
+        every { isEnabled } returns false
+    }
     private lateinit var vm: CommunityChatViewModel
 
     private fun msg(id: String, at: String, sender: String = "u1") = CommunityMessage(
@@ -56,7 +60,7 @@ class CommunityChatViewModelTest {
             msg("m2", "2026-08-16T10:01:00.000001+00:00"),
             msg("m1", "2026-08-16T10:00:00.000001+00:00")
         )
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
 
         vm.start("c1", "u1"); advanceUntilIdle()
 
@@ -69,7 +73,7 @@ class CommunityChatViewModelTest {
         coEvery { service.post(any(), any(), any(), any(), any()) } coAnswers {
             delay(1_000); msg("m9", "2026-08-16T10:02:00.000001+00:00")
         }
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         // Commit 72f4202: a double tap must not insert twice.
@@ -83,7 +87,7 @@ class CommunityChatViewModelTest {
     @Test
     fun `blank content is not sent`() = runTest {
         coEvery { service.messagesPage(any(), any(), any()) } returns emptyList()
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("   "); advanceUntilIdle()
@@ -97,7 +101,7 @@ class CommunityChatViewModelTest {
         val posted = msg("m9", "2026-08-16T10:02:00.000001+00:00")
         coEvery { service.post(any(), any(), any(), any(), any()) } returns posted
         every { service.subscribeMessages("c1") } returns flowOf(posted)
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("hi"); advanceUntilIdle()
@@ -109,7 +113,7 @@ class CommunityChatViewModelTest {
     fun `a failed send hands the text back rather than losing it`() = runTest {
         coEvery { service.messagesPage(any(), any(), any()) } returns emptyList()
         coEvery { service.post(any(), any(), any(), any(), any()) } throws RuntimeException("offline")
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("a thought"); advanceUntilIdle()
@@ -122,7 +126,7 @@ class CommunityChatViewModelTest {
         coEvery { service.messagesPage(any(), any(), any()) } returns emptyList()
         coEvery { service.post(any(), any(), any(), any(), any()) } throws
             RuntimeException("CONTACT_INFO_BLOCKED")
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.send("call me on 555"); advanceUntilIdle()
@@ -137,7 +141,7 @@ class CommunityChatViewModelTest {
     fun `toggleReaction adds mine then removes it`() = runTest {
         val m = msg("m1", "2026-08-16T10:00:00.000001+00:00")
         coEvery { service.messagesPage(any(), any(), any()) } returns listOf(m)
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.toggleReaction("m1", "🌱"); advanceUntilIdle()
@@ -158,7 +162,7 @@ class CommunityChatViewModelTest {
             com.harvestglass.harvest.data.service.ReactionEvent.Added(r),
             com.harvestglass.harvest.data.service.ReactionEvent.Added(r)
         )
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
 
         vm.start("c1", "u1"); advanceUntilIdle()
 
@@ -169,7 +173,7 @@ class CommunityChatViewModelTest {
     // a moderator needs to see what was actually said.
     @Test
     fun `reporting a message files it against that message`() = runTest {
-        vm = CommunityChatViewModel(service, matchService)
+        vm = CommunityChatViewModel(service, matchService, mindful)
         vm.start("c1", "u1"); advanceUntilIdle()
 
         vm.reportMessage("u2", "m7", "Harassment", "They kept it up after I asked them to stop.")

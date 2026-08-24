@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.AuthService
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -31,6 +32,8 @@ data class SettingsUiState(
      * Notifications subsystem; until then this is the app-side master toggle.
      */
     val notificationsEnabled: Boolean = true,
+    /** The recipient-side mindful check. Defaults on, as iOS does. */
+    val mindfulMessagingEnabled: Boolean = true,
     val error: String? = null
 ) {
     // iOS defaults every one of these to true when the column is null.
@@ -44,13 +47,16 @@ data class SettingsUiState(
 @HiltViewModel
 class SettingsViewModel @Inject constructor(
     private val profileService: ProfileService,
-    private val authService: AuthService
+    private val authService: AuthService,
+    private val mindful: MindfulMessagingService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(SettingsUiState())
     val state: StateFlow<SettingsUiState> = _state.asStateFlow()
 
     fun load(userId: String) = viewModelScope.launch {
+        _state.update { it.copy(mindfulMessagingEnabled = mindful.isEnabled) }
+
         runCatching { profileService.getProfile(userId) }
             .onSuccess { profile -> _state.update { it.copy(profile = profile) } }
             .onFailure { e -> _state.update { it.copy(error = e.userMessage()) } }
@@ -89,5 +95,10 @@ class SettingsViewModel @Inject constructor(
         NotificationPref.MESSAGES -> copy(notifMessagesEnabled = enabled)
         NotificationPref.LIKES -> copy(notifLikesEnabled = enabled)
         NotificationPref.GARDENER -> copy(notifGardenerLocalEnabled = enabled)
+    }
+
+    fun setMindfulMessagingEnabled(enabled: Boolean) {
+        mindful.setEnabled(enabled)
+        _state.update { it.copy(mindfulMessagingEnabled = enabled) }
     }
 }

@@ -9,7 +9,7 @@ import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.QuestionsService
 import com.harvestglass.harvest.data.service.ValuesService
 import com.harvestglass.harvest.util.Geocoding
-import com.harvestglass.harvest.util.ObjectionableContent
+import com.harvestglass.harvest.data.service.MindfulMessagingService
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -78,7 +78,7 @@ data class OnboardingUiState(
             OnboardingStep.AGE -> isAgeValid
             OnboardingStep.NICKNAME -> {
                 val trimmed = nickname.trim()
-                trimmed.isNotEmpty() && !ObjectionableContent.contains(trimmed)
+                trimmed.isNotEmpty() && !MindfulMessagingService.containsObjectionableContent(trimmed)
             }
             OnboardingStep.PHOTOS -> photoUrls.isNotEmpty()
             OnboardingStep.GOALS -> selectedGoals.isNotEmpty()

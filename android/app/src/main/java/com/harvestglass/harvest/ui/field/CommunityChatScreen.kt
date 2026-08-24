@@ -34,6 +34,7 @@ import com.harvestglass.harvest.data.model.Community
 import com.harvestglass.harvest.data.model.CommunityMessage
 import com.harvestglass.harvest.data.model.CommunityPrompt
 import com.harvestglass.harvest.data.model.CommunityReaction
+import com.harvestglass.harvest.ui.components.MindfulWarningSheet
 import com.harvestglass.harvest.ui.components.ReportSheet
 import com.harvestglass.harvest.ui.components.ReportTarget
 import com.harvestglass.harvest.ui.components.chat.ChatAccent
@@ -87,6 +88,15 @@ fun CommunityChatScreen(
         if (state.messages.isNotEmpty()) {
             listState.animateScrollToItem(state.messages.lastIndex)
         }
+    }
+
+    state.mindfulWarning?.let { analysis ->
+        MindfulWarningSheet(
+            analysis = analysis,
+            onEdit = { viewModel.editFlaggedMessage() },
+            onSendAnyway = { viewModel.sendAnyway() }
+        )
+        return
     }
 
     openProfileId?.let { id ->

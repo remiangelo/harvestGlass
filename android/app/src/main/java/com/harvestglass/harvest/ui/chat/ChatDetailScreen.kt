@@ -30,6 +30,7 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.harvestglass.harvest.data.model.Message
+import com.harvestglass.harvest.ui.components.MindfulWarningSheet
 import com.harvestglass.harvest.ui.components.ReportSheet
 import com.harvestglass.harvest.ui.components.chat.ChatAccent
 import com.harvestglass.harvest.ui.components.chat.TypingIndicator
@@ -79,6 +80,15 @@ fun ChatDetailScreen(
         state.messages
             .filter { !it.isSentBy(userId) && !it.isRead }
             .forEach { viewModel.markRead(it.id) }
+    }
+
+    state.mindfulWarning?.let { analysis ->
+        MindfulWarningSheet(
+            analysis = analysis,
+            onEdit = { viewModel.editFlaggedMessage() },
+            onSendAnyway = { viewModel.sendAnyway() }
+        )
+        return
     }
 
     if (showReport) {
@@ -135,7 +145,12 @@ fun ChatDetailScreen(
                         position = position,
                         // Metadata once per run, matching iOS.
                         timeLabel = if (position.isLastInGroup) timeLabel(message) else "",
-                        accent = accent
+                        accent = accent,
+                        flaggedCategory = if (message.isSentBy(userId)) {
+                            null
+                        } else {
+                            viewModel.flaggedCategory(message.content)
+                        }
                     )
                 }
 
