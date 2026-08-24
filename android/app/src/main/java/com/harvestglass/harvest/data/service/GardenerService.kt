@@ -1,22 +1,31 @@
 package com.harvestglass.harvest.data.service
 
+import com.harvestglass.harvest.data.model.DailyQuiz
 import com.harvestglass.harvest.data.model.GardenerMessage
+import com.harvestglass.harvest.data.model.QuizCategory
+import com.harvestglass.harvest.data.model.QuizOption
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import kotlinx.serialization.json.JsonElement
+import kotlinx.serialization.json.JsonObject
+import kotlinx.serialization.json.JsonPrimitive
+import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonObject
+import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.time.Instant
+import java.time.LocalDate
+import java.time.ZoneOffset
 import java.time.temporal.ChronoUnit
+import kotlin.math.absoluteValue
 
-/**
- * Mirrors the chat half of Harvest/Services/GardenerService.swift.
- *
- * The daily quiz and the screenshot-review flow are not ported here — see the
- * verification checklist.
- */
+/** Mirrors Harvest/Services/GardenerService.swift. */
 class GardenerService(
     private val client: SupabaseClient,
     private val openAI: OpenAIService
@@ -107,6 +116,218 @@ class GardenerService(
         return response
     }
 
+    /**
+     * Sends a screenshot for review. The image is passed inline as a data URL
+     * and never stored; only a placeholder is written to chat history.
+     *
+     * Throws on transport or decoding failure — a user must never be told their
+     * screenshot was invalid because the network dropped.
+     */
+    suspend fun sendScreenshot(
+        userId: String,
+        imageDataUrl: String,
+        caption: String,
+        history: List<GardenerMessage>
+    ): String {
+        val trimmedCaption = caption.trim()
+
+        val chatMessages = buildList {
+            add(OpenAIService.ChatMessage("system", SCREENSHOT_SYSTEM_PROMPT))
+            history.takeLast(SCREENSHOT_HISTORY_WINDOW).forEach { msg ->
+                add(
+                    OpenAIService.ChatMessage(
+                        role = if (msg.role == "assistant") "assistant" else "user",
+                        content = msg.content
+                    )
+                )
+            }
+            add(
+                OpenAIService.ChatMessage(
+                    role = "user",
+                    parts = buildList {
+                        if (trimmedCaption.isNotEmpty()) {
+                            add(OpenAIService.ContentPart.Text(trimmedCaption))
+                        }
+                        add(OpenAIService.ContentPart.ImageUrl(imageDataUrl))
+                    }
+                )
+            )
+        }
+
+        val raw = openAI.sendChat(messages = chatMessages, temperature = 0.4, maxTokens = 400)
+
+        val verdict = parseVerdict(raw)
+        val response = if (verdict.isChatScreenshot && verdict.reply.isNotEmpty()) {
+            GardenerFormatter.format(verdict.reply)
+        } else {
+            NOT_A_SCREENSHOT_REPLY
+        }
+
+        val placeholder = screenshotPlaceholder(trimmedCaption)
+        val now = Instant.now().toString()
+        runCatching { persist(userId, "user", placeholder, now) }
+        runCatching { persist(userId, "gardener", response, now) }
+
+        return response
+    }
+
+    /** Characters this user has spent on Gardener chat since midnight. */
+    suspend fun getTodayCharacterUsage(userId: String): Int {
+        val startOfDay = LocalDate.now().atStartOfDay(ZoneOffset.UTC).toInstant().toString()
+
+        return client.postgrest.from("gardener_chat_history")
+            .select(Columns.list("message")) {
+                filter {
+                    eq("user_id", userId)
+                    eq("sender", "user")
+                    gte("created_at", startOfDay)
+                }
+            }
+            .decodeList<ChatContentRow>()
+            .sumOf { it.message.length }
+    }
+
+    /** Today's quiz, creating the tracking row if this is the first open today. */
+    suspend fun generateDailyQuiz(userId: String): DailyQuiz? {
+        todayQuiz(userId)?.let { return it }
+
+        val questions = fetchQuestionBank()
+        if (questions.isEmpty()) return null
+
+        val question = selectQuestion(questions, userId)
+
+        val tracking = client.postgrest.from("gardener_daily_quiz_tracking").insert(
+            buildJsonObject {
+                put("user_id", userId)
+                put("quiz_date", LocalDate.now().toString())
+                put("question_id", question.id)
+                put("shown_at", Instant.now().toString())
+                put("answered", false)
+            }
+        ) {
+            select()
+        }
+            .decodeList<QuizTrackingRow>()
+            .firstOrNull()
+            ?: return null
+
+        return makeQuiz(question, tracking, response = null)
+    }
+
+    suspend fun hasQuizToday(userId: String): Boolean = todayQuiz(userId) != null
+
+    /**
+     * Records the chosen option and marks today's tracking row answered.
+     *
+     * The answer has to match one of the quiz's own options — a value that
+     * isn't in the list would write a response no question can explain.
+     */
+    suspend fun saveQuizAnswer(userId: String, quiz: DailyQuiz, answer: String) {
+        val option = quiz.options.firstOrNull { it.text == answer }
+            ?: throw IllegalArgumentException("Quiz answer does not match available options")
+
+        val now = Instant.now().toString()
+        val existing = client.postgrest.from("gardener_quiz_responses")
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    eq("question_id", quiz.questionId)
+                }
+            }
+            .decodeList<QuizResponseRow>()
+
+        if (existing.isEmpty()) {
+            client.postgrest.from("gardener_quiz_responses").insert(
+                buildJsonObject {
+                    put("user_id", userId)
+                    put("question_id", quiz.questionId)
+                    put("selected_option_id", option.id)
+                    put("selected_value", option.text)
+                    put("answered_at", now)
+                }
+            )
+        } else {
+            client.postgrest.from("gardener_quiz_responses").update(
+                buildJsonObject {
+                    put("selected_option_id", option.id)
+                    put("selected_value", option.text)
+                    put("answered_at", now)
+                }
+            ) {
+                filter { eq("id", existing[0].id) }
+            }
+        }
+
+        client.postgrest.from("gardener_daily_quiz_tracking").update(
+            buildJsonObject { put("answered", true) }
+        ) {
+            filter { eq("id", quiz.trackingId) }
+        }
+    }
+
+    private suspend fun todayQuiz(userId: String): DailyQuiz? {
+        val tracking = client.postgrest.from("gardener_daily_quiz_tracking")
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    eq("quiz_date", LocalDate.now().toString())
+                }
+                order("shown_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<QuizTrackingRow>()
+            .firstOrNull()
+            ?: return null
+
+        val question = fetchQuestion(tracking.questionId) ?: return null
+        val response = fetchQuizResponse(userId, tracking.questionId)
+        return makeQuiz(question, tracking, response)
+    }
+
+    private suspend fun fetchQuestionBank(): List<QuizQuestionRow> =
+        client.postgrest.from("gardener_quiz_questions")
+            .select { order("created_at", Order.ASCENDING) }
+            .decodeList()
+
+    private suspend fun fetchQuestion(id: String): QuizQuestionRow? =
+        client.postgrest.from("gardener_quiz_questions")
+            .select {
+                filter { eq("id", id) }
+                limit(1)
+            }
+            .decodeList<QuizQuestionRow>()
+            .firstOrNull()
+
+    private suspend fun fetchQuizResponse(userId: String, questionId: String): QuizResponseRow? =
+        client.postgrest.from("gardener_quiz_responses")
+            .select {
+                filter {
+                    eq("user_id", userId)
+                    eq("question_id", questionId)
+                }
+                order("answered_at", Order.DESCENDING)
+                limit(1)
+            }
+            .decodeList<QuizResponseRow>()
+            .firstOrNull()
+
+    private fun makeQuiz(
+        question: QuizQuestionRow,
+        tracking: QuizTrackingRow,
+        response: QuizResponseRow?
+    ) = DailyQuiz(
+        id = tracking.id,
+        trackingId = tracking.id,
+        questionId = question.id,
+        question = question.question,
+        options = question.optionValues(),
+        category = QuizCategory.fromRaw(question.category),
+        selectedAnswer = response?.selectedValue,
+        insight = null,
+        shownAt = tracking.shownAt,
+        isAnswered = tracking.answered
+    )
+
     private suspend fun persist(userId: String, sender: String, message: String, at: String) {
         client.postgrest.from("gardener_chat_history").insert(
             buildJsonObject {
@@ -118,8 +339,125 @@ class GardenerService(
         )
     }
 
+    @Serializable
+    private data class ChatContentRow(val message: String)
+
+    @Serializable
+    private data class QuizTrackingRow(
+        val id: String,
+        @SerialName("user_id") val userId: String,
+        @SerialName("quiz_date") val quizDate: String,
+        @SerialName("question_id") val questionId: String,
+        @SerialName("shown_at") val shownAt: String? = null,
+        val answered: Boolean = false
+    )
+
+    @Serializable
+    private data class QuizResponseRow(
+        val id: String,
+        @SerialName("user_id") val userId: String,
+        @SerialName("question_id") val questionId: String,
+        @SerialName("selected_option_id") val selectedOptionId: String,
+        @SerialName("selected_value") val selectedValue: String,
+        @SerialName("answered_at") val answeredAt: String? = null
+    )
+
+    @Serializable
+    private data class QuizQuestionRow(
+        val id: String,
+        val question: String,
+        val category: String,
+        /**
+         * Options are stored either as bare strings or as {id, text} objects,
+         * so they decode loosely and [optionValues] normalises them.
+         */
+        val options: List<JsonElement> = emptyList()
+    ) {
+        fun optionValues(): List<QuizOption> =
+            options.mapIndexed { index, element ->
+                val obj = element as? JsonObject
+                val text = obj?.get("text")?.jsonPrimitive?.content
+                    ?: (element as? JsonPrimitive)?.takeIf { it.isString }?.content
+                QuizOption(
+                    id = obj?.get("id")?.jsonPrimitive?.content ?: "option_$index",
+                    text = text.orEmpty()
+                )
+            }.filter { it.text.isNotEmpty() }
+    }
+
+    /** The model's answer to "is this a chat screenshot, and what would you say". */
+    data class ScreenshotVerdict(val isChatScreenshot: Boolean, val reply: String)
+
     companion object {
         private const val HISTORY_WINDOW = 10
+        private const val SCREENSHOT_HISTORY_WINDOW = 6
+
+        /** iOS composes the same placeholder, and both stores read it back. */
+        fun screenshotPlaceholder(caption: String): String =
+            if (caption.isEmpty()) "\uD83D\uDCF7 Screenshot" else "\uD83D\uDCF7 Screenshot \u2014 $caption"
+
+        /**
+         * Picks the same question for the same user, as Swift's
+         * `abs(userId.hashValue) % questions.count` does.
+         */
+        internal fun <T> selectQuestion(questions: List<T>, userId: String): T =
+            questions[userId.hashCode().absoluteValue % questions.size]
+
+        /**
+         * Pulls the verdict out of the model's reply, tolerating code fences
+         * and stray prose around the object.
+         */
+        fun parseVerdict(raw: String): ScreenshotVerdict {
+            val cleaned = raw.replace("```json", "").replace("```", "").trim()
+            val start = cleaned.indexOf('{')
+            val end = cleaned.lastIndexOf('}')
+            if (start < 0 || end <= start) {
+                throw IllegalStateException("The Gardener returned no verdict")
+            }
+
+            val obj = JSON.parseToJsonElement(cleaned.substring(start, end + 1)).jsonObject
+            return ScreenshotVerdict(
+                isChatScreenshot = obj["is_chat_screenshot"]?.jsonPrimitive?.booleanOrNull ?: false,
+                reply = obj["reply"]?.jsonPrimitive?.content.orEmpty()
+            )
+        }
+
+        private val JSON = Json { ignoreUnknownKeys = true }
+
+        /**
+         * Shown verbatim when the image isn't a conversation. Fixed in the app
+         * rather than written by the model so the promise is worded identically
+         * every time — and so it invites a retry, because detection is a
+         * judgement call that will occasionally be wrong.
+         */
+        val NOT_A_SCREENSHOT_REPLY = """
+            I can only read screenshots of a conversation \u2014 a chat thread, texts, or DMs.
+
+            This one doesn't look like that, so I'd rather not guess at it. If it *is* a conversation, try a fuller screenshot showing the messages and I'll take another look.
+        """.trimIndent()
+
+        private val SCREENSHOT_SYSTEM_PROMPT = """
+            You are The Gardener, a warm and insightful AI dating coach for the Harvest dating app.
+
+            The user has sent an image. First decide whether it is a screenshot of a
+            TEXT CONVERSATION \u2014 a chat thread, SMS/iMessage, or DMs from any app, showing
+            messages between people. A selfie, a dating profile, a meme, a landscape, a
+            document, or a photo of a person is NOT a conversation screenshot.
+
+            Reply with ONLY a JSON object, no code fences, in exactly this shape:
+            {"is_chat_screenshot": <true|false>, "reply": "<your coaching reply>"}
+
+            If is_chat_screenshot is false, set "reply" to an empty string.
+
+            If it is true, "reply" is your coaching response about the conversation:
+            - Say plainly what you notice in the exchange, then what to do about it.
+            - Be specific about tone and what the other person appears to be signalling.
+            - Give 2-4 concrete suggestions, including an example of what to send next.
+            - Never invent messages that aren't visible in the image.
+            - Keep it concise: short paragraphs of 1-3 sentences, blank line between each.
+            - Never give medical or legal advice. If it shows distress, abuse, or risk,
+              name that clearly and encourage professional or trusted human support.
+        """.trimIndent()
 
         const val WELCOME_MESSAGE =
             "Welcome to The Gardener! I'm your personal dating coach, here to help you " +

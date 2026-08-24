@@ -1,16 +1,28 @@
 package com.harvestglass.harvest.ui.gardener
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.harvestglass.harvest.data.model.DailyQuiz
 import com.harvestglass.harvest.data.model.GardenerMessage
+import com.harvestglass.harvest.data.model.SubscriptionTier
+import com.harvestglass.harvest.data.model.TierName
 import com.harvestglass.harvest.data.service.GardenerService
+import com.harvestglass.harvest.data.service.OpenAIService
+import com.harvestglass.harvest.data.service.RateLimitService
+import com.harvestglass.harvest.data.service.SubscriptionService
+import com.harvestglass.harvest.util.ScreenshotEncoder
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import javax.inject.Inject
 
 data class GardenerUiState(
@@ -18,20 +30,60 @@ data class GardenerUiState(
     val draft: String = "",
     val isLoading: Boolean = false,
     val isThinking: Boolean = false,
-    val error: String? = null
-)
+    val error: String? = null,
 
-/** Mirrors the chat half of Harvest/ViewModels/GardenerViewModel.swift. */
+    /** The image staged in the composer, awaiting send. Never persisted. */
+    val pendingScreenshot: Uri? = null,
+
+    val characterLimit: Int = FREE_CHARACTER_LIMIT,
+    val charactersUsedToday: Int = 0,
+    val screenshotLimit: Int = FREE_SCREENSHOT_LIMIT,
+    val screenshotsUsedToday: Int = 0,
+
+    val dailyQuiz: DailyQuiz? = null,
+    val showDailyQuiz: Boolean = false,
+    val isSubmittingQuiz: Boolean = false
+) {
+    val hasPendingScreenshot: Boolean get() = pendingScreenshot != null
+
+    val remainingCharacters: Int get() = (characterLimit - charactersUsedToday).coerceAtLeast(0)
+    val isAtCharacterLimit: Boolean get() = charactersUsedToday >= characterLimit
+
+    val remainingScreenshots: Int get() = (screenshotLimit - screenshotsUsedToday).coerceAtLeast(0)
+    val isAtScreenshotLimit: Boolean get() = remainingScreenshots == 0
+
+    /**
+     * The composer only locks outright once BOTH budgets are spent — chat
+     * characters and screenshot reviews are separate allowances.
+     */
+    val isFullyLocked: Boolean get() = isAtCharacterLimit && isAtScreenshotLimit
+
+    companion object {
+        /** The free tier's allowances, and the offline fallback. */
+        const val FREE_CHARACTER_LIMIT = 2000
+        const val FREE_SCREENSHOT_LIMIT = 1
+    }
+}
+
+/** Mirrors Harvest/ViewModels/GardenerViewModel.swift. */
 @HiltViewModel
 class GardenerViewModel @Inject constructor(
-    private val service: GardenerService
+    private val service: GardenerService,
+    private val subscriptionService: SubscriptionService,
+    private val rateLimitService: RateLimitService,
+    private val openAI: OpenAIService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(GardenerUiState())
     val state: StateFlow<GardenerUiState> = _state.asStateFlow()
 
+    private var currentTier: SubscriptionTier? = null
+
     fun load(userId: String) = viewModelScope.launch {
         _state.update { it.copy(isLoading = true) }
+
+        loadTierLimits(userId)
+
         try {
             val history = service.getChatHistory(userId)
             _state.update {
@@ -53,10 +105,29 @@ class GardenerViewModel @Inject constructor(
 
     fun updateDraft(text: String) = _state.update { it.copy(draft = text) }
 
+    fun clearError() = _state.update { it.copy(error = null) }
+
     fun send(userId: String, content: String = _state.value.draft) = viewModelScope.launch {
         if (_state.value.isThinking) return@launch
         val text = content.trim()
         if (text.isEmpty()) return@launch
+
+        val tier = currentTier
+        if (tier == null) {
+            _state.update { it.copy(error = "Unable to verify subscription tier") }
+            return@launch
+        }
+
+        // A failed limit check must not block the send — the budget is a
+        // courtesy, and a network blip shouldn't read as "you're out".
+        val check = runCatching {
+            rateLimitService.checkGardenerLimit(userId, text.length, tier)
+        }.getOrNull()
+
+        if (check != null && !check.canSend) {
+            _state.update { it.copy(error = check.reason) }
+            return@launch
+        }
 
         val optimistic = GardenerMessage(
             id = "local-${System.nanoTime()}",
@@ -65,7 +136,13 @@ class GardenerViewModel @Inject constructor(
             content = text
         )
         _state.update {
-            it.copy(messages = it.messages + optimistic, draft = "", isThinking = true, error = null)
+            it.copy(
+                messages = it.messages + optimistic,
+                draft = "",
+                isThinking = true,
+                error = null,
+                charactersUsedToday = it.charactersUsedToday + text.length
+            )
         }
 
         try {
@@ -80,17 +157,192 @@ class GardenerViewModel @Inject constructor(
                     )
                 )
             }
+            runCatching { rateLimitService.trackGardenerConversation(userId, text.length) }
         } catch (e: Exception) {
             // Hand the text back so a failed turn isn't a lost message.
             _state.update {
                 it.copy(
                     messages = it.messages.filterNot { m -> m.id == optimistic.id },
                     draft = text,
+                    charactersUsedToday =
+                        (it.charactersUsedToday - text.length).coerceAtLeast(0),
                     error = e.userMessage()
                 )
             }
         } finally {
             _state.update { it.copy(isThinking = false) }
+        }
+    }
+
+    fun stageScreenshot(uri: Uri?) = _state.update { it.copy(pendingScreenshot = uri) }
+
+    fun clearScreenshot() = _state.update { it.copy(pendingScreenshot = null) }
+
+    /**
+     * Sends the staged screenshot for review. The image is encoded inline and
+     * dropped — nothing is uploaded to storage.
+     */
+    fun sendScreenshot(context: Context, userId: String) = viewModelScope.launch {
+        if (_state.value.isThinking) return@launch
+        val uri = _state.value.pendingScreenshot ?: return@launch
+
+        val tier = currentTier
+        if (tier == null) {
+            _state.update { it.copy(error = "Unable to verify subscription tier") }
+            return@launch
+        }
+
+        val check = runCatching {
+            rateLimitService.checkScreenshotLimit(userId, tier)
+        }.getOrNull()
+
+        if (check != null && !check.canSend) {
+            _state.update { it.copy(error = check.reason) }
+            return@launch
+        }
+
+        val caption = _state.value.draft.trim()
+
+        // Encode before mutating any state, so a bad image leaves the composer
+        // exactly as the user left it.
+        val dataUrl = try {
+            withContext(Dispatchers.IO) { ScreenshotEncoder.dataUrl(context, uri) }
+        } catch (e: Exception) {
+            _state.update { it.copy(error = e.userMessage()) }
+            return@launch
+        }
+
+        val placeholder = GardenerService.screenshotPlaceholder(caption)
+        _state.update {
+            it.copy(
+                draft = "",
+                pendingScreenshot = null,
+                isThinking = true,
+                error = null,
+                screenshotsUsedToday = it.screenshotsUsedToday + 1,
+                messages = it.messages + GardenerMessage(
+                    id = "local-${System.nanoTime()}",
+                    userId = userId,
+                    role = "user",
+                    content = placeholder
+                )
+            )
+        }
+
+        runCatching { rateLimitService.trackScreenshotReview(userId) }
+
+        try {
+            val reply = service.sendScreenshot(
+                userId = userId,
+                imageDataUrl = dataUrl,
+                caption = caption,
+                history = _state.value.messages.dropLast(1)
+            )
+            _state.update {
+                it.copy(
+                    messages = it.messages + GardenerMessage(
+                        id = "reply-${System.nanoTime()}",
+                        userId = userId,
+                        role = "assistant",
+                        content = reply
+                    )
+                )
+            }
+        } catch (_: Exception) {
+            // Transport or decode failure — never presented as "not a
+            // screenshot", which would blame the user for a network problem.
+            _state.update {
+                it.copy(error = "I couldn't read that screenshot just now. Try sending it again.")
+            }
+        } finally {
+            _state.update { it.copy(isThinking = false) }
+        }
+    }
+
+    /** Opens today's quiz, if there is one and it hasn't been answered. */
+    fun checkDailyQuiz(userId: String) = viewModelScope.launch {
+        // Delay slightly for better UX, as iOS does.
+        delay(QUIZ_DELAY_MS)
+
+        try {
+            val quiz = service.generateDailyQuiz(userId)
+            if (quiz != null && !quiz.isAnswered) {
+                _state.update { it.copy(dailyQuiz = quiz, showDailyQuiz = true) }
+            }
+        } catch (e: Exception) {
+            _state.update { it.copy(error = "Daily quiz failed to load: ${e.userMessage()}") }
+        }
+    }
+
+    fun dismissDailyQuiz() = _state.update { it.copy(showDailyQuiz = false) }
+
+    fun submitQuizAnswer(userId: String, answer: String) = viewModelScope.launch {
+        val quiz = _state.value.dailyQuiz ?: return@launch
+        _state.update { it.copy(isSubmittingQuiz = true) }
+
+        val insight = runCatching {
+            openAI.sendChat(
+                messages = listOf(
+                    OpenAIService.ChatMessage(
+                        "system",
+                        "You are a dating coach. Give a brief 1-2 sentence insight " +
+                            "based on this quiz answer."
+                    ),
+                    OpenAIService.ChatMessage(
+                        "user",
+                        "Question: ${quiz.question}\nAnswer: $answer"
+                    )
+                ),
+                temperature = 0.7,
+                maxTokens = 100
+            )
+        }.getOrElse { FALLBACK_INSIGHT }
+
+        runCatching { service.saveQuizAnswer(userId, quiz, answer) }
+
+        _state.update {
+            it.copy(
+                isSubmittingQuiz = false,
+                dailyQuiz = quiz.copy(
+                    selectedAnswer = answer,
+                    insight = insight,
+                    isAnswered = true
+                )
+            )
+        }
+    }
+
+    /**
+     * Adopts the user's tier allowances and reads today's usage back for both
+     * budgets. Falls back to the free tier so a failed lookup leaves the
+     * composer usable rather than locking someone out.
+     */
+    private suspend fun loadTierLimits(userId: String) {
+        val tier = runCatching { subscriptionService.currentTier(userId) }.getOrNull()
+
+        if (tier != null) {
+            currentTier = tier
+            val used = runCatching { rateLimitService.charactersUsedToday(userId) }.getOrNull()
+            val shots = runCatching { rateLimitService.screenshotsUsedToday(userId) }.getOrNull()
+            _state.update {
+                it.copy(
+                    characterLimit = tier.gardenerCharacterLimit,
+                    screenshotLimit = tier.gardenerScreenshotsPerDay,
+                    charactersUsedToday = used ?: 0,
+                    screenshotsUsedToday = shots ?: 0
+                )
+            }
+            return
+        }
+
+        currentTier = FREE_FALLBACK
+        _state.update {
+            it.copy(
+                characterLimit = GardenerUiState.FREE_CHARACTER_LIMIT,
+                screenshotLimit = GardenerUiState.FREE_SCREENSHOT_LIMIT,
+                charactersUsedToday = 0,
+                screenshotsUsedToday = 0
+            )
         }
     }
 
@@ -100,4 +352,20 @@ class GardenerViewModel @Inject constructor(
         role = "assistant",
         content = GardenerService.WELCOME_MESSAGE
     )
+
+    companion object {
+        private const val QUIZ_DELAY_MS = 2000L
+
+        private const val FALLBACK_INSIGHT =
+            "Interesting choice! Self-awareness is the first step to meaningful connections."
+
+        /** The offline tier: free allowances, nothing unlocked. */
+        private val FREE_FALLBACK = SubscriptionTier(
+            id = "",
+            name = TierName.SEED,
+            displayName = "Seed",
+            gardenerCharacterLimit = GardenerUiState.FREE_CHARACTER_LIMIT,
+            gardenerScreenshotsPerDay = GardenerUiState.FREE_SCREENSHOT_LIMIT
+        )
+    }
 }

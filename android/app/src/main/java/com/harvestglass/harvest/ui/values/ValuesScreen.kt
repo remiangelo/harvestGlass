@@ -47,11 +47,9 @@ private const val MAX_VALUE_SELECTIONS = 3
 /**
  * Port of Harvest/Views/Values/ValuesView.swift — the Soil tab.
  *
- * Two sections of the Swift view are not here:
- *  - The generated-blurb section, which iOS itself has commented out
- *    ("blurbSection — temporarily disabled"), so omitting it IS parity.
- *  - The Tips library, which needs the subscription tier lookup. It renders
- *    in its locked state, which is what a free user sees on iOS.
+ * One section of the Swift view is not here: the generated-blurb section,
+ * which iOS itself has commented out ("blurbSection — temporarily disabled"),
+ * so omitting it IS parity.
  */
 @Composable
 fun ValuesScreen(
@@ -136,10 +134,11 @@ fun ValuesContent(
                 onGraphSideChange = onGraphSideChange
             )
 
-            // The unlocked Tips library and the tier lookup that gates it both
-            // port with the Subscription subsystem. Until then hasGrowthFeatures
-            // is fail-closed, so every user sees the gate a free user sees.
-            ValuesMode.TIPS -> PremiumGate(featureName = "Values-Based Dating Tips")
+            ValuesMode.TIPS -> if (state.hasGrowthFeatures) {
+                TipsSection()
+            } else {
+                PremiumGate(featureName = "Values-Based Dating Tips")
+            }
         }
     }
 }

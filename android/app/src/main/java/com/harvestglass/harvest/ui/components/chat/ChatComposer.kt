@@ -51,9 +51,16 @@ fun ChatComposer(
     isSending: Boolean,
     onSend: () -> Unit,
     modifier: Modifier = Modifier,
-    accessory: @Composable (() -> Unit)? = null
+    accessory: @Composable (() -> Unit)? = null,
+    /**
+     * Lets a caller send with an empty field. The Gardener needs it: a staged
+     * screenshot is sendable on its own, the caption being optional.
+     */
+    sendsWithoutText: Boolean = false,
+    /** Rendered under the send button. The Gardener shows its budget there. */
+    sendFooter: @Composable (() -> Unit)? = null
 ) {
-    val canSend = text.trim().isNotEmpty() && !isSending
+    val canSend = (sendsWithoutText || text.trim().isNotEmpty()) && !isSending
     val pill = RoundedCornerShape(percent = 50)
 
     Column(
@@ -115,7 +122,17 @@ fun ChatComposer(
                 }
             )
 
-            SendButton(canSend = canSend, isSending = isSending, accent = accent, onSend = onSend)
+            if (sendFooter == null) {
+                SendButton(canSend, isSending, accent, onSend)
+            } else {
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.spacedBy(2.dp)
+                ) {
+                    SendButton(canSend, isSending, accent, onSend)
+                    sendFooter()
+                }
+            }
         }
     }
 }
