@@ -8,6 +8,7 @@ import com.harvestglass.harvest.data.service.ChatService
 import com.harvestglass.harvest.data.service.GardenerService
 import com.harvestglass.harvest.data.service.OpenAIService
 import com.harvestglass.harvest.data.service.MatchService
+import com.harvestglass.harvest.data.service.NotificationService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.SeedService
 import com.harvestglass.harvest.data.service.QuestionsService
@@ -79,4 +80,8 @@ object AppModule {
     @Singleton
     fun provideGardenerService(client: SupabaseClient, openAI: OpenAIService) =
         GardenerService(client, openAI)
+
+    @Provides
+    @Singleton
+    fun provideNotificationService(client: SupabaseClient) = NotificationService(client)
 }

@@ -33,6 +33,7 @@ interface SendPushRequest {
 
 interface UserDevice {
   apns_token: string;
+  platform?: string;
 }
 
 // -------- JWT cache (warm-start across invocations)
@@ -186,7 +187,7 @@ Deno.serve(async (req) => {
 
   const { data: devices, error: fetchError } = await supabase
     .from("user_devices")
-    .select("apns_token")
+    .select("apns_token, platform")
     .eq("user_id", body.recipient_user_id);
 
   if (fetchError) {
@@ -201,11 +202,16 @@ Deno.serve(async (req) => {
     });
   }
 
-  const jwt = await buildJwt();
+  // Only built when there is an iOS device to send to — an Android-only user
+  // should not fail because the APNs secrets are absent.
+  const hasApns = (devices as UserDevice[]).some((d) => d.platform !== "android");
+  const jwt = hasApns ? await buildJwt() : "";
 
   let sent = 0;
   for (const device of devices as UserDevice[]) {
-    const result = await sendToDevice(device.apns_token, body, jwt);
+    const result = device.platform === "android"
+      ? await sendToAndroidDevice(device.apns_token, body)
+      : await sendToDevice(device.apns_token, body, jwt);
 
     if (result.status === 200) {
       sent++;
@@ -215,7 +221,10 @@ Deno.serve(async (req) => {
     // Stale token — purge so subsequent sends don't waste time on it.
     if (
       result.status === 410 ||
-      (result.status === 400 && result.reason === "BadDeviceToken")
+      (result.status === 400 && result.reason === "BadDeviceToken") ||
+      // FCM reports a dead registration as 404 UNREGISTERED / 400 INVALID_ARGUMENT.
+      (result.status === 404 && result.reason === "UNREGISTERED") ||
+      (result.status === 400 && result.reason === "INVALID_ARGUMENT")
     ) {
       await supabase
         .from("user_devices")
@@ -226,7 +235,8 @@ Deno.serve(async (req) => {
     }
 
     console.error(
-      `APNs error ${result.status} ${result.reason ?? ""} for token ${device.apns_token.substring(0, 8)}…`,
+      `${device.platform === "android" ? "FCM" : "APNs"} error ${result.status} ` +
+        `${result.reason ?? ""} for token ${device.apns_token.substring(0, 8)}…`,
     );
   }
 
@@ -235,3 +245,126 @@ Deno.serve(async (req) => {
     headers: { "content-type": "application/json" },
   });
 });
+
+// ---------------------------------------------------------------------------
+// FCM (Android)
+//
+// FCM v1 needs an OAuth2 access token minted from a service-account key, the
+// same ES256/RS256 JWT dance as APNs but against Google's token endpoint.
+//
+// Required secrets:
+//   FCM_PROJECT_ID           - Firebase project id
+//   FCM_CLIENT_EMAIL         - service account client_email
+//   FCM_PRIVATE_KEY          - service account private_key, with BEGIN/END lines
+// ---------------------------------------------------------------------------
+
+let cachedGoogleToken: { token: string; expiresAt: number } | null = null;
+
+async function googleAccessToken(): Promise<string> {
+  const now = Math.floor(Date.now() / 1000);
+  if (cachedGoogleToken && cachedGoogleToken.expiresAt > now + 60) {
+    return cachedGoogleToken.token;
+  }
+
+  const clientEmail = Deno.env.get("FCM_CLIENT_EMAIL")!;
+  const pem = Deno.env.get("FCM_PRIVATE_KEY")!.replace(/\\n/g, "\n");
+
+  const header = { alg: "RS256", typ: "JWT" };
+  const claims = {
+    iss: clientEmail,
+    scope: "https://www.googleapis.com/auth/firebase.messaging",
+    aud: "https://oauth2.googleapis.com/token",
+    iat: now,
+    exp: now + 3600,
+  };
+
+  const signingInput =
+    `${base64url(JSON.stringify(header))}.${base64url(JSON.stringify(claims))}`;
+
+  const key = await crypto.subtle.importKey(
+    "pkcs8",
+    pemToArrayBuffer(pem),
+    { name: "RSASSA-PKCS1-v1_5", hash: "SHA-256" },
+    false,
+    ["sign"],
+  );
+  const signature = await crypto.subtle.sign(
+    "RSASSA-PKCS1-v1_5",
+    key,
+    new TextEncoder().encode(signingInput),
+  );
+
+  const assertion = `${signingInput}.${base64url(new Uint8Array(signature))}`;
+
+  const response = await fetch("https://oauth2.googleapis.com/token", {
+    method: "POST",
+    headers: { "content-type": "application/x-www-form-urlencoded" },
+    body: new URLSearchParams({
+      grant_type: "urn:ietf:params:oauth:grant-type:jwt-bearer",
+      assertion,
+    }),
+  });
+
+  if (!response.ok) {
+    throw new Error(`Google token exchange failed: ${response.status}`);
+  }
+
+  const json = await response.json();
+  cachedGoogleToken = {
+    token: json.access_token,
+    expiresAt: now + (json.expires_in ?? 3600),
+  };
+  return cachedGoogleToken.token;
+}
+
+async function sendToAndroidDevice(
+  token: string,
+  body: PushRequest,
+): Promise<{ status: number; reason?: string }> {
+  const projectId = Deno.env.get("FCM_PROJECT_ID");
+  if (!projectId) {
+    // Android push not configured yet: report rather than throw, so an iOS
+    // send in the same call still goes out.
+    return { status: 500, reason: "FCM_NOT_CONFIGURED" };
+  }
+
+  let accessToken: string;
+  try {
+    accessToken = await googleAccessToken();
+  } catch (error) {
+    console.error("FCM auth failed:", error);
+    return { status: 500, reason: "FCM_AUTH_FAILED" };
+  }
+
+  const response = await fetch(
+    `https://fcm.googleapis.com/v1/projects/${projectId}/messages:send`,
+    {
+      method: "POST",
+      headers: {
+        authorization: `Bearer ${accessToken}`,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        message: {
+          token,
+          notification: {
+            title: body.payload.title,
+            body: body.payload.body,
+          },
+          // Key matches the iOS payload's `deepLink` so both clients route
+          // through the same handler.
+          data: { deepLink: body.payload.deepLink },
+          android: { priority: "high" },
+        },
+      }),
+    },
+  );
+
+  if (response.status === 200) return { status: 200 };
+
+  const errorBody = await response.json().catch(() => null);
+  return {
+    status: response.status,
+    reason: errorBody?.error?.status ?? errorBody?.error?.message,
+  };
+}
