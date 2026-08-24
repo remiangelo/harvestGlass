@@ -44,6 +44,8 @@ import com.harvestglass.harvest.ui.seeds.SeedsScreen
 import com.harvestglass.harvest.ui.settings.SettingsScreen
 import com.harvestglass.harvest.ui.values.ValuesScreen
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
+import androidx.compose.ui.platform.LocalContext
+import com.harvestglass.harvest.ui.onboarding.DifferentiationScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
 /**
@@ -76,6 +78,12 @@ fun MainTabScreen(
     pendingDeepLink: String? = null,
     onDeepLinkHandled: () -> Unit = {}
 ) {
+    val context = LocalContext.current
+    // Shown once ever, as iOS's UserDefaults flag does.
+    var showDifferentiation by remember {
+        mutableStateOf(!hasSeenDifferentiation(context))
+    }
+
     // iOS lands on The Field (selection = 1).
     var selected by remember { mutableStateOf(HarvestTab.FIELD) }
     var openRoom by remember { mutableStateOf<Community?>(null) }
@@ -88,6 +96,16 @@ fun MainTabScreen(
         val link = pendingDeepLink ?: return@LaunchedEffect
         deepLinkTab(link)?.let { selected = it }
         onDeepLinkHandled()
+    }
+
+    if (showDifferentiation) {
+        DifferentiationScreen {
+            markDifferentiationSeen(context)
+            showDifferentiation = false
+            // iOS lands on The Field after the intro; so does this.
+            selected = HarvestTab.FIELD
+        }
+        return
     }
 
     RegisterForPush(userId = state.currentUserId.orEmpty())
@@ -226,4 +244,19 @@ private fun ComingLaterScreen(tab: HarvestTab, onSignOut: (() -> Unit)?) {
             }
         }
     }
+}
+
+/** Mirrors iOS's "hasSeenDifferentiation" UserDefaults flag. */
+private const val PREFS = "harvest_prefs"
+private const val KEY_SEEN_DIFFERENTIATION = "hasSeenDifferentiation"
+
+private fun hasSeenDifferentiation(context: android.content.Context): Boolean =
+    context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+        .getBoolean(KEY_SEEN_DIFFERENTIATION, false)
+
+private fun markDifferentiationSeen(context: android.content.Context) {
+    context.getSharedPreferences(PREFS, android.content.Context.MODE_PRIVATE)
+        .edit()
+        .putBoolean(KEY_SEEN_DIFFERENTIATION, true)
+        .apply()
 }

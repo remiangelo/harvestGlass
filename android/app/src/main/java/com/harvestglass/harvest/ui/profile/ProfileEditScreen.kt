@@ -48,10 +48,19 @@ import com.harvestglass.harvest.ui.components.SectionHeader
 import com.harvestglass.harvest.ui.onboarding.steps.readAsJpeg
 import com.harvestglass.harvest.ui.theme.HarvestButton
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
+import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
+import androidx.compose.ui.text.style.TextAlign
+import com.harvestglass.harvest.util.HeightFormatter
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 import kotlinx.coroutines.launch
 
 private const val MAX_PHOTOS = 6
+
+// The ranges iOS pins its steppers to.
+private const val MIN_AGE = 18
+private const val MAX_AGE = 100
+private const val MIN_HEIGHT_CM = 100
+private const val MAX_HEIGHT_CM = 250
 
 /** Port of Harvest/Views/Profile/ProfileEditView.swift. */
 @Composable
@@ -64,12 +73,22 @@ fun ProfileEditScreen(
     val scope = rememberCoroutineScope()
     val context = LocalContext.current
     val draft = state.draft
+    var showInterests by remember { mutableStateOf(false) }
 
     val picker = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri ->
         if (uri == null) return@rememberLauncherForActivityResult
         readAsJpeg(context, uri)?.let { viewModel.uploadPhoto(userId, it) }
+    }
+
+    if (showInterests) {
+        InterestPicker(
+            selected = draft.hobbies,
+            onSave = { viewModel.updateDraft(draft.copy(hobbies = it)) },
+            onDismiss = { showInterests = false }
+        )
+        return
     }
 
     Column(
@@ -180,16 +199,44 @@ fun ProfileEditScreen(
                 }
             }
 
-            SectionHeader("About you")
+            SectionHeader("Basic Info")
             GlassCard(style = GlassCardStyle.LIGHT) {
                 EditField("Nickname", draft.nickname) {
                     viewModel.updateDraft(draft.copy(nickname = it))
                 }
-                EditField("Bio", draft.bio, singleLine = false) {
-                    viewModel.updateDraft(draft.copy(bio = it))
-                }
+                StepperRow(
+                    title = "Age",
+                    display = "${draft.age}",
+                    onDecrement = {
+                        viewModel.updateDraft(draft.copy(age = (draft.age - 1).coerceAtLeast(MIN_AGE)))
+                    },
+                    onIncrement = {
+                        viewModel.updateDraft(draft.copy(age = (draft.age + 1).coerceAtMost(MAX_AGE)))
+                    }
+                )
+                StepperRow(
+                    title = "Height",
+                    display = HeightFormatter.string(draft.heightCm),
+                    onDecrement = {
+                        viewModel.updateDraft(
+                            draft.copy(heightCm = (draft.heightCm - 1).coerceAtLeast(MIN_HEIGHT_CM))
+                        )
+                    },
+                    onIncrement = {
+                        viewModel.updateDraft(
+                            draft.copy(heightCm = (draft.heightCm + 1).coerceAtMost(MAX_HEIGHT_CM))
+                        )
+                    }
+                )
                 EditField("Location", draft.location) {
                     viewModel.updateDraft(draft.copy(location = it))
+                }
+            }
+
+            SectionHeader("About Me")
+            GlassCard(style = GlassCardStyle.LIGHT) {
+                EditField("Bio", draft.bio, singleLine = false) {
+                    viewModel.updateDraft(draft.copy(bio = it))
                 }
             }
 
@@ -212,6 +259,42 @@ fun ProfileEditScreen(
                 }
                 OptionRow("Children", draft.childrenStatus, ProfileFilterOptions.children) {
                     viewModel.updateDraft(draft.copy(childrenStatus = it))
+                }
+                RelationshipStatusRow(draft.relationshipStatus) {
+                    viewModel.updateDraft(draft.copy(relationshipStatus = it))
+                }
+            }
+
+            SectionHeader("Interests")
+            GlassCard(style = GlassCardStyle.LIGHT) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable { showInterests = true }
+                        .padding(vertical = HarvestTheme.Spacing.sm)
+                ) {
+                    Column(Modifier.weight(1f)) {
+                        Text(
+                            text = "Edit Interests",
+                            style = HarvestTheme.Typography.bodyRegular,
+                            color = HarvestTheme.Colors.textPrimary
+                        )
+                        Text(
+                            text = if (draft.hobbies.isEmpty()) {
+                                "Select your interests"
+                            } else {
+                                "${draft.hobbies.size} selected"
+                            },
+                            style = HarvestTheme.Typography.caption,
+                            color = HarvestTheme.Colors.textSecondary
+                        )
+                    }
+                    Icon(
+                        Icons.AutoMirrored.Filled.KeyboardArrowRight,
+                        contentDescription = null,
+                        tint = HarvestTheme.Colors.textTertiary
+                    )
                 }
             }
 
@@ -266,6 +349,80 @@ private fun EditField(
                 ) { inner() }
             }
         )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun StepperRow(
+    title: String,
+    display: String,
+    onDecrement: () -> Unit,
+    onIncrement: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(vertical = HarvestTheme.Spacing.sm)
+    ) {
+        Text(
+            text = title,
+            style = HarvestTheme.Typography.bodyRegular,
+            color = HarvestTheme.Colors.textPrimary,
+            modifier = Modifier.weight(1f)
+        )
+        Text(
+            text = display,
+            style = HarvestTheme.Typography.bodyRegular,
+            color = HarvestTheme.Colors.textPrimary,
+            modifier = Modifier.padding(end = HarvestTheme.Spacing.sm)
+        )
+        StepperButton("\u2212", onDecrement)
+        Spacer(Modifier.width(HarvestTheme.Spacing.sm))
+        StepperButton("+", onIncrement)
+    }
+}
+
+@Composable
+private fun StepperButton(label: String, onClick: () -> Unit) {
+    Text(
+        text = label,
+        style = HarvestTheme.Typography.h4,
+        color = HarvestTheme.Colors.textOnRedPrimary,
+        textAlign = TextAlign.Center,
+        modifier = Modifier
+            .size(32.dp)
+            .background(HarvestTheme.Colors.primary, CircleShape)
+            .clickable { onClick() }
+            .padding(top = 2.dp)
+    )
+}
+
+/** The column stores snake_case, so the chips carry label/value pairs. */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun RelationshipStatusRow(selected: String, onSelect: (String) -> Unit) {
+    Column(Modifier.padding(vertical = HarvestTheme.Spacing.xs)) {
+        Text(
+            text = "Relationship Status",
+            style = HarvestTheme.Typography.caption,
+            color = HarvestTheme.Colors.textSecondary
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.xs),
+            verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.xs)
+        ) {
+            ProfileFilterOptions.relationshipStatus.forEach { (label, value) ->
+                ChipView(
+                    title = label,
+                    isSelected = selected == value,
+                    lightStyle = true,
+                    // Tapping the selected chip clears it.
+                    onTap = { onSelect(if (selected == value) "" else value) }
+                )
+            }
+        }
     }
 }
 

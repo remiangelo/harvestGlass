@@ -37,5 +37,17 @@ object ProfileFilterOptions {
     )
 
     /** Shown as the "no preference" entry at the top of every picker. */
+    /**
+     * Label to stored value. The column holds the snake_case value, so the
+     * pairs cannot be flattened to a plain list.
+     */
+    val relationshipStatus = listOf(
+        "Single" to "single",
+        "Dating / exploring" to "dating",
+        "In a relationship" to "in_relationship",
+        "Engaged" to "engaged",
+        "Married" to "married"
+    )
+
     const val ANY = "Any"
 }
