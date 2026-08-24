@@ -19,6 +19,7 @@ import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -28,6 +29,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.text.style.TextAlign
 import com.harvestglass.harvest.data.model.Community
+import com.harvestglass.harvest.push.RegisterForPush
 import com.harvestglass.harvest.ui.auth.AuthUiState
 import com.harvestglass.harvest.ui.components.GlassButton
 import com.harvestglass.harvest.ui.components.GlassCard
@@ -68,12 +70,27 @@ fun deepLinkTab(link: String): HarvestTab? = when {
 }
 
 @Composable
-fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
+fun MainTabScreen(
+    state: AuthUiState,
+    onSignOut: () -> Unit,
+    pendingDeepLink: String? = null,
+    onDeepLinkHandled: () -> Unit = {}
+) {
     // iOS lands on The Field (selection = 1).
     var selected by remember { mutableStateOf(HarvestTab.FIELD) }
     var openRoom by remember { mutableStateOf<Community?>(null) }
     var openChat by remember { mutableStateOf<Pair<String, String>?>(null) }
     var openMembers by remember { mutableStateOf<String?>(null) }
+
+    // A tapped notification selects the tab its deep link names, then clears
+    // so a rotation doesn't navigate again.
+    LaunchedEffect(pendingDeepLink) {
+        val link = pendingDeepLink ?: return@LaunchedEffect
+        deepLinkTab(link)?.let { selected = it }
+        onDeepLinkHandled()
+    }
+
+    RegisterForPush(userId = state.currentUserId.orEmpty())
     var openSettings by remember { mutableStateOf(false) }
     var openProfileEdit by remember { mutableStateOf(false) }
 

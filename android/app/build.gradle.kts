@@ -7,6 +7,15 @@ plugins {
     alias(libs.plugins.ksp)
 }
 
+// The Google Services plugin hard-fails when google-services.json is absent,
+// so it is applied only once the file exists. Drop the file into app/ and
+// Firebase activates on the next build with no code change.
+//
+// Until then the app builds and runs normally; push registration no-ops.
+if (file("google-services.json").exists()) {
+    apply(plugin = "com.google.gms.google-services")
+}
+
 android {
     namespace = "com.harvestglass.harvest"
     compileSdk = 35
@@ -61,6 +70,9 @@ dependencies {
     implementation(libs.ktor.client.android)
 
     implementation(libs.coil.compose)
+
+    implementation(platform(libs.firebase.bom))
+    implementation(libs.firebase.messaging)
 
     testImplementation(libs.junit)
     testImplementation(libs.mockk)

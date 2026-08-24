@@ -31,7 +31,11 @@ import com.harvestglass.harvest.ui.theme.HarvestTheme
  *   else → MainTab
  */
 @Composable
-fun HarvestApp(authViewModel: AuthViewModel = hiltViewModel()) {
+fun HarvestApp(
+    pendingDeepLink: String? = null,
+    onDeepLinkHandled: () -> Unit = {},
+    authViewModel: AuthViewModel = hiltViewModel()
+) {
     val state by authViewModel.state.collectAsStateWithLifecycle()
 
     LaunchedEffect(Unit) { authViewModel.checkSession() }
@@ -51,6 +55,11 @@ fun HarvestApp(authViewModel: AuthViewModel = hiltViewModel()) {
             onSignOut = authViewModel::logout
         )
 
-        else -> MainTabScreen(state = state, onSignOut = authViewModel::logout)
+        else -> MainTabScreen(
+            state = state,
+            onSignOut = authViewModel::logout,
+            pendingDeepLink = pendingDeepLink,
+            onDeepLinkHandled = onDeepLinkHandled
+        )
     }
 }

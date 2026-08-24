@@ -9,3 +9,9 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Firebase. google-services.json ships inside the APK and is not a secret, so
+# it is committed. The service-account key used by send-push IS a secret and
+# must never be.
+*service-account*.json
+firebase-adminsdk*.json
