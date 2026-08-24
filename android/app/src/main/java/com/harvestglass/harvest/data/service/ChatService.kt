@@ -3,6 +3,8 @@ package com.harvestglass.harvest.data.service
 import com.harvestglass.harvest.data.model.Message
 import io.github.jan.supabase.SupabaseClient
 import io.github.jan.supabase.postgrest.postgrest
+import kotlinx.serialization.SerialName
+import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import io.github.jan.supabase.postgrest.query.filter.FilterOperator
 import io.github.jan.supabase.realtime.PostgresAction
@@ -59,6 +61,24 @@ class ChatService(private val client: SupabaseClient) {
         ) { filter { eq("id", conversationId) } }
 
         return inserted.firstOrNull()
+    }
+
+    /**
+     * The match this conversation belongs to, or null for a Seed conversation
+     * that never had one. Safety analysis is keyed on the match.
+     */
+    suspend fun matchId(conversationId: String): String? {
+        @kotlinx.serialization.Serializable
+        data class Row(@SerialName("match_id") val matchId: String? = null)
+
+        return client.postgrest.from("conversations")
+            .select(Columns.list("match_id")) {
+                filter { eq("id", conversationId) }
+                limit(1)
+            }
+            .decodeList<Row>()
+            .firstOrNull()
+            ?.matchId
     }
 
     suspend fun markAsRead(messageId: String) {

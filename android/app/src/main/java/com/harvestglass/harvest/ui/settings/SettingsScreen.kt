@@ -29,6 +29,7 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.components.GlassCardStyle
 import com.harvestglass.harvest.ui.components.SectionHeader
+import com.harvestglass.harvest.ui.safety.SafetyDashboardScreen
 import com.harvestglass.harvest.ui.subscription.SubscriptionScreen
 import com.harvestglass.harvest.ui.theme.HarvestTheme
 
@@ -59,7 +60,7 @@ fun SettingsScreen(
             SettingsRoute.TERMS -> LegalScreen(LegalDocument.Terms) { route = null }
             SettingsRoute.GUIDELINES -> LegalScreen(LegalDocument.Guidelines) { route = null }
             SettingsRoute.HELP -> HelpCenterScreen { route = null }
-            SettingsRoute.SAFETY -> SafetyDashboardScreen { route = null }
+            SettingsRoute.SAFETY -> SafetyDashboardScreen(userId, onBack = { route = null })
         }
         return
     }

@@ -11,6 +11,7 @@ import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.NotificationService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.RateLimitService
+import com.harvestglass.harvest.data.service.SafetyAnalysisService
 import com.harvestglass.harvest.data.service.SeedService
 import com.harvestglass.harvest.data.service.SubscriptionService
 import com.harvestglass.harvest.data.service.QuestionsService
@@ -94,4 +95,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideRateLimitService(client: SupabaseClient) = RateLimitService(client)
+
+    @Provides
+    @Singleton
+    fun provideSafetyAnalysisService(client: SupabaseClient) = SafetyAnalysisService(client)
 }

@@ -30,6 +30,10 @@ import androidx.hilt.navigation.compose.hiltViewModel
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import com.harvestglass.harvest.data.model.Message
+import com.harvestglass.harvest.data.model.SafetyLevel
+import com.harvestglass.harvest.ui.components.ReadyToMoveGate
+import com.harvestglass.harvest.ui.components.SafetyStatusBadge
+import com.harvestglass.harvest.ui.components.SafetyWarningBanner
 import com.harvestglass.harvest.ui.components.MindfulWarningSheet
 import com.harvestglass.harvest.ui.components.ReportSheet
 import com.harvestglass.harvest.ui.components.chat.ChatAccent
@@ -82,9 +86,21 @@ fun ChatDetailScreen(
             .forEach { viewModel.markRead(it.id) }
     }
 
-    state.mindfulWarning?.let { analysis ->
-        MindfulWarningSheet(
+    val analysis = state.safetyAnalysis
+    if (state.showReadyToMoveGate && analysis != null) {
+        ReadyToMoveGate(
             analysis = analysis,
+            isReady = state.isReadyToMove,
+            reason = state.readyToMoveReason,
+            onSharePreferredContact = { viewModel.markPreferredContactShared() },
+            onDismiss = { viewModel.dismissReadyToMoveGate() }
+        )
+        return
+    }
+
+    state.mindfulWarning?.let { warning ->
+        MindfulWarningSheet(
+            analysis = warning,
             onEdit = { viewModel.editFlaggedMessage() },
             onSendAnyway = { viewModel.sendAnyway() }
         )
@@ -112,8 +128,27 @@ fun ChatDetailScreen(
             photoUrl = state.partner?.photos?.firstOrNull(),
             onBack = onBack,
             onReport = { showReport = true },
-            onBlock = { viewModel.block(partnerUserId) }
+            onBlock = { viewModel.block(partnerUserId) },
+            onReadyToMove = { viewModel.presentReadyToMoveGate() }
         )
+
+        state.safetyWarning?.let { warning ->
+            SafetyWarningBanner(
+                level = state.safetyAnalysis?.safetyLevel ?: SafetyLevel.WARNING,
+                message = warning
+            )
+        }
+
+        // Always visible once the analysis loads, as on iOS.
+        state.safetyAnalysis?.let {
+            SafetyStatusBadge(
+                level = it.safetyLevel,
+                modifier = Modifier.padding(
+                    horizontal = HarvestTheme.Spacing.md,
+                    vertical = HarvestTheme.Spacing.xs
+                )
+            )
+        }
 
         Box(Modifier.weight(1f)) {
             ChatBackdrop(accent)
@@ -199,7 +234,8 @@ private fun ChatTopBar(
     photoUrl: String?,
     onBack: () -> Unit,
     onReport: () -> Unit,
-    onBlock: () -> Unit
+    onBlock: () -> Unit,
+    onReadyToMove: () -> Unit
 ) {
     var menuOpen by remember { mutableStateOf(false) }
 
@@ -244,6 +280,10 @@ private fun ChatTopBar(
                 modifier = Modifier.clickable { menuOpen = true }
             )
             DropdownMenu(expanded = menuOpen, onDismissRequest = { menuOpen = false }) {
+                DropdownMenuItem(
+                    text = { Text("Ready to Move") },
+                    onClick = { menuOpen = false; onReadyToMove() }
+                )
                 DropdownMenuItem(
                     text = { Text("Report") },
                     onClick = { menuOpen = false; onReport() }

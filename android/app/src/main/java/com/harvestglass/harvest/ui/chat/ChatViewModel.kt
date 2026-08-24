@@ -5,7 +5,9 @@ import androidx.lifecycle.viewModelScope
 import com.harvestglass.harvest.data.model.Message
 import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.ChatService
+import com.harvestglass.harvest.data.model.SafetyAnalysis
 import com.harvestglass.harvest.data.service.MatchService
+import com.harvestglass.harvest.data.service.SafetyAnalysisService
 import com.harvestglass.harvest.data.service.MindfulAnalysis
 import com.harvestglass.harvest.data.service.MindfulMessagingService
 import com.harvestglass.harvest.data.service.ProfileService
@@ -25,6 +27,14 @@ data class ChatUiState(
     val messages: List<Message> = emptyList(),
     val partner: UserProfile? = null,
     val draft: String = "",
+    val safetyAnalysis: SafetyAnalysis? = null,
+    /** Shown as a banner above the transcript when the score drops below 50. */
+    val safetyWarning: String? = null,
+    val showReadyToMoveGate: Boolean = false,
+    val isReadyToMove: Boolean = false,
+    val readyToMoveReason: String? = null,
+    /** Set once a share is recorded, so the screen can confirm it. */
+    val readyToMoveMessage: String? = null,
     /** Set when the pre-send check flags a message; drives the warning sheet. */
     val mindfulWarning: MindfulAnalysis? = null,
     /** The flagged text, held so "Send Anyway" posts exactly what was typed. */
@@ -49,7 +59,8 @@ class ChatViewModel @Inject constructor(
     private val chatService: ChatService,
     private val profileService: ProfileService,
     private val matchService: MatchService,
-    private val mindful: MindfulMessagingService
+    private val mindful: MindfulMessagingService,
+    private val safety: SafetyAnalysisService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ChatUiState())
@@ -84,9 +95,14 @@ class ChatViewModel @Inject constructor(
                     // Keyed on id: the sender already inserted it optimistically.
                     if (_state.value.messages.none { it.id == msg.id }) {
                         _state.update { it.copy(messages = it.messages + msg) }
+                        // Only the other person's messages are scored — you are
+                        // warned about your own before they are sent.
+                        if (!msg.isSentBy(userId)) scoreIncoming(msg.content)
                     }
                 }
             }
+
+            loadSafetyAnalysis(partnerUserId)
 
             typingJob?.cancel()
             typingJob = viewModelScope.launch {
@@ -172,6 +188,110 @@ class ChatViewModel @Inject constructor(
             _state.update { it.copy(draft = text, error = e.userMessage()) }
         } finally {
             _state.update { it.copy(isSending = false) }
+        }
+    }
+
+    /**
+     * Loads or creates the analysis for this conversation.
+     *
+     * Every failure here is silent: safety scoring is a background service, and
+     * a chat that works is better than one blocked on it.
+     */
+    private suspend fun loadSafetyAnalysis(partnerUserId: String) {
+        // A Seed conversation that never had a match has nothing to key on.
+        val matchId = runCatching { chatService.matchId(conversationId) }.getOrNull() ?: return
+
+        val analysis = runCatching {
+            safety.getOrCreateAnalysis(
+                matchId = matchId,
+                userId = userId,
+                otherUserId = partnerUserId
+            )
+        }.getOrNull() ?: return
+
+        _state.update { it.copy(safetyAnalysis = analysis, safetyWarning = warningFor(analysis)) }
+    }
+
+    /** Below 50 the conversation gets a standing banner, as on iOS. */
+    private fun warningFor(analysis: SafetyAnalysis): String? =
+        if (analysis.safetyScore < 50) {
+            "Safety concern detected. Be cautious in this conversation."
+        } else {
+            null
+        }
+
+    /** Scores one incoming message and refreshes the banner. */
+    private suspend fun scoreIncoming(content: String?) {
+        val analysis = _state.value.safetyAnalysis ?: return
+        val text = content?.takeIf { it.isNotBlank() } ?: return
+
+        runCatching { safety.analyzeMessage(text, analysis.id) }
+        val refreshed = runCatching {
+            safety.getOrCreateAnalysis(
+                matchId = analysis.matchId,
+                userId = userId,
+                otherUserId = analysis.otherUserId
+            )
+        }.getOrNull() ?: return
+
+        _state.update { it.copy(safetyAnalysis = refreshed, safetyWarning = warningFor(refreshed)) }
+    }
+
+    /** Opens the ready-to-move gate, refreshing its verdict first. */
+    fun presentReadyToMoveGate() = viewModelScope.launch {
+        val analysis = _state.value.safetyAnalysis
+        if (analysis == null) {
+            _state.update {
+                it.copy(
+                    showReadyToMoveGate = true,
+                    isReadyToMove = false,
+                    readyToMoveReason = "No safety analysis available yet."
+                )
+            }
+            return@launch
+        }
+
+        val (ready, reason) = runCatching { safety.isReadyToMove(analysis.id) }
+            .getOrDefault(false to "We couldn't check this conversation just now.")
+
+        _state.update {
+            it.copy(showReadyToMoveGate = true, isReadyToMove = ready, readyToMoveReason = reason)
+        }
+    }
+
+    fun dismissReadyToMoveGate() = _state.update { it.copy(showReadyToMoveGate = false) }
+
+    fun clearReadyToMoveMessage() = _state.update { it.copy(readyToMoveMessage = null) }
+
+    /** Records that the user chose to share contact details. */
+    fun markPreferredContactShared() = viewModelScope.launch {
+        val analysis = _state.value.safetyAnalysis ?: return@launch
+        if (!_state.value.isReadyToMove) return@launch
+
+        try {
+            safety.recordReadyToMoveDecision(
+                userId = userId,
+                matchId = analysis.matchId,
+                conversationId = analysis.conversationId,
+                safetyScore = analysis.safetyScore,
+                approved = true,
+                contactShared = true,
+                contactMethod = "social"
+            )
+            _state.update {
+                it.copy(
+                    showReadyToMoveGate = false,
+                    readyToMoveMessage =
+                        "You're clear to share your preferred contact details in the chat."
+                )
+            }
+        } catch (_: Exception) {
+            _state.update {
+                it.copy(
+                    readyToMoveMessage =
+                        "We couldn't record your sharing action. Please try again."
+                )
+            }
         }
     }
 
