@@ -5,6 +5,8 @@ import com.harvestglass.harvest.data.SupabaseManager
 import com.harvestglass.harvest.data.service.AuthService
 import com.harvestglass.harvest.data.service.CommunityService
 import com.harvestglass.harvest.data.service.ChatService
+import com.harvestglass.harvest.data.service.GardenerService
+import com.harvestglass.harvest.data.service.OpenAIService
 import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.SeedService
@@ -68,4 +70,13 @@ object AppModule {
     @Singleton
     fun provideMatchService(client: SupabaseClient, profileService: ProfileService) =
         MatchService(client, profileService)
+
+    @Provides
+    @Singleton
+    fun provideOpenAIService(client: SupabaseClient) = OpenAIService(client)
+
+    @Provides
+    @Singleton
+    fun provideGardenerService(client: SupabaseClient, openAI: OpenAIService) =
+        GardenerService(client, openAI)
 }

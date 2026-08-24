@@ -34,6 +34,7 @@ import com.harvestglass.harvest.ui.components.GlassCard
 import com.harvestglass.harvest.ui.field.CommunityChatScreen
 import com.harvestglass.harvest.ui.field.FieldScreen
 import com.harvestglass.harvest.ui.field.RoomMembersScreen
+import com.harvestglass.harvest.ui.gardener.GardenerScreen
 import com.harvestglass.harvest.ui.chat.ChatDetailScreen
 import com.harvestglass.harvest.ui.profile.ProfileEditScreen
 import com.harvestglass.harvest.ui.profile.ProfileScreen
@@ -154,6 +155,7 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
                     onOpenRoom = { openRoom = it }
                 )
                 HarvestTab.SOIL -> ValuesScreen(userId = state.currentUserId.orEmpty())
+                HarvestTab.GARDENER -> GardenerScreen(userId = state.currentUserId.orEmpty())
                 HarvestTab.SEEDS -> SeedsScreen(
                     userId = state.currentUserId.orEmpty(),
                     onOpenConversation = { conversationId, partnerId ->
