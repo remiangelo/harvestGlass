@@ -7,6 +7,7 @@ import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.ChatService
 import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.ProfileService
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -58,7 +59,7 @@ class ChatViewModel @Inject constructor(
                 val partner = runCatching { profileService.getProfile(partnerUserId) }.getOrNull()
                 _state.update { it.copy(messages = messages, partner = partner, error = null) }
             } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
+                _state.update { it.copy(error = e.userMessage()) }
             } finally {
                 _state.update { it.copy(isLoading = false) }
             }
@@ -91,7 +92,7 @@ class ChatViewModel @Inject constructor(
             }
         } catch (e: Exception) {
             // Hand the text back so a failed send isn't a lost message.
-            _state.update { it.copy(draft = text, error = e.message) }
+            _state.update { it.copy(draft = text, error = e.userMessage()) }
         } finally {
             _state.update { it.copy(isSending = false) }
         }
@@ -107,7 +108,7 @@ class ChatViewModel @Inject constructor(
                 matchService.reportUser(userId, reportedUserId, category, description)
                 _state.update { it.copy(error = null) }
             } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
+                _state.update { it.copy(error = e.userMessage()) }
             }
         }
 
@@ -116,7 +117,7 @@ class ChatViewModel @Inject constructor(
             matchService.blockUser(userId, blockedUserId)
             _state.update { it.copy(error = null) }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         }
     }
 
@@ -125,7 +126,7 @@ class ChatViewModel @Inject constructor(
             matchService.unmatchUser(matchId)
             _state.update { it.copy(error = null) }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         }
     }
 

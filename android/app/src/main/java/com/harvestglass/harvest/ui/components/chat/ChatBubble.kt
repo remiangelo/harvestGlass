@@ -23,6 +23,7 @@ import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
 import coil.compose.AsyncImage
 import com.harvestglass.harvest.data.model.CommunityMessage
 import com.harvestglass.harvest.data.model.CommunityReaction
@@ -69,6 +70,7 @@ fun ChatBubble(
     reactions: List<CommunityReaction>,
     quoted: CommunityMessage?,
     quotedSenderName: String?,
+    timeLabel: String = "",
     onLongPress: () -> Unit
 ) {
     val shape = chatBubbleShape(isMine, position.isFirstInGroup, position.isLastInGroup)
@@ -143,15 +145,28 @@ fun ChatBubble(
             if (reactions.isNotEmpty()) {
                 ReactionRow(reactions)
             }
+
+            // Metadata once per run, not once per bubble.
+            if (timeLabel.isNotEmpty()) {
+                Text(
+                    text = timeLabel,
+                    fontSize = 10.sp,
+                    color = HarvestTheme.Colors.textTertiary,
+                    modifier = Modifier.padding(horizontal = 4.dp)
+                )
+            }
         }
     }
 }
+
+/** iOS pins the avatar gutter at 36pt so grouped rows stay flush. */
+private val AVATAR_SIZE = 36.dp
 
 @Composable
 private fun Avatar(sender: CommunitySender?, visible: Boolean) {
     Box(
         Modifier
-            .size(28.dp)
+            .size(AVATAR_SIZE)
             .clip(CircleShape)
             .background(
                 if (visible) HarvestTheme.Colors.wineRaised else Color.Transparent,
@@ -166,7 +181,7 @@ private fun Avatar(sender: CommunitySender?, visible: Boolean) {
                 model = url,
                 contentDescription = null,
                 contentScale = ContentScale.Crop,
-                modifier = Modifier.size(28.dp).clip(CircleShape)
+                modifier = Modifier.size(AVATAR_SIZE).clip(CircleShape)
             )
         } else {
             Text(

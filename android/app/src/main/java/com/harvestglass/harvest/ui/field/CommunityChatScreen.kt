@@ -8,6 +8,9 @@ import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.filled.ArrowCircleUp
+import androidx.compose.material.icons.filled.Forum
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.Icon
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
@@ -34,10 +37,22 @@ import com.harvestglass.harvest.ui.components.chat.DateSeparator
 import com.harvestglass.harvest.ui.components.chat.MessageGrouping
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
 import com.harvestglass.harvest.ui.theme.HarvestTheme
+import java.time.ZoneId
+import java.time.format.DateTimeFormatter
+import java.time.format.FormatStyle
+
+/**
+ * The accent community rooms actually use.
+ *
+ * `ChatAccent.Field` (green) exists and looks like the obvious pick, but
+ * CommunityChatView.swift passes `.rose` to the backdrop, composer and
+ * bubbles alike — commit 4e94622 demoted the green to a signal colour used
+ * only for Field *list* accents, not the chat surface.
+ */
+internal val COMMUNITY_CHAT_ACCENT = ChatAccent.Rose
 
 /**
  * Port of Harvest/Views/Field/CommunityChatView.swift.
- * The Field uses the GREEN accent; Seed conversations use rose.
  */
 @Composable
 fun CommunityChatScreen(
@@ -47,7 +62,7 @@ fun CommunityChatScreen(
     viewModel: CommunityChatViewModel = hiltViewModel()
 ) {
     val state by viewModel.state.collectAsStateWithLifecycle()
-    val accent = ChatAccent.Field
+    val accent = COMMUNITY_CHAT_ACCENT
     val listState = rememberLazyListState()
     var reactingTo by remember { mutableStateOf<CommunityMessage?>(null) }
 
@@ -79,6 +94,19 @@ fun CommunityChatScreen(
                 contentPadding = PaddingValues(vertical = HarvestTheme.Spacing.sm),
                 modifier = Modifier.fillMaxSize()
             ) {
+                if (state.hasMore) {
+                    item("loadEarlier") {
+                        LoadEarlierRow(
+                            isLoading = state.isLoadingOlder,
+                            onClick = { viewModel.loadOlder() }
+                        )
+                    }
+                }
+
+                if (state.messages.isEmpty()) {
+                    item("empty") { CommunityEmptyState() }
+                }
+
                 itemsIndexed(state.messages) { message ->
                     val position = positions[message.id] ?: MessagePosition(false, true, true)
 
@@ -96,6 +124,8 @@ fun CommunityChatScreen(
                         reactions = state.reactions[message.id].orEmpty(),
                         quoted = quoted,
                         quotedSenderName = quoted?.let { state.senders[it.senderId]?.nickname },
+                        // Metadata once per run, matching iOS.
+                        timeLabel = if (position.isLastInGroup) timeLabel(message) else "",
                         onLongPress = { reactingTo = message }
                     )
                 }
@@ -157,6 +187,8 @@ private fun TopBar(title: String, onBack: () -> Unit) {
         modifier = Modifier
             .fillMaxWidth()
             .background(HarvestTheme.Colors.wineBlack)
+            // Background reaches behind the status bar; the row sits below it.
+            .statusBarsPadding()
             .padding(HarvestTheme.Spacing.md)
     ) {
         Icon(
@@ -252,4 +284,71 @@ private fun ReplyBanner(target: CommunityMessage, onCancel: () -> Unit) {
             modifier = Modifier.clickable { onCancel() }
         )
     }
+}
+
+@Composable
+private fun LoadEarlierRow(isLoading: Boolean, onClick: () -> Unit) {
+    Box(
+        Modifier
+            .fillMaxWidth()
+            .padding(vertical = HarvestTheme.Spacing.xs),
+        contentAlignment = Alignment.Center
+    ) {
+        if (isLoading) {
+            CircularProgressIndicator(
+                color = HarvestTheme.Colors.rose,
+                strokeWidth = 2.dp,
+                modifier = Modifier.size(18.dp)
+            )
+        } else {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.xs),
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.clickable { onClick() }
+            ) {
+                Icon(
+                    Icons.Filled.ArrowCircleUp,
+                    contentDescription = null,
+                    tint = HarvestTheme.Colors.accent,
+                    modifier = Modifier.size(14.dp)
+                )
+                Text(
+                    text = "Load earlier messages",
+                    style = HarvestTheme.Typography.caption,
+                    color = HarvestTheme.Colors.accent
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun CommunityEmptyState() {
+    Column(
+        horizontalAlignment = Alignment.CenterHorizontally,
+        verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(top = HarvestTheme.Spacing.xxl)
+    ) {
+        Icon(
+            Icons.Filled.Forum,
+            contentDescription = null,
+            tint = HarvestTheme.Colors.rose,
+            modifier = Modifier.size(32.dp)
+        )
+        Text(
+            text = "Be the first to share something.",
+            style = HarvestTheme.Typography.bodySmall,
+            color = HarvestTheme.Colors.textSecondary
+        )
+    }
+}
+
+private fun timeLabel(message: CommunityMessage): String {
+    val instant = MessageGrouping.date(message.createdAt) ?: return ""
+    return DateTimeFormatter
+        .ofLocalizedTime(FormatStyle.SHORT)
+        .withZone(ZoneId.systemDefault())
+        .format(instant)
 }

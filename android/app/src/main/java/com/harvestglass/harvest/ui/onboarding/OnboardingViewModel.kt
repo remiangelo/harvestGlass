@@ -10,6 +10,7 @@ import com.harvestglass.harvest.data.service.QuestionsService
 import com.harvestglass.harvest.data.service.ValuesService
 import com.harvestglass.harvest.util.Geocoding
 import com.harvestglass.harvest.util.ObjectionableContent
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -198,7 +199,7 @@ class OnboardingViewModel @Inject constructor(
             val values = valuesService.getAllValues()
             _state.update { it.copy(allValues = values) }
         } catch (e: Exception) {
-            _state.update { it.copy(error = "Failed to load values: ${e.message}") }
+            _state.update { it.copy(error = "Failed to load values: ${e.userMessage()}") }
         } finally {
             _state.update { it.copy(isLoadingValues = false) }
         }
@@ -215,7 +216,7 @@ class OnboardingViewModel @Inject constructor(
                 .take(ONBOARDING_QUESTION_COUNT)
             _state.update { it.copy(allQuestions = questions) }
         } catch (e: Exception) {
-            _state.update { it.copy(error = "Failed to load questions: ${e.message}") }
+            _state.update { it.copy(error = "Failed to load questions: ${e.userMessage()}") }
         } finally {
             _state.update { it.copy(isLoadingQuestions = false) }
         }
@@ -233,7 +234,7 @@ class OnboardingViewModel @Inject constructor(
             )
             _state.update { it.copy(photoUrls = it.photoUrls + url) }
         } catch (e: Exception) {
-            _state.update { it.copy(error = "Failed to upload photo: ${e.message}") }
+            _state.update { it.copy(error = "Failed to upload photo: ${e.userMessage()}") }
         } finally {
             _state.update { it.copy(isLoading = false) }
         }
@@ -319,7 +320,7 @@ class OnboardingViewModel @Inject constructor(
 
             saved
         } catch (e: Exception) {
-            _state.update { it.copy(error = "Failed to save profile: ${e.message}") }
+            _state.update { it.copy(error = "Failed to save profile: ${e.userMessage()}") }
             null
         } finally {
             _state.update { it.copy(isLoading = false) }

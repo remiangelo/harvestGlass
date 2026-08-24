@@ -9,6 +9,7 @@ import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.LinearProgressIndicator
 import androidx.compose.material3.Text
@@ -78,6 +79,8 @@ fun OnboardingContainer(
         Modifier
             .fillMaxSize()
             .background(HarvestTheme.Colors.formBackground)
+            // Background fills the screen; the wizard itself clears the bars.
+            .systemBarsPadding()
     ) {
         TopBar(onSignOut = onSignOut)
 

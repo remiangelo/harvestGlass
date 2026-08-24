@@ -10,6 +10,7 @@ import com.harvestglass.harvest.data.model.Value
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.QuestionsService
 import com.harvestglass.harvest.data.service.ValuesService
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -126,7 +127,7 @@ class ValuesViewModel @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            _state.update { it.copy(loadError = e.message) }
+            _state.update { it.copy(loadError = e.userMessage()) }
         } finally {
             _state.update { it.copy(isLoading = false) }
         }
@@ -162,7 +163,7 @@ class ValuesViewModel @Inject constructor(
                 it.copy(
                     valuesBrought = before.valuesBrought,
                     valuesSought = before.valuesSought,
-                    saveError = e.message
+                    saveError = e.userMessage()
                 )
             }
         }
@@ -182,7 +183,7 @@ class ValuesViewModel @Inject constructor(
                 } else {
                     it.answers - questionId
                 }
-                it.copy(answers = restored, saveError = e.message)
+                it.copy(answers = restored, saveError = e.userMessage())
             }
         }
     }
@@ -198,7 +199,7 @@ class ValuesViewModel @Inject constructor(
             )
             _state.update { it.copy(profile = updated ?: it.profile, toggleError = null) }
         } catch (e: Exception) {
-            _state.update { it.copy(profile = previous, toggleError = e.message) }
+            _state.update { it.copy(profile = previous, toggleError = e.userMessage()) }
         }
     }
 
@@ -213,7 +214,7 @@ class ValuesViewModel @Inject constructor(
             )
             _state.update { it.copy(profile = updated ?: it.profile, toggleError = null) }
         } catch (e: Exception) {
-            _state.update { it.copy(profile = previous, toggleError = e.message) }
+            _state.update { it.copy(profile = previous, toggleError = e.userMessage()) }
         }
     }
 

@@ -42,9 +42,9 @@ import java.time.format.FormatStyle
 /**
  * Port of Harvest/Views/Chat/ChatDetailView.swift.
  *
- * Seed conversations use the ROSE accent; community rooms use green. The
- * transcript machinery (grouping, date separators, composer) is shared with
- * the community room built in P1.
+ * Both this and community rooms use the ROSE accent. The transcript
+ * machinery (grouping, date separators, composer) is shared with the
+ * community room built in P1.
  *
  * Not wired here, and deliberately: the mindful pre-send warning and the
  * safety "ready to move" gate, both OpenAI-backed and owned by the AI
@@ -179,6 +179,8 @@ private fun ChatTopBar(
         modifier = Modifier
             .fillMaxWidth()
             .background(HarvestTheme.Colors.wineBlack)
+            // Background reaches behind the status bar; the row sits below it.
+            .statusBarsPadding()
             .padding(HarvestTheme.Spacing.md)
     ) {
         Icon(

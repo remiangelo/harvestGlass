@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harvestglass.harvest.data.model.Community
 import com.harvestglass.harvest.data.service.CommunityService
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -44,7 +45,7 @@ class FieldViewModel @Inject constructor(
                 _state.update { it.copy(available = available, joinedIds = joined) }
             }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         } finally {
             // Mirrors the Swift `defer` — clears on failure too.
             _state.update { it.copy(isLoading = false) }
@@ -61,7 +62,7 @@ class FieldViewModel @Inject constructor(
                 _state.update { it.copy(joinedIds = it.joinedIds + community.id) }
             }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         }
     }
 }

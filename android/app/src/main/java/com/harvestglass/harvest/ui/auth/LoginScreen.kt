@@ -5,6 +5,7 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.systemBarsPadding
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -88,6 +89,9 @@ fun LoginScreen(
             verticalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.xl),
             modifier = Modifier
                 .fillMaxSize()
+                // The gradient behind stays full-bleed; only the form clears
+                // the status and navigation bars.
+                .systemBarsPadding()
                 .verticalScroll(rememberScrollState())
                 .padding(horizontal = HarvestTheme.Spacing.lg)
         ) {

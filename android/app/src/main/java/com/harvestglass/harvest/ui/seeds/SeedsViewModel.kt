@@ -6,6 +6,7 @@ import com.harvestglass.harvest.data.model.ConversationWithProfile
 import com.harvestglass.harvest.data.model.Seed
 import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.SeedService
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.async
 import kotlinx.coroutines.coroutineScope
@@ -76,7 +77,7 @@ class SeedsViewModel @Inject constructor(
                 }
             }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         } finally {
             _state.update { it.copy(isLoading = false) }
         }
@@ -95,7 +96,7 @@ class SeedsViewModel @Inject constructor(
                 )
             }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         }
     }
 
@@ -106,7 +107,7 @@ class SeedsViewModel @Inject constructor(
                 it.copy(received = it.received.filterNot { s -> s.id == seed.id }, error = null)
             }
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         }
     }
 }

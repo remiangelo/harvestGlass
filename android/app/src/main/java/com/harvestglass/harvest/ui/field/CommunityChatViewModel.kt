@@ -10,6 +10,7 @@ import com.harvestglass.harvest.data.service.CommunityService
 import com.harvestglass.harvest.data.service.ReactionEvent
 import com.harvestglass.harvest.ui.components.chat.MessageGrouping
 import com.harvestglass.harvest.ui.components.chat.MessagePosition
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.Job
 import kotlinx.coroutines.async
@@ -127,7 +128,7 @@ class CommunityChatViewModel @Inject constructor(
                     }
                 }
             } catch (e: Exception) {
-                _state.update { it.copy(error = e.message) }
+                _state.update { it.copy(error = e.userMessage()) }
             }
 
             loadSenders(_state.value.messages.map { it.senderId }.toSet())
@@ -179,7 +180,7 @@ class CommunityChatViewModel @Inject constructor(
             loadReferenced()
             loadReactions(older.map { it.id })
         } catch (e: Exception) {
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         } finally {
             _state.update { it.copy(isLoadingOlder = false) }
         }
@@ -226,7 +227,7 @@ class CommunityChatViewModel @Inject constructor(
                     error = if (message.contains("CONTACT_INFO_BLOCKED")) {
                         "Keep contact sharing to private Seed conversations 🌱"
                     } else {
-                        e.message
+                        e.userMessage()
                     }
                 )
             }
@@ -261,7 +262,7 @@ class CommunityChatViewModel @Inject constructor(
         } catch (e: Exception) {
             // Roll back.
             if (alreadyMine) applyReaction(mine) else dropReaction(mine)
-            _state.update { it.copy(error = e.message) }
+            _state.update { it.copy(error = e.userMessage()) }
         } finally {
             inFlightReactions.remove(key)
         }

@@ -4,6 +4,7 @@ import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.AuthService
+import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
@@ -72,7 +73,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             }
-            .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
+            .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.userMessage()) } }
     }
 
     fun register(email: String, password: String) = viewModelScope.launch {
@@ -89,7 +90,7 @@ class AuthViewModel @Inject constructor(
                     )
                 }
             }
-            .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.message) } }
+            .onFailure { e -> _state.update { it.copy(isLoading = false, error = e.userMessage()) } }
     }
 
     fun logout() = viewModelScope.launch {
