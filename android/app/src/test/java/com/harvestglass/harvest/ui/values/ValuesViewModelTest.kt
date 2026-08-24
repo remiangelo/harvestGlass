@@ -2,9 +2,12 @@ package com.harvestglass.harvest.ui.values
 
 import com.harvestglass.harvest.data.model.Question
 import com.harvestglass.harvest.data.model.QuestionWeighting
+import com.harvestglass.harvest.data.model.SubscriptionTier
+import com.harvestglass.harvest.data.model.TierName
 import com.harvestglass.harvest.data.model.Value
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.QuestionsService
+import com.harvestglass.harvest.data.service.SubscriptionService
 import com.harvestglass.harvest.data.service.ValuesService
 import io.mockk.coEvery
 import io.mockk.coVerify
@@ -28,8 +31,13 @@ class ValuesViewModelTest {
     private val profileService: ProfileService = mockk(relaxed = true)
     private val valuesService: ValuesService = mockk(relaxed = true)
     private val questionsService: QuestionsService = mockk(relaxed = true)
+    private val subscriptionService: SubscriptionService = mockk(relaxed = true)
 
-    private fun vm() = ValuesViewModel(profileService, valuesService, questionsService)
+    private fun vm() =
+        ValuesViewModel(profileService, valuesService, questionsService, subscriptionService)
+
+    private fun tier(name: TierName, growth: Boolean) =
+        SubscriptionTier(id = "t-${name.raw}", name = name, hasGrowthFeatures = growth)
 
     private val calm = Value(id = "v1", name = "Calm", category = "lifestyle")
     private val trust = Value(id = "v2", name = "Trust", category = "relationship")
@@ -39,7 +47,11 @@ class ValuesViewModelTest {
         displayOrder = order, options = emptyList()
     )
 
-    @Before fun setUp() { Dispatchers.setMain(StandardTestDispatcher()) }
+    @Before fun setUp() {
+        Dispatchers.setMain(StandardTestDispatcher())
+        // Free tier unless a test says otherwise.
+        coEvery { subscriptionService.currentTier(any()) } returns tier(TierName.SEED, growth = false)
+    }
     @After fun tearDown() { Dispatchers.resetMain() }
 
     // The single easiest thing to get backwards in this whole subsystem.
@@ -194,5 +206,35 @@ class ValuesViewModelTest {
         assertEquals("show_values_brought", DisplayToggle.BROUGHT.column)
         assertEquals("show_values_blurb", DisplayToggle.BLURB.column)
         assertEquals("show_values_graph", DisplayToggle.GRAPH.column)
+    }
+
+    @Test
+    fun `Gold unlocks the growth features`() = runTest {
+        coEvery { subscriptionService.currentTier("u1") } returns tier(TierName.GOLD, growth = true)
+        val vm = vm()
+
+        vm.load("u1"); advanceUntilIdle()
+
+        assertTrue(vm.state.value.hasGrowthFeatures)
+    }
+
+    @Test
+    fun `the free tier leaves the growth features locked`() = runTest {
+        val vm = vm()
+
+        vm.load("u1"); advanceUntilIdle()
+
+        assertFalse(vm.state.value.hasGrowthFeatures)
+    }
+
+    // A tier lookup that fails must lock the paid features, never hand them out.
+    @Test
+    fun `an unreadable tier fails closed`() = runTest {
+        coEvery { subscriptionService.currentTier("u1") } returns null
+        val vm = vm()
+
+        vm.load("u1"); advanceUntilIdle()
+
+        assertFalse(vm.state.value.hasGrowthFeatures)
     }
 }

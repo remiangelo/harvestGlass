@@ -6,6 +6,7 @@ import com.harvestglass.harvest.data.model.FieldFilterLevel
 import com.harvestglass.harvest.data.model.RoomMemberFilter
 import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.service.CommunityService
+import com.harvestglass.harvest.data.service.SubscriptionService
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -19,9 +20,8 @@ data class RoomMembersUiState(
     val members: List<UserProfile> = emptyList(),
     val filter: RoomMemberFilter = RoomMemberFilter(),
     /**
-     * Which filter block the viewer's tier unlocks. Defaults to locked; the
-     * tier lookup lands with the Subscription subsystem, and a failure there
-     * must leave the paid filters closed rather than open.
+     * Which filter block the viewer's tier unlocks. Defaults to locked: a
+     * failed tier lookup must leave the paid filters closed, not open.
      */
     val filterLevel: FieldFilterLevel = FieldFilterLevel.NONE,
     val isLoading: Boolean = false,
@@ -41,7 +41,8 @@ data class RoomMembersUiState(
 /** Mirrors Harvest/ViewModels/RoomMembersViewModel.swift. */
 @HiltViewModel
 class RoomMembersViewModel @Inject constructor(
-    private val service: CommunityService
+    private val service: CommunityService,
+    private val subscriptionService: SubscriptionService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(RoomMembersUiState())
@@ -57,6 +58,10 @@ class RoomMembersViewModel @Inject constructor(
         } finally {
             _state.update { it.copy(isLoading = false) }
         }
+
+        // Non-critical: a failure here just leaves the paid filters locked.
+        val level = subscriptionService.currentTier(userId)?.fieldFilterLevel
+        if (level != null) _state.update { it.copy(filterLevel = level) }
     }
 
     fun updateFilter(filter: RoomMemberFilter) = _state.update { it.copy(filter = filter) }

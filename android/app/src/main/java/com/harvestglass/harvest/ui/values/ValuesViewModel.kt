@@ -9,6 +9,7 @@ import com.harvestglass.harvest.data.model.UserProfile
 import com.harvestglass.harvest.data.model.Value
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.QuestionsService
+import com.harvestglass.harvest.data.service.SubscriptionService
 import com.harvestglass.harvest.data.service.ValuesService
 import com.harvestglass.harvest.util.userMessage
 import dagger.hilt.android.lifecycle.HiltViewModel
@@ -47,9 +48,6 @@ data class ValuesUiState(
     /**
      * Gold's "premium growth features" — the Tips library is what that buys
      * today. Defaults to locked so a failed tier lookup can't hand it out.
-     *
-     * The tier lookup itself lands with the Subscription subsystem; until
-     * then this stays at its fail-closed default.
      */
     val hasGrowthFeatures: Boolean = false
 ) {
@@ -89,7 +87,8 @@ data class ValuesUiState(
 class ValuesViewModel @Inject constructor(
     private val profileService: ProfileService,
     private val valuesService: ValuesService,
-    private val questionsService: QuestionsService
+    private val questionsService: QuestionsService,
+    private val subscriptionService: SubscriptionService
 ) : ViewModel() {
 
     private val _state = MutableStateFlow(ValuesUiState())
@@ -103,13 +102,15 @@ class ValuesViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true) }
         try {
             coroutineScope {
-                // All six run concurrently, as the Swift `async let` block does.
+                // All run concurrently, as the Swift `async let` block does.
                 val profile = async { profileService.getProfile(userId) }
                 val brought = async { runCatching { valuesService.getUserValuesBrought(userId) }.getOrNull() }
                 val sought = async { runCatching { valuesService.getUserValuesSought(userId) }.getOrNull() }
                 val allValues = async { runCatching { valuesService.getAllValues() }.getOrNull() }
                 val allQuestions = async { runCatching { questionsService.getAllQuestions() }.getOrNull() }
                 val answers = async { runCatching { questionsService.getUserAnswers(userId) }.getOrNull() }
+                // Fail-closed: a null tier leaves the paid features locked.
+                val growth = async { subscriptionService.currentTier(userId)?.hasGrowthFeatures }
 
                 // Only the profile fetch can set loadError; the rest degrade to
                 // empty, matching Swift's `(try? await …) ?? []`.
@@ -122,6 +123,7 @@ class ValuesViewModel @Inject constructor(
                         allValues = allValues.await().orEmpty(),
                         allQuestions = allQuestions.await().orEmpty(),
                         answers = answers.await().orEmpty(),
+                        hasGrowthFeatures = growth.await() ?: false,
                         loadError = null
                     )
                 }

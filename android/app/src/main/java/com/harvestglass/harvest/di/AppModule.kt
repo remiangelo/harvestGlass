@@ -11,6 +11,7 @@ import com.harvestglass.harvest.data.service.MatchService
 import com.harvestglass.harvest.data.service.NotificationService
 import com.harvestglass.harvest.data.service.ProfileService
 import com.harvestglass.harvest.data.service.SeedService
+import com.harvestglass.harvest.data.service.SubscriptionService
 import com.harvestglass.harvest.data.service.QuestionsService
 import com.harvestglass.harvest.data.service.ValuesService
 import com.harvestglass.harvest.util.Geocoding
@@ -84,4 +85,8 @@ object AppModule {
     @Provides
     @Singleton
     fun provideNotificationService(client: SupabaseClient) = NotificationService(client)
+
+    @Provides
+    @Singleton
+    fun provideSubscriptionService(client: SupabaseClient) = SubscriptionService(client)
 }
