@@ -2,6 +2,8 @@ package com.harvestglass.harvest.data.model
 
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
+import kotlinx.serialization.json.Json
+import com.harvestglass.harvest.util.HeightFormatter
 
 /** Mirrors Harvest/Models/UserProfile.swift. */
 @Serializable
@@ -56,4 +58,81 @@ data class UserProfile(
         get() = nickname ?: email?.substringBefore('@')?.takeIf { it.isNotEmpty() } ?: "User"
 
     val primaryPhoto: String? get() = photos?.firstOrNull()
+
+    /**
+     * Goals have been stored three ways over the app's life — a JSON array, a
+     * comma-joined string (what onboarding writes), and a bare single value —
+     * so all three are accepted and normalised to today's labels.
+     */
+    val goalsList: List<String>
+        get() {
+            val trimmed = goals?.trim().orEmpty()
+            if (trimmed.isEmpty()) return emptyList()
+
+            if (trimmed.startsWith("[")) {
+                runCatching { Json.decodeFromString<List<String>>(trimmed) }
+                    .getOrNull()
+                    ?.let { decoded ->
+                        return decoded.map { normalizeGoalLabel(it.trim()) }.filter { it.isNotEmpty() }
+                    }
+            }
+
+            if (trimmed.contains(",")) {
+                return trimmed.split(",")
+                    .map { normalizeGoalLabel(it.trim(*GOAL_TRIM_CHARS)) }
+                    .filter { it.isNotEmpty() }
+            }
+
+            return normalizeGoalLabel(trimmed.trim(*GOAL_TRIM_CHARS))
+                .takeIf { it.isNotEmpty() }
+                ?.let { listOf(it) }
+                ?: emptyList()
+        }
+
+    val heightDisplayValue: String? get() = heightCm?.let { HeightFormatter.string(it) }
+
+    /** Label/value pairs for the profile card, in the order iOS shows them. */
+    val lifestyleDetails: List<Pair<String, String>>
+        get() = buildList {
+            heightDisplayValue?.let { add("Height" to it) }
+            lookingFor?.trim()?.let { normalizeGoalLabel(it) }?.takeIf { it.isNotEmpty() }
+                ?.let { add("Looking For" to it) }
+            formatLifestyleValue(smoking)?.let { add("Smoking" to it) }
+            formatLifestyleValue(drinking)?.let { add("Drinking" to it) }
+            formatLifestyleValue(cannabis)?.let { add("Cannabis" to it) }
+            formatLifestyleValue(spiritualOrientation)?.let { add("Spiritual Orientation" to it) }
+            formatLifestyleValue(childrenStatus)?.let { add("Children" to it) }
+        }
+
+    private companion object {
+        val GOAL_TRIM_CHARS = charArrayOf('"', '[', ']', ' ', '\n', '\t')
+
+        /** Words that stay lowercase when title-casing a stored value. */
+        val SMALL_WORDS = setOf("and", "to", "not")
+
+        fun normalizeGoalLabel(value: String): String = when (value.lowercase()) {
+            "short-term dating", "casual" -> "Dating"
+            "long-term relationship", "long-term commitment", "long_term_commitment" ->
+                "Long-term Commitment"
+            "relationship" -> "Relationship"
+            "marriage" -> "Marriage"
+            "not sure yet", "not sure" -> "Dating"
+            else -> value
+        }
+
+        fun formatLifestyleValue(value: String?): String? {
+            val trimmed = value?.trim().orEmpty()
+            if (trimmed.isEmpty()) return null
+
+            return trimmed
+                .replace("_", " ")
+                .split(" ")
+                .filter { it.isNotEmpty() }
+                .joinToString(" ") { word ->
+                    val lower = word.lowercase()
+                    if (lower in SMALL_WORDS) lower
+                    else word.take(1).uppercase() + word.drop(1).lowercase()
+                }
+        }
+    }
 }

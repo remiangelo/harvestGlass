@@ -35,7 +35,10 @@ import com.harvestglass.harvest.ui.field.CommunityChatScreen
 import com.harvestglass.harvest.ui.field.FieldScreen
 import com.harvestglass.harvest.ui.field.RoomMembersScreen
 import com.harvestglass.harvest.ui.chat.ChatDetailScreen
+import com.harvestglass.harvest.ui.profile.ProfileEditScreen
+import com.harvestglass.harvest.ui.profile.ProfileScreen
 import com.harvestglass.harvest.ui.seeds.SeedsScreen
+import com.harvestglass.harvest.ui.settings.SettingsScreen
 import com.harvestglass.harvest.ui.values.ValuesScreen
 import com.harvestglass.harvest.ui.theme.HarvestButtonKind
 import com.harvestglass.harvest.ui.theme.HarvestTheme
@@ -70,6 +73,25 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
     var openRoom by remember { mutableStateOf<Community?>(null) }
     var openChat by remember { mutableStateOf<Pair<String, String>?>(null) }
     var openMembers by remember { mutableStateOf<String?>(null) }
+    var openSettings by remember { mutableStateOf(false) }
+    var openProfileEdit by remember { mutableStateOf(false) }
+
+    if (openSettings) {
+        SettingsScreen(
+            userId = state.currentUserId.orEmpty(),
+            onBack = { openSettings = false },
+            onSignOut = onSignOut
+        )
+        return
+    }
+
+    if (openProfileEdit) {
+        ProfileEditScreen(
+            userId = state.currentUserId.orEmpty(),
+            onBack = { openProfileEdit = false }
+        )
+        return
+    }
 
     val members = openMembers
     if (members != null) {
@@ -138,7 +160,11 @@ fun MainTabScreen(state: AuthUiState, onSignOut: () -> Unit) {
                         openChat = conversationId to partnerId
                     }
                 )
-                HarvestTab.PROFILE -> ComingLaterScreen(tab = selected, onSignOut = onSignOut)
+                HarvestTab.PROFILE -> ProfileScreen(
+                    userId = state.currentUserId.orEmpty(),
+                    onOpenSettings = { openSettings = true },
+                    onOpenEdit = { openProfileEdit = true }
+                )
                 else -> ComingLaterScreen(tab = selected, onSignOut = null)
             }
         }
