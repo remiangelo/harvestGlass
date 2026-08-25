@@ -1,1 +1,5 @@
 .claude/
+# Upload signing key and its passwords. Never commit these.
+android/harvest-upload-key.jks
+android/keystore.properties
+dist/
