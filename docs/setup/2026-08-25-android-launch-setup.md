@@ -1,14 +1,24 @@
 # Android launch setup
 
-Everything the Android app needs from outside the codebase. Five tasks, roughly
-an hour, and nothing here blocks the app from running — it builds and works
-today, these just switch on push and purchasing.
+Everything the Android app needs from outside the codebase.
 
-Package name, needed throughout: **`com.harvestglass.harvest`**
+**Done:** the Firebase project and `google-services.json` (task 1's client
+half), and both Edge Function deploys (task 3).
+
+**Left for you:** the FCM server credentials, the three push migrations, and
+the Play Console products and service account. None of it blocks the app from
+running — it builds and works today; these switch on push and purchasing.
+
+Package name, needed throughout: **`com.harvest.meetmindfully`**
+
+Note it differs from the Kotlin package (`com.harvestglass.harvest`) and from
+the iOS bundle id (`HarvestGlass.Harvest`). That is deliberate — the
+applicationId is the permanent Play Store identity and was set to match the
+Firebase registration; the namespace underneath is just where the classes live.
 
 ---
 
-## 1. Firebase — what it is and why
+## 1. Firebase — done
 
 Apple delivers push through APNs. Google delivers it through **FCM** (Firebase
 Cloud Messaging). They're the same idea — a service that holds an open
@@ -16,26 +26,23 @@ connection to every phone so your server can wake an app that isn't running —
 but they're separate systems with separate credentials.
 
 Your `send-push` Edge Function already speaks both. It reads each device's
-`platform` column and routes to APNs or FCM. What's missing is the FCM half's
-credentials, and the file that lets the Android app register for a token at all.
+`platform` column and routes to APNs or FCM. The client half is now in place;
+what's still missing is the FCM server credentials.
 
-### Create the project
+### Status
 
-1. Go to <https://console.firebase.google.com> and click **Add project**.
-2. Name it `Harvest` (or anything — the name is internal).
-3. Google Analytics is optional. Off is fine.
+Project `harvest-cc11e` exists, the Android app is registered as
+`com.harvest.meetmindfully`, and `google-services.json` is in
+`android/app/`. Verified on device: `FirebaseApp initialization successful`,
+and `HarvestMessagingService` is bound to `com.google.firebase.MESSAGING_EVENT`
+in the merged manifest.
 
-### Register the Android app
+The app's `applicationId` was changed to match the Firebase registration. The
+Gradle plugin is applied only when `google-services.json` exists, so before the
+file was added the app built without Firebase at all — and once it was added
+with a mismatched package, the build failed outright until the ids agreed.
 
-1. In the project, click the **Android** icon.
-2. **Android package name:** `com.harvestglass.harvest` — this must match exactly.
-3. Nickname and the debug signing certificate are both optional. Skip them.
-4. Download **`google-services.json`**.
-5. Put it at `android/app/google-services.json`.
-
-That's the client half done. The build picks the file up automatically — the
-Gradle plugin is applied only when the file exists, which is why the app
-compiles fine without it today.
+The client half is done. The server half is below.
 
 ### Get the server credentials
 
@@ -141,6 +148,12 @@ the same tier rows:
 | `com.harvestglass.harvest.gold.weekly` | Gold | Weekly |
 | `com.harvestglass.harvest.gold.monthly` | Gold | Monthly |
 
+**The `harvestglass` prefix is intentional.** Play product ids have no
+relationship to the package name; these mirror StoreKit's ids exactly, so both
+stores map to the same tier rows through one table in `verify-play-purchase`.
+Say the word if you'd rather they read `meetmindfully` and I'll change both
+sides together.
+
 For each one:
 
 1. **Create subscription**, enter the product ID and a name.
@@ -170,7 +183,7 @@ a service account with access to the Play Developer API.
 
 Then set three more secrets on Supabase Edge Functions:
 
-- `PLAY_PACKAGE_NAME` → `com.harvestglass.harvest`
+- `PLAY_PACKAGE_NAME` → `com.harvest.meetmindfully`
 - `PLAY_CLIENT_EMAIL` → the service account's `client_email`
 - `PLAY_PRIVATE_KEY` → its `private_key`
 

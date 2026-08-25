@@ -17,11 +17,17 @@ if (file("google-services.json").exists()) {
 }
 
 android {
+    // The Kotlin package root. Deliberately NOT the applicationId below: this
+    // one is only a namespace for generated classes, and renaming it would
+    // touch every file for no gain.
     namespace = "com.harvestglass.harvest"
     compileSdk = 35
 
     defaultConfig {
-        applicationId = "com.harvestglass.harvest"
+        // The Play Store identity, and what Firebase registers. Permanent once
+        // published, which is why it differs from the namespace above rather
+        // than the other way round.
+        applicationId = "com.harvest.meetmindfully"
         minSdk = 26
         targetSdk = 35
         versionCode = 1
