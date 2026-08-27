@@ -23,7 +23,7 @@ android {
     // one is only a namespace for generated classes, and renaming it would
     // touch every file for no gain.
     namespace = "com.harvestglass.harvest"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         // The Play Store identity, and what Firebase registers. Permanent once
@@ -31,8 +31,8 @@ android {
         // than the other way round.
         applicationId = "com.harvest.meetmindfully"
         minSdk = 26
-        targetSdk = 35
-        versionCode = 1
+        targetSdk = 36
+        versionCode = 2
         versionName = "1.0"
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
     }

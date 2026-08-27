@@ -72,10 +72,55 @@ Cost of leaving it off: about 17 MB rather than perhaps 8-10 MB.
 
 - `apksigner verify` — signed, one signer, fingerprints above
 - AAB structure — `BundleConfig.pb`, base manifest and dex all present, signed
-- Manifest — `com.harvest.meetmindfully`, versionCode 1, versionName 1.0,
-  minSdk 26, targetSdk 35
+- Manifest — `com.harvest.meetmindfully`, versionName 1.0, minSdk 26
 - Installed and launched the signed release APK on API 36: no crash, and
   `FirebaseApp initialization successful` from the app's own PID
+
+## Target API level
+
+Play requires apps to target within one year of the latest Android release.
+As of 2026-08-27 that means **API 36 (Android 16)**; API 35 is rejected.
+
+Bumping it needed three things, not one:
+
+1. `compileSdk` and `targetSdk` → 36
+2. **AGP 8.7.3 → 8.9.2** — 8.7 cannot compile against API 36 at all
+3. The `platforms;android-36` SDK package, which was not installed
+
+`cmdline-tools/latest` was empty, so `sdkmanager` had to be unpacked from the
+`commandlinetools.zip` sitting in the SDK root first. It also needs JDK 17+,
+while `JAVA_HOME` here points at JDK 11 — Android Studio's bundled JBR 21
+works:
+
+```bash
+export JAVA_HOME="C:\Program Files\Android\Android Studio\jbr"
+SDK="$LOCALAPPDATA/Android/Sdk"
+"$SDK/cmdline-tools/latest/bin/sdkmanager.bat" --sdk_root="$SDK" "platforms;android-36"
+```
+
+### Verified on API 36
+
+- 304 unit tests pass
+- Signed release APK installs and launches on an API 36 emulator, no crash,
+  `FirebaseApp initialization successful` from the app's own PID
+- Manifest reads `targetSdkVersion:'36'`, versionCode 2
+- The four `libandroidx.graphics.path.so` slices are uncompressed and
+  **16 KB-aligned**, which Android 16 requires. Measure the *data* offset, not
+  `header_offset` — the latter is the local file header and is never aligned,
+  which makes a naive check report a false failure.
+
+### Behaviour changes that did NOT bite
+
+- **Orientation/resizability**: apps targeting 36 have `screenOrientation` and
+  `resizeableActivity` ignored on large screens. The manifest sets neither.
+- **Edge-to-edge**: already handled when targetSdk went to 35.
+
+### One that did — see below
+
+**Predictive back** is on by default at targetSdk 36. See the note in the port
+status doc: most pushed screens do not register a `BackHandler`, so system back
+exits the app rather than returning. Pre-existing, but now visible as an
+app-exit animation.
 
 ## Version bumps
 

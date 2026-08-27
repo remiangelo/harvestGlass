@@ -68,6 +68,24 @@ symbol across the Swift sources.
 
 See `docs/setup/2026-08-25-android-launch-setup.md` for the step-by-step.
 
+## Open defect: system back exits the app
+
+Found 2026-08-27 while moving to targetSdk 36. Screens are routed by setting a
+state flag and early-returning, and each takes an `onBack`/`onDismiss` the
+chrome calls — but only `OnboardingContainer` registers a `BackHandler`. On
+every other pushed screen the system back gesture is unhandled, so it finishes
+the Activity instead of going back: Settings, Subscription, member profile,
+Compatibility, room members, both chats, the report sheet, Send a Seed, the
+interest picker, the quiz, and the safety screens.
+
+Pre-existing, and it survived because the on-screen back affordances all work.
+Predictive back is on by default at targetSdk 36, so it is now visible as an
+app-exit animation the moment someone swipes back.
+
+The fix is contained — a `BackHandler` inside each screen that already has the
+callback — but it is a behaviour change across ~14 files and wants testing per
+screen, so it is written down rather than slipped into the compliance bump.
+
 ## Known parity limits
 
 **Liquid Glass cannot be reproduced.** iOS 26's `.glassEffect()` has no Android
