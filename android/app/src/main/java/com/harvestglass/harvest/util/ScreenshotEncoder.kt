@@ -19,7 +19,7 @@ import kotlin.math.roundToInt
 object ScreenshotEncoder {
 
     /** Long edge cap. Chat text stays legible well below a full-res screenshot. */
-    private const val MAX_DIMENSION = 1400
+    const val MAX_DIMENSION = 1400
 
     /** JPEG quality; enough for text, small enough to keep the request sane. */
     private const val QUALITY = 80
@@ -27,21 +27,27 @@ object ScreenshotEncoder {
     class EncodingException(message: String) : Exception(message)
 
     /**
+     * Longest-edge target for a send of [imageCount] images. Text in a phone
+     * screenshot stays legible at 900px, which is what makes the top of the
+     * ladder affordable.
+     */
+    fun targetDimension(imageCount: Int): Int = when {
+        imageCount <= 2 -> MAX_DIMENSION
+        imageCount <= 5 -> 1100
+        else -> 900
+    }
+
+    /**
      * Reads [uri], downscales it, and returns a `data:image/jpeg;base64,…` URL.
      *
      * @throws EncodingException when the image can't be read or encoded — the
      *   caller shows that message rather than blaming the picture's content.
      */
-    fun dataUrl(context: Context, uri: Uri): String {
-        val bitmap = decodeDownsampled(context, uri)
+    fun dataUrl(context: Context, uri: Uri, maxDimension: Int = MAX_DIMENSION): String {
+        val bitmap = decodeDownsampled(context, uri, maxDimension)
             ?: throw EncodingException("That image couldn't be read. Try a different screenshot.")
 
-        val scaled = try {
-            downscale(bitmap)
-        } finally {
-            // downscale returns the original when no scaling is needed, so it
-            // can't be recycled here.
-        }
+        val scaled = downscale(bitmap, maxDimension)
 
         val bytes = ByteArrayOutputStream().use { stream ->
             if (!scaled.compress(Bitmap.CompressFormat.JPEG, QUALITY, stream)) {
@@ -58,7 +64,7 @@ object ScreenshotEncoder {
      * Decodes with `inSampleSize` so a 12MP photo never lands in memory at full
      * size just to be shrunk afterwards.
      */
-    private fun decodeDownsampled(context: Context, uri: Uri): Bitmap? {
+    private fun decodeDownsampled(context: Context, uri: Uri, maxDimension: Int): Bitmap? {
         val bounds = BitmapFactory.Options().apply { inJustDecodeBounds = true }
         context.contentResolver.openInputStream(uri)?.use {
             BitmapFactory.decodeStream(it, null, bounds)
@@ -68,7 +74,7 @@ object ScreenshotEncoder {
         if (longest <= 0) return null
 
         var sample = 1
-        while (longest / sample > MAX_DIMENSION * 2) sample *= 2
+        while (longest / sample > maxDimension * 2) sample *= 2
 
         val options = BitmapFactory.Options().apply { inSampleSize = sample }
         return context.contentResolver.openInputStream(uri)?.use {
@@ -76,11 +82,15 @@ object ScreenshotEncoder {
         }
     }
 
-    private fun downscale(bitmap: Bitmap): Bitmap {
+    /**
+     * downscale returns the original when no scaling is needed, so it can't be
+     * recycled here.
+     */
+    private fun downscale(bitmap: Bitmap, maxDimension: Int): Bitmap {
         val longest = max(bitmap.width, bitmap.height)
-        if (longest <= MAX_DIMENSION) return bitmap
+        if (longest <= maxDimension) return bitmap
 
-        val ratio = MAX_DIMENSION.toDouble() / longest
+        val ratio = maxDimension.toDouble() / longest
         return Bitmap.createScaledBitmap(
             bitmap,
             (bitmap.width * ratio).roundToInt().coerceAtLeast(1),
