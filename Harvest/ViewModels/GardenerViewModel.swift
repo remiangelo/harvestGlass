@@ -151,9 +151,10 @@ final class GardenerViewModel {
         isSending = true
         defer { isSending = false }
 
-        // Encoded off the main actor — `ScreenshotEncoder` is `nonisolated` for
-        // this, and Android does the same in `Dispatchers.IO`. On the main
-        // actor this loop freezes the UI for the length of the whole batch.
+        // Encoded off the main actor — every `ScreenshotEncoder` member is
+        // `nonisolated` for this, and Android does the same in
+        // `Dispatchers.IO`. On the main actor this freezes the UI for the
+        // length of the whole batch.
         let target = ScreenshotEncoder.targetDimension(imageCount: images.count)
         let dataURLs: [String]
         do {

@@ -7,20 +7,26 @@ import UIKit
 /// result is a `data:` URL — the image is never written to disk or uploaded to
 /// storage.
 ///
-/// `nonisolated` because the target sets `SWIFT_DEFAULT_ACTOR_ISOLATION =
-/// MainActor`: without it every member here is inferred `@MainActor` and a send
-/// of ten screenshots decodes, scales and base64s them all on the main thread.
-/// Nothing it touches is main-actor-only — `UIImage`, `UIGraphicsImageRenderer`
-/// and `Data` are all usable off-main.
-nonisolated enum ScreenshotEncoder {
+/// Every member is `nonisolated` because the target sets
+/// `SWIFT_DEFAULT_ACTOR_ISOLATION = MainActor`: without it they are all inferred
+/// `@MainActor`, and a send of ten screenshots decodes, scales and base64s them
+/// on the main thread. Nothing here touches main-actor-only state — `UIImage`,
+/// `UIGraphicsImageRenderer` and `Data` are all usable off-main.
+///
+/// Marked per member rather than on the enum itself: `nonisolated` on a type
+/// declaration is SE-0449 and needs Swift 6.1, while this target is
+/// `SWIFT_VERSION = 5.0` and per-member `nonisolated` has been valid since 5.5.
+/// The `static let`s carry it too, so the functions below — and the default
+/// arguments that read `maxDimension` — are not reading main-actor state.
+enum ScreenshotEncoder {
     /// Longest side, in pixels, after downscaling. Matches `MAX_DIMENSION` in
     /// ScreenshotEncoder.kt: chat text stays legible well below a full-res
     /// screenshot, and both platforms must send comparable detail.
-    static let maxDimension: CGFloat = 1400
-    static let jpegQuality: CGFloat = 0.7
+    nonisolated static let maxDimension: CGFloat = 1400
+    nonisolated static let jpegQuality: CGFloat = 0.7
     /// Refuse anything still this large once encoded; the request would be
     /// rejected upstream anyway, and failing here gives a better message.
-    static let maxEncodedBytes = 4 * 1024 * 1024
+    nonisolated static let maxEncodedBytes = 4 * 1024 * 1024
 
     enum EncodingError: LocalizedError {
         case couldNotEncode
@@ -40,14 +46,14 @@ nonisolated enum ScreenshotEncoder {
     /// screenshot stays legible at 900px, which is what makes the top of the
     /// ladder affordable. Mirrors `targetDimension` in ScreenshotEncoder.kt —
     /// a count of zero or less falls in the first rung, as it does there.
-    static func targetDimension(imageCount: Int) -> CGFloat {
+    nonisolated static func targetDimension(imageCount: Int) -> CGFloat {
         if imageCount <= 2 { return maxDimension }
         if imageCount <= 5 { return 1100 }
         return 900
     }
 
     /// A `data:image/jpeg;base64,...` URL suitable for an `image_url` part.
-    static func dataURL(from image: UIImage, target: CGFloat = maxDimension) throws -> String {
+    nonisolated static func dataURL(from image: UIImage, target: CGFloat = maxDimension) throws -> String {
         let scaled = downscaled(image, limit: target)
         guard let jpeg = scaled.jpegData(compressionQuality: jpegQuality) else {
             throw EncodingError.couldNotEncode
@@ -60,7 +66,7 @@ nonisolated enum ScreenshotEncoder {
 
     /// Aspect-preserving downscale so the longest side is at most
     /// `maxDimension`. Images already smaller are returned untouched.
-    static func downscaled(_ image: UIImage, limit: CGFloat = maxDimension) -> UIImage {
+    nonisolated static func downscaled(_ image: UIImage, limit: CGFloat = maxDimension) -> UIImage {
         let size = image.size
         let longest = max(size.width, size.height)
         guard longest > limit, longest > 0 else { return image }
