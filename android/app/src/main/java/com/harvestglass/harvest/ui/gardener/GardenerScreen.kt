@@ -24,6 +24,7 @@ import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.remember
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -68,12 +69,28 @@ fun GardenerScreen(
     // PickMultipleVisualMedia requires maxItems >= 2, so the free tier (cap
     // 1) has to use the single-item contract instead — mixing them up here
     // crashes on launch for most of the userbase.
+    //
+    // Constructed inline (keyed on imageCap) rather than remembered: this
+    // instance has no equals(), so a tier change or unrelated recomposition
+    // re-keys the underlying DisposableEffect, causing an unregister+register
+    // cycle in ActivityResultRegistry. That looks unsafe for an in-flight
+    // picker launch, but isn't: ActivityResultRegistry.unregister() (verified
+    // against the app's actual androidx.activity:activity 1.9.3 bytecode)
+    // only drops the requestCode<->key mapping when the key is NOT in
+    // launchedKeys — i.e. it never drops a launch that's still awaiting a
+    // result — so the immediately-following register() call re-attaches a
+    // fresh callback+contract to the same requestCode before any async
+    // result can arrive, and dispatchResult() delivers to it normally.
     val pickImages = rememberLauncherForActivityResult(
         ActivityResultContracts.PickMultipleVisualMedia(state.imageCap.coerceAtLeast(2))
     ) { uris: List<Uri> -> if (uris.isNotEmpty()) viewModel.stageScreenshots(uris) }
 
+    // Remembered rather than constructed inline: PickVisualMedia has no
+    // equals(), so an inline instance would be a fresh DisposableEffect key
+    // on every recomposition of GardenerScreen.
+    val pickImageContract = remember { ActivityResultContracts.PickVisualMedia() }
     val pickImage = rememberLauncherForActivityResult(
-        ActivityResultContracts.PickVisualMedia()
+        pickImageContract
     ) { uri: Uri? -> if (uri != null) viewModel.stageScreenshots(listOf(uri)) }
 
     LaunchedEffect(userId) {
@@ -293,7 +310,11 @@ private fun ScreenshotStrip(uris: List<Uri>, onRemove: (Int) -> Unit) {
             .fillMaxWidth()
             .background(HarvestTheme.Colors.wineBlack)
     ) {
-        items(uris.size) { index ->
+        // Keyed by Uri, not position: stageScreenshots() always replaces the
+        // whole list from a single pick, so Uris are never duplicated within
+        // it, and a stable key stops Compose from reusing a slot's cached
+        // AsyncImage state for a different Uri when an item is removed.
+        items(uris.size, key = { uris[it].toString() }) { index ->
             Box(Modifier.size(56.dp)) {
                 AsyncImage(
                     model = uris[index],
