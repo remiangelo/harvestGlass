@@ -212,7 +212,7 @@ class GardenerViewModel @Inject constructor(
             return@launch
         }
 
-        val placeholder = GardenerService.screenshotPlaceholder(caption)
+        val placeholder = GardenerService.screenshotPlaceholder(caption, 1)
         _state.update {
             it.copy(
                 draft = "",
@@ -232,9 +232,9 @@ class GardenerViewModel @Inject constructor(
         runCatching { rateLimitService.trackScreenshotReview(userId) }
 
         try {
-            val reply = service.sendScreenshot(
+            val reply = service.sendImages(
                 userId = userId,
-                imageDataUrl = dataUrl,
+                imageDataUrls = listOf(dataUrl),
                 caption = caption,
                 history = _state.value.messages.dropLast(1)
             )

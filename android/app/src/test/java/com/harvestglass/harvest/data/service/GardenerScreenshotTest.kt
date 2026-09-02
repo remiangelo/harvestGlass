@@ -1,84 +1,80 @@
 package com.harvestglass.harvest.data.service
 
 import org.junit.Assert.assertEquals
-import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The verdict parser is the one place a model's free-form reply becomes a
- * yes/no decision, so it is locked to the shapes GPT actually returns.
+ * The image call returns prose, not JSON. The only structure is the refusal
+ * sentinel — the previous JSON verdict was truncated by maxTokens on long
+ * replies and surfaced as "The Gardener returned no verdict".
  */
 class GardenerScreenshotTest {
 
     @Test
-    fun `a bare verdict object parses`() {
-        val verdict = GardenerService.parseVerdict(
-            """{"is_chat_screenshot": true, "reply": "They're pulling back."}"""
-        )
+    fun `a caption becomes a text part before the images`() {
+        val parts = GardenerService.imageParts("what do you think?", listOf("data:a", "data:b"))
 
-        assertTrue(verdict.isChatScreenshot)
-        assertEquals("They're pulling back.", verdict.reply)
+        assertEquals(3, parts.size)
+        assertEquals(OpenAIService.ContentPart.Text("what do you think?"), parts[0])
+        assertEquals(OpenAIService.ContentPart.ImageUrl("data:a"), parts[1])
+        assertEquals(OpenAIService.ContentPart.ImageUrl("data:b"), parts[2])
     }
 
     @Test
-    fun `code fences are tolerated`() {
-        val verdict = GardenerService.parseVerdict(
-            "```json\n{\"is_chat_screenshot\": false, \"reply\": \"\"}\n```"
-        )
+    fun `an empty caption contributes no text part`() {
+        val parts = GardenerService.imageParts("   ", listOf("data:a"))
 
-        assertFalse(verdict.isChatScreenshot)
-        assertEquals("", verdict.reply)
+        assertEquals(1, parts.size)
+        assertEquals(OpenAIService.ContentPart.ImageUrl("data:a"), parts[0])
     }
 
     @Test
-    fun `prose around the object is tolerated`() {
-        val verdict = GardenerService.parseVerdict(
-            "Sure! {\"is_chat_screenshot\": true, \"reply\": \"Ask directly.\"} Hope that helps."
-        )
+    fun `image order is selection order`() {
+        val urls = listOf("data:1", "data:2", "data:3")
+        val parts = GardenerService.imageParts("", urls)
 
-        assertTrue(verdict.isChatScreenshot)
-        assertEquals("Ask directly.", verdict.reply)
-    }
-
-    // Ambiguity has to fail closed: a reply we can't read must not be
-    // presented as coaching about a conversation.
-    @Test
-    fun `a non-boolean flag reads as not a screenshot`() {
-        val verdict = GardenerService.parseVerdict("""{"is_chat_screenshot": "yes", "reply": "x"}""")
-
-        assertFalse(verdict.isChatScreenshot)
-    }
-
-    @Test(expected = IllegalStateException::class)
-    fun `a reply with no object at all throws`() {
-        GardenerService.parseVerdict("I'm not sure what that image is.")
+        assertEquals(urls, parts.map { (it as OpenAIService.ContentPart.ImageUrl).url })
     }
 
     @Test
-    fun `the placeholder matches the iOS wording`() {
-        assertEquals("📷 Screenshot", GardenerService.screenshotPlaceholder(""))
+    fun `the sentinel becomes the canned refusal`() {
+        assertEquals(GardenerService.EXPLICIT_REFUSAL_REPLY, GardenerService.resolveReply("REFUSE_EXPLICIT"))
+    }
+
+    @Test
+    fun `the sentinel is recognised with surrounding whitespace`() {
         assertEquals(
-            "📷 Screenshot — is this a red flag?",
-            GardenerService.screenshotPlaceholder("is this a red flag?")
+            GardenerService.EXPLICIT_REFUSAL_REPLY,
+            GardenerService.resolveReply("  REFUSE_EXPLICIT\n\n")
         )
     }
 
-    // Same user, same day, same question — the quiz must not reshuffle on
-    // every open.
+    /** A reply that merely mentions the sentinel is a real reply. */
     @Test
-    fun `question selection is stable for a user`() {
-        val bank = listOf("a", "b", "c", "d", "e")
-
-        val first = GardenerService.selectQuestion(bank, "user-1")
-        val second = GardenerService.selectQuestion(bank, "user-1")
-
-        assertEquals(first, second)
-        assertTrue(bank.contains(first))
+    fun `prose containing the word is not a refusal`() {
+        val raw = "I won't REFUSE_EXPLICIT anything here — the tone reads warm."
+        assertTrue(GardenerService.resolveReply(raw).contains("tone reads warm"))
     }
 
     @Test
-    fun `a single-question bank still selects`() {
-        assertEquals("only", GardenerService.selectQuestion(listOf("only"), "user-1"))
+    fun `ordinary prose is formatted and returned`() {
+        assertEquals("They're pulling back.", GardenerService.resolveReply("They're pulling back."))
+    }
+
+    @Test
+    fun `the placeholder is singular for one image`() {
+        assertEquals("📷 Screenshot — read this", GardenerService.screenshotPlaceholder("read this", 1))
+    }
+
+    @Test
+    fun `the placeholder counts several images`() {
+        assertEquals("📷 3 screenshots — read this", GardenerService.screenshotPlaceholder("read this", 3))
+    }
+
+    @Test
+    fun `an empty caption drops the dash`() {
+        assertEquals("📷 Screenshot", GardenerService.screenshotPlaceholder("", 1))
+        assertEquals("📷 2 screenshots", GardenerService.screenshotPlaceholder("", 2))
     }
 }

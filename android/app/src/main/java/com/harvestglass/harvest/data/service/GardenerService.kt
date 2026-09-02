@@ -10,13 +10,10 @@ import io.github.jan.supabase.postgrest.query.Columns
 import io.github.jan.supabase.postgrest.query.Order
 import kotlinx.serialization.SerialName
 import kotlinx.serialization.Serializable
-import kotlinx.serialization.json.Json
 import kotlinx.serialization.json.JsonElement
 import kotlinx.serialization.json.JsonObject
 import kotlinx.serialization.json.JsonPrimitive
-import kotlinx.serialization.json.booleanOrNull
 import kotlinx.serialization.json.buildJsonObject
-import kotlinx.serialization.json.jsonObject
 import kotlinx.serialization.json.jsonPrimitive
 import kotlinx.serialization.json.put
 import java.time.Instant
@@ -117,22 +114,22 @@ class GardenerService(
     }
 
     /**
-     * Sends a screenshot for review. The image is passed inline as a data URL
-     * and never stored; only a placeholder is written to chat history.
+     * Sends images for review. They are passed inline as data URLs and never
+     * stored; only a placeholder is written to chat history.
      *
-     * Throws on transport or decoding failure — a user must never be told their
+     * Throws on transport failure — a user must never be told their
      * screenshot was invalid because the network dropped.
      */
-    suspend fun sendScreenshot(
+    suspend fun sendImages(
         userId: String,
-        imageDataUrl: String,
+        imageDataUrls: List<String>,
         caption: String,
         history: List<GardenerMessage>
     ): String {
         val trimmedCaption = caption.trim()
 
         val chatMessages = buildList {
-            add(OpenAIService.ChatMessage("system", SCREENSHOT_SYSTEM_PROMPT))
+            add(OpenAIService.ChatMessage("system", IMAGE_SYSTEM_PROMPT))
             history.takeLast(SCREENSHOT_HISTORY_WINDOW).forEach { msg ->
                 add(
                     OpenAIService.ChatMessage(
@@ -141,29 +138,13 @@ class GardenerService(
                     )
                 )
             }
-            add(
-                OpenAIService.ChatMessage(
-                    role = "user",
-                    parts = buildList {
-                        if (trimmedCaption.isNotEmpty()) {
-                            add(OpenAIService.ContentPart.Text(trimmedCaption))
-                        }
-                        add(OpenAIService.ContentPart.ImageUrl(imageDataUrl))
-                    }
-                )
-            )
+            add(OpenAIService.ChatMessage(role = "user", parts = imageParts(trimmedCaption, imageDataUrls)))
         }
 
-        val raw = openAI.sendChat(messages = chatMessages, temperature = 0.4, maxTokens = 400)
+        val raw = openAI.sendChat(messages = chatMessages, temperature = 0.4, maxTokens = 700)
+        val response = resolveReply(raw)
 
-        val verdict = parseVerdict(raw)
-        val response = if (verdict.isChatScreenshot && verdict.reply.isNotEmpty()) {
-            GardenerFormatter.format(verdict.reply)
-        } else {
-            NOT_A_SCREENSHOT_REPLY
-        }
-
-        val placeholder = screenshotPlaceholder(trimmedCaption)
+        val placeholder = screenshotPlaceholder(trimmedCaption, imageDataUrls.size)
         val now = Instant.now().toString()
         runCatching { persist(userId, "user", placeholder, now) }
         runCatching { persist(userId, "gardener", response, now) }
@@ -385,16 +366,75 @@ class GardenerService(
             }.filter { it.text.isNotEmpty() }
     }
 
-    /** The model's answer to "is this a chat screenshot, and what would you say". */
-    data class ScreenshotVerdict(val isChatScreenshot: Boolean, val reply: String)
-
     companion object {
         private const val HISTORY_WINDOW = 10
         private const val SCREENSHOT_HISTORY_WINDOW = 6
 
+        const val REFUSE_SENTINEL = "REFUSE_EXPLICIT"
+
+        /**
+         * Shown verbatim when the model refuses. Fixed in the app rather than
+         * written by the model so the promise is worded identically every
+         * time, and so it invites a retry — the judgement is the model's and
+         * will occasionally be wrong.
+         */
+        val EXPLICIT_REFUSAL_REPLY = """
+            I can't give you a read on that one — it looks explicit, and that's outside what I can coach on.
+
+            Send me a conversation, a profile, or anything else you'd like a view on and I'll take a proper look.
+        """.trimIndent()
+
         /** iOS composes the same placeholder, and both stores read it back. */
-        fun screenshotPlaceholder(caption: String): String =
-            if (caption.isEmpty()) "\uD83D\uDCF7 Screenshot" else "\uD83D\uDCF7 Screenshot \u2014 $caption"
+        fun screenshotPlaceholder(caption: String, imageCount: Int): String {
+            val noun = if (imageCount > 1) "$imageCount screenshots" else "Screenshot"
+            return if (caption.isEmpty()) "\uD83D\uDCF7 $noun" else "\uD83D\uDCF7 $noun — $caption"
+        }
+
+        /** The user turn: the question first, then every image in selection order. */
+        fun imageParts(
+            caption: String,
+            imageDataUrls: List<String>
+        ): List<OpenAIService.ContentPart> = buildList {
+            val trimmed = caption.trim()
+            if (trimmed.isNotEmpty()) add(OpenAIService.ContentPart.Text(trimmed))
+            imageDataUrls.forEach { add(OpenAIService.ContentPart.ImageUrl(it)) }
+        }
+
+        /**
+         * The model's reply, or our own copy when it refused. Compared against
+         * the whole trimmed reply, not searched for: the sentinel appearing
+         * inside a sentence is prose, not a refusal.
+         */
+        fun resolveReply(raw: String): String =
+            if (raw.trim() == REFUSE_SENTINEL) EXPLICIT_REFUSAL_REPLY
+            else GardenerFormatter.format(raw)
+
+        private val IMAGE_SYSTEM_PROMPT = """
+            You are The Gardener, a warm and insightful AI dating coach for the Harvest dating app.
+
+            The user has attached one or more images and may have asked a question about them.
+
+            If they asked a question, ANSWER THAT QUESTION. Ground every claim in what is
+            actually visible in the images. Do not substitute general dating advice for the
+            thing they asked.
+
+            Several images are one continuous piece of context — usually consecutive
+            screenshots of the same conversation, in the order given. Read them as a whole.
+
+            If they asked nothing, give your read: what you notice, then what to do about it.
+
+            Whatever you are looking at — a chat thread, a dating profile, a bio, a photo —
+            respond to it as a coach would.
+
+            - Never invent messages or details that aren't visible.
+            - Be specific about tone and what the other person appears to be signalling.
+            - Keep it concise: short paragraphs of 1-3 sentences, blank line between each.
+            - Never give medical or legal advice. If it shows distress, abuse, or risk,
+              name that clearly and encourage professional or trusted human support.
+
+            If ANY image is sexually explicit or graphic, reply with exactly REFUSE_EXPLICIT
+            and nothing else — no explanation, no other text.
+        """.trimIndent()
 
         /**
          * Picks the same question for the same user, as Swift's
@@ -402,62 +442,6 @@ class GardenerService(
          */
         internal fun <T> selectQuestion(questions: List<T>, userId: String): T =
             questions[userId.hashCode().absoluteValue % questions.size]
-
-        /**
-         * Pulls the verdict out of the model's reply, tolerating code fences
-         * and stray prose around the object.
-         */
-        fun parseVerdict(raw: String): ScreenshotVerdict {
-            val cleaned = raw.replace("```json", "").replace("```", "").trim()
-            val start = cleaned.indexOf('{')
-            val end = cleaned.lastIndexOf('}')
-            if (start < 0 || end <= start) {
-                throw IllegalStateException("The Gardener returned no verdict")
-            }
-
-            val obj = JSON.parseToJsonElement(cleaned.substring(start, end + 1)).jsonObject
-            return ScreenshotVerdict(
-                isChatScreenshot = obj["is_chat_screenshot"]?.jsonPrimitive?.booleanOrNull ?: false,
-                reply = obj["reply"]?.jsonPrimitive?.content.orEmpty()
-            )
-        }
-
-        private val JSON = Json { ignoreUnknownKeys = true }
-
-        /**
-         * Shown verbatim when the image isn't a conversation. Fixed in the app
-         * rather than written by the model so the promise is worded identically
-         * every time — and so it invites a retry, because detection is a
-         * judgement call that will occasionally be wrong.
-         */
-        val NOT_A_SCREENSHOT_REPLY = """
-            I can only read screenshots of a conversation \u2014 a chat thread, texts, or DMs.
-
-            This one doesn't look like that, so I'd rather not guess at it. If it *is* a conversation, try a fuller screenshot showing the messages and I'll take another look.
-        """.trimIndent()
-
-        private val SCREENSHOT_SYSTEM_PROMPT = """
-            You are The Gardener, a warm and insightful AI dating coach for the Harvest dating app.
-
-            The user has sent an image. First decide whether it is a screenshot of a
-            TEXT CONVERSATION \u2014 a chat thread, SMS/iMessage, or DMs from any app, showing
-            messages between people. A selfie, a dating profile, a meme, a landscape, a
-            document, or a photo of a person is NOT a conversation screenshot.
-
-            Reply with ONLY a JSON object, no code fences, in exactly this shape:
-            {"is_chat_screenshot": <true|false>, "reply": "<your coaching reply>"}
-
-            If is_chat_screenshot is false, set "reply" to an empty string.
-
-            If it is true, "reply" is your coaching response about the conversation:
-            - Say plainly what you notice in the exchange, then what to do about it.
-            - Be specific about tone and what the other person appears to be signalling.
-            - Give 2-4 concrete suggestions, including an example of what to send next.
-            - Never invent messages that aren't visible in the image.
-            - Keep it concise: short paragraphs of 1-3 sentences, blank line between each.
-            - Never give medical or legal advice. If it shows distress, abuse, or risk,
-              name that clearly and encourage professional or trusted human support.
-        """.trimIndent()
 
         const val WELCOME_MESSAGE =
             "Welcome to The Gardener! I'm your personal dating coach, here to help you " +
