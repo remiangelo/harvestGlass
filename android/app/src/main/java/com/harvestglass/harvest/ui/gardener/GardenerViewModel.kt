@@ -32,8 +32,16 @@ data class GardenerUiState(
     val isThinking: Boolean = false,
     val error: String? = null,
 
-    /** The image staged in the composer, awaiting send. Never persisted. */
-    val pendingScreenshot: Uri? = null,
+    /** Images staged in the composer, awaiting send. Never persisted. */
+    val pendingScreenshots: List<Uri> = emptyList(),
+    /**
+     * Encoded images from the last send, kept so a follow-up in the same
+     * sitting can be answered by looking again. Dies with the process; never
+     * uploaded, never written to chat history.
+     */
+    val retainedImageUrls: List<String> = emptyList(),
+    /** Images allowed per message on the current tier. */
+    val imageCap: Int = 1,
 
     val characterLimit: Int = FREE_CHARACTER_LIMIT,
     val charactersUsedToday: Int = 0,
@@ -44,7 +52,7 @@ data class GardenerUiState(
     val showDailyQuiz: Boolean = false,
     val isSubmittingQuiz: Boolean = false
 ) {
-    val hasPendingScreenshot: Boolean get() = pendingScreenshot != null
+    val hasPendingScreenshot: Boolean get() = pendingScreenshots.isNotEmpty()
 
     val remainingCharacters: Int get() = (characterLimit - charactersUsedToday).coerceAtLeast(0)
     val isAtCharacterLimit: Boolean get() = charactersUsedToday >= characterLimit
@@ -112,6 +120,15 @@ class GardenerViewModel @Inject constructor(
         val text = content.trim()
         if (text.isEmpty()) return@launch
 
+        // A follow-up while images are still in hand goes back through the
+        // image call so the Gardener can look again rather than guess. It is
+        // not a new review: trackScreenshotReview is deliberately not called.
+        val retained = _state.value.retainedImageUrls
+        if (retained.isNotEmpty()) {
+            sendRetained(userId, retained)
+            return@launch
+        }
+
         val tier = currentTier
         if (tier == null) {
             _state.update { it.copy(error = "Unable to verify subscription tier") }
@@ -174,17 +191,27 @@ class GardenerViewModel @Inject constructor(
         }
     }
 
-    fun stageScreenshot(uri: Uri?) = _state.update { it.copy(pendingScreenshot = uri) }
+    fun stageScreenshots(uris: List<Uri>) = _state.update {
+        it.copy(pendingScreenshots = clampSelection(uris, it.imageCap))
+    }
 
-    fun clearScreenshot() = _state.update { it.copy(pendingScreenshot = null) }
+    /** Drops one staged image, e.g. from a thumbnail's remove button. */
+    fun unstageScreenshot(index: Int) = _state.update {
+        it.copy(pendingScreenshots = it.pendingScreenshots.filterIndexed { i, _ -> i != index })
+    }
+
+    fun clearScreenshot() = _state.update { it.copy(pendingScreenshots = emptyList()) }
 
     /**
-     * Sends the staged screenshot for review. The image is encoded inline and
-     * dropped — nothing is uploaded to storage.
+     * Sends the staged images for review. They are encoded inline and
+     * dropped — nothing is uploaded to storage. The encoded data URLs are
+     * retained in memory afterwards so a same-sitting follow-up question can
+     * reuse them without spending another daily review.
      */
-    fun sendScreenshot(context: Context, userId: String) = viewModelScope.launch {
+    fun sendImages(context: Context, userId: String) = viewModelScope.launch {
         if (_state.value.isThinking) return@launch
-        val uri = _state.value.pendingScreenshot ?: return@launch
+        val uris = _state.value.pendingScreenshots
+        if (uris.isEmpty()) return@launch
 
         val tier = currentTier
         if (tier == null) {
@@ -205,18 +232,25 @@ class GardenerViewModel @Inject constructor(
 
         // Encode before mutating any state, so a bad image leaves the composer
         // exactly as the user left it.
-        val dataUrl = try {
-            withContext(Dispatchers.IO) { ScreenshotEncoder.dataUrl(context, uri) }
+        val target = ScreenshotEncoder.targetDimension(uris.size)
+        val dataUrls = try {
+            withContext(Dispatchers.IO) { uris.map { ScreenshotEncoder.dataUrl(context, it, target) } }
         } catch (e: Exception) {
             _state.update { it.copy(error = e.userMessage()) }
             return@launch
         }
 
-        val placeholder = GardenerService.screenshotPlaceholder(caption, 1)
+        payloadRejection(dataUrls)?.let { message ->
+            _state.update { it.copy(error = message) }
+            return@launch
+        }
+
+        val placeholder = GardenerService.screenshotPlaceholder(caption, uris.size)
         _state.update {
             it.copy(
                 draft = "",
-                pendingScreenshot = null,
+                pendingScreenshots = emptyList(),
+                retainedImageUrls = dataUrls,
                 isThinking = true,
                 error = null,
                 screenshotsUsedToday = it.screenshotsUsedToday + 1,
@@ -234,7 +268,7 @@ class GardenerViewModel @Inject constructor(
         try {
             val reply = service.sendImages(
                 userId = userId,
-                imageDataUrls = listOf(dataUrl),
+                imageDataUrls = dataUrls,
                 caption = caption,
                 history = _state.value.messages.dropLast(1)
             )
@@ -251,6 +285,57 @@ class GardenerViewModel @Inject constructor(
         } catch (_: Exception) {
             // Transport or decode failure — never presented as "not a
             // screenshot", which would blame the user for a network problem.
+            _state.update {
+                it.copy(error = "I couldn't read that screenshot just now. Try sending it again.")
+            }
+        } finally {
+            _state.update { it.copy(isThinking = false) }
+        }
+    }
+
+    /**
+     * A follow-up question about images already in hand this sitting. Sends
+     * the user's real text (not a placeholder) alongside the retained images,
+     * and deliberately calls neither checkScreenshotLimit nor
+     * trackScreenshotReview — this is a second question about one review, not
+     * a new one.
+     */
+    private suspend fun sendRetained(userId: String, retained: List<String>) {
+        val text = _state.value.draft.trim()
+
+        val optimistic = GardenerMessage(
+            id = "local-${System.nanoTime()}",
+            userId = userId,
+            role = "user",
+            content = text
+        )
+        _state.update {
+            it.copy(
+                messages = it.messages + optimistic,
+                draft = "",
+                isThinking = true,
+                error = null
+            )
+        }
+
+        try {
+            val reply = service.sendImages(
+                userId = userId,
+                imageDataUrls = retained,
+                caption = text,
+                history = _state.value.messages.dropLast(1)
+            )
+            _state.update {
+                it.copy(
+                    messages = it.messages + GardenerMessage(
+                        id = "reply-${System.nanoTime()}",
+                        userId = userId,
+                        role = "assistant",
+                        content = reply
+                    )
+                )
+            }
+        } catch (_: Exception) {
             _state.update {
                 it.copy(error = "I couldn't read that screenshot just now. Try sending it again.")
             }
@@ -328,6 +413,7 @@ class GardenerViewModel @Inject constructor(
                 it.copy(
                     characterLimit = tier.gardenerCharacterLimit,
                     screenshotLimit = tier.gardenerScreenshotsPerDay,
+                    imageCap = tier.gardenerImagesPerReview,
                     charactersUsedToday = used ?: 0,
                     screenshotsUsedToday = shots ?: 0
                 )
@@ -340,6 +426,7 @@ class GardenerViewModel @Inject constructor(
             it.copy(
                 characterLimit = GardenerUiState.FREE_CHARACTER_LIMIT,
                 screenshotLimit = GardenerUiState.FREE_SCREENSHOT_LIMIT,
+                imageCap = FREE_FALLBACK.gardenerImagesPerReview,
                 charactersUsedToday = 0,
                 screenshotsUsedToday = 0
             )
@@ -358,6 +445,29 @@ class GardenerViewModel @Inject constructor(
 
         private const val FALLBACK_INSIGHT =
             "Interesting choice! Self-awareness is the first step to meaningful connections."
+
+        /** Total encoded budget for one request, in characters of base64. */
+        const val PAYLOAD_BUDGET_CHARS = 6_000_000
+
+        /**
+         * The images actually sent. The picker is opened with the cap, but a
+         * picker limit is an affordance rather than a guarantee — and a cap of
+         * zero from a malformed tier row must still let one image through.
+         */
+        fun clampSelection(picked: List<Uri>, cap: Int): List<Uri> =
+            picked.take(cap.coerceAtLeast(1))
+
+        /**
+         * Null when the encoded selection fits, otherwise the message to show.
+         * Scaling bounds each image; nothing bounds the sum, and a transport
+         * error tells the user nothing about what to do differently.
+         */
+        fun payloadRejection(dataUrls: List<String>): String? {
+            val total = dataUrls.sumOf { it.length }
+            if (total <= PAYLOAD_BUDGET_CHARS) return null
+            return "Those ${dataUrls.size} images are too large to send together. " +
+                "Try sending fewer at a time."
+        }
 
         /** The offline tier: free allowances, nothing unlocked. */
         private val FREE_FALLBACK = SubscriptionTier(

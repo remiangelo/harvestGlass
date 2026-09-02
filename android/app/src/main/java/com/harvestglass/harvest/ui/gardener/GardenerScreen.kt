@@ -65,7 +65,7 @@ fun GardenerScreen(
     // images that genuinely aren't conversations.
     val pickImage = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
-    ) { uri: Uri? -> if (uri != null) viewModel.stageScreenshot(uri) }
+    ) { uri: Uri? -> if (uri != null) viewModel.stageScreenshots(listOf(uri)) }
 
     LaunchedEffect(userId) {
         viewModel.load(userId)
@@ -162,7 +162,7 @@ fun GardenerScreen(
         if (state.isFullyLocked) {
             AllowanceSpentBar()
         } else {
-            state.pendingScreenshot?.let { uri ->
+            state.pendingScreenshots.firstOrNull()?.let { uri ->
                 ScreenshotPreview(uri) { viewModel.clearScreenshot() }
             }
 
@@ -181,7 +181,7 @@ fun GardenerScreen(
                 sendsWithoutText = state.hasPendingScreenshot,
                 onSend = {
                     if (state.hasPendingScreenshot) {
-                        viewModel.sendScreenshot(context, userId)
+                        viewModel.sendImages(context, userId)
                     } else if (!state.isAtCharacterLimit) {
                         viewModel.send(userId)
                     }
