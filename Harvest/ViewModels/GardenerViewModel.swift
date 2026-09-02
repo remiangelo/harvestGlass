@@ -201,6 +201,8 @@ final class GardenerViewModel {
                 userId: userId,
                 imageDataURLs: dataURLs,
                 caption: caption,
+                // A fresh review is persisted as the camera placeholder.
+                userTurn: placeholder,
                 history: Array(messages.dropLast())
             )
             messages.append(
@@ -233,15 +235,14 @@ final class GardenerViewModel {
         messageText = ""
         error = nil
 
-        messages.append(
-            GardenerMessage(
-                id: UUID().uuidString,
-                userId: userId,
-                role: "user",
-                content: text,
-                createdAt: ISO8601DateFormatter().string(from: Date())
-            )
+        let userMsg = GardenerMessage(
+            id: UUID().uuidString,
+            userId: userId,
+            role: "user",
+            content: text,
+            createdAt: ISO8601DateFormatter().string(from: Date())
         )
+        messages.append(userMsg)
         todayCharUsage += text.count
 
         do {
@@ -249,6 +250,11 @@ final class GardenerViewModel {
                 userId: userId,
                 imageDataURLs: retained,
                 caption: text,
+                // A follow-up is persisted as the plain question. Composing a
+                // camera placeholder here would rewrite the user's own words on
+                // reload and read back as another review for one that was
+                // spent — and that transcript is what feeds the next window.
+                userTurn: text,
                 history: Array(messages.dropLast())
             )
             messages.append(
@@ -265,6 +271,11 @@ final class GardenerViewModel {
                 characterCount: text.count
             )
         } catch {
+            // Hand the text back and take the optimistic bubble down, so a
+            // failed follow-up isn't a lost question. Matches Android's
+            // send() and its sendRetained().
+            messages.removeAll { $0.id == userMsg.id }
+            messageText = text
             todayCharUsage = max(0, todayCharUsage - text.count)
             self.error = "I couldn't read that screenshot just now. Try sending it again."
         }

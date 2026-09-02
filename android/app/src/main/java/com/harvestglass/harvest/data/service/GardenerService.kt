@@ -115,7 +115,13 @@ class GardenerService(
 
     /**
      * Sends images for review. They are passed inline as data URLs and never
-     * stored; only a placeholder is written to chat history.
+     * stored; only [userTurn] and the reply are written to chat history.
+     *
+     * [userTurn] is the exact text to persist as the user's turn, and is the
+     * caller's to compose: a fresh review passes
+     * [screenshotPlaceholder]`(caption, count)`, a follow-up about images
+     * already in hand passes the plain question. Composing it here would file
+     * every follow-up as another camera-prefixed review.
      *
      * Throws on transport failure — a user must never be told their
      * screenshot was invalid because the network dropped.
@@ -124,6 +130,7 @@ class GardenerService(
         userId: String,
         imageDataUrls: List<String>,
         caption: String,
+        userTurn: String,
         history: List<GardenerMessage>
     ): String {
         val trimmedCaption = caption.trim()
@@ -144,9 +151,8 @@ class GardenerService(
         val raw = openAI.sendChat(messages = chatMessages, temperature = 0.4, maxTokens = 700)
         val response = resolveReply(raw)
 
-        val placeholder = screenshotPlaceholder(trimmedCaption, imageDataUrls.size)
         val now = Instant.now().toString()
-        runCatching { persist(userId, "user", placeholder, now) }
+        runCatching { persist(userId, "user", userTurn, now) }
         runCatching { persist(userId, "gardener", response, now) }
 
         return response

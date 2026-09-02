@@ -250,63 +250,74 @@ class GardenerViewModel @Inject constructor(
 
         val caption = _state.value.draft.trim()
 
-        // Encode before mutating any state, so a bad image leaves the composer
-        // exactly as the user left it.
-        val target = ScreenshotEncoder.targetDimension(uris.size)
-        val dataUrls = try {
-            withContext(Dispatchers.IO) { uris.map { ScreenshotEncoder.dataUrl(context, it, target) } }
-        } catch (e: Exception) {
-            _state.update { it.copy(error = e.userMessage()) }
-            return@launch
-        }
-
-        payloadRejection(dataUrls)?.let { message ->
-            _state.update { it.copy(error = message) }
-            return@launch
-        }
-
-        val placeholder = GardenerService.screenshotPlaceholder(caption, uris.size)
-        _state.update {
-            it.copy(
-                draft = "",
-                pendingScreenshots = emptyList(),
-                retainedImageUrls = dataUrls,
-                isThinking = true,
-                error = null,
-                screenshotsUsedToday = it.screenshotsUsedToday + 1,
-                messages = it.messages + GardenerMessage(
-                    id = "local-${System.nanoTime()}",
-                    userId = userId,
-                    role = "user",
-                    content = placeholder
-                )
-            )
-        }
-
-        runCatching { rateLimitService.trackScreenshotReview(userId) }
-
+        // The spinner goes up BEFORE the encode, not after it. Encoding several
+        // bitmaps takes a second or two, and the send button is gated on
+        // isThinking — leaving it live across the encode lets a second tap pass
+        // the guard above and spend a second daily review. iOS does the same
+        // with `defer`; the try/finally below is that shape.
+        _state.update { it.copy(isThinking = true) }
         try {
-            val reply = service.sendImages(
-                userId = userId,
-                imageDataUrls = dataUrls,
-                caption = caption,
-                history = _state.value.messages.dropLast(1)
-            )
+            // Encode before mutating any other state, so a bad image leaves the
+            // composer exactly as the user left it.
+            val target = ScreenshotEncoder.targetDimension(uris.size)
+            val dataUrls = try {
+                withContext(Dispatchers.IO) {
+                    uris.map { ScreenshotEncoder.dataUrl(context, it, target) }
+                }
+            } catch (e: Exception) {
+                _state.update { it.copy(error = e.userMessage()) }
+                return@launch
+            }
+
+            payloadRejection(dataUrls)?.let { message ->
+                _state.update { it.copy(error = message) }
+                return@launch
+            }
+
+            val placeholder = GardenerService.screenshotPlaceholder(caption, uris.size)
             _state.update {
                 it.copy(
+                    draft = "",
+                    pendingScreenshots = emptyList(),
+                    retainedImageUrls = dataUrls,
+                    error = null,
+                    screenshotsUsedToday = it.screenshotsUsedToday + 1,
                     messages = it.messages + GardenerMessage(
-                        id = "reply-${System.nanoTime()}",
+                        id = "local-${System.nanoTime()}",
                         userId = userId,
-                        role = "assistant",
-                        content = reply
+                        role = "user",
+                        content = placeholder
                     )
                 )
             }
-        } catch (_: Exception) {
-            // Transport or decode failure — never presented as "not a
-            // screenshot", which would blame the user for a network problem.
-            _state.update {
-                it.copy(error = "I couldn't read that screenshot just now. Try sending it again.")
+
+            runCatching { rateLimitService.trackScreenshotReview(userId) }
+
+            try {
+                val reply = service.sendImages(
+                    userId = userId,
+                    imageDataUrls = dataUrls,
+                    caption = caption,
+                    // A fresh review is persisted as the camera placeholder.
+                    userTurn = placeholder,
+                    history = _state.value.messages.dropLast(1)
+                )
+                _state.update {
+                    it.copy(
+                        messages = it.messages + GardenerMessage(
+                            id = "reply-${System.nanoTime()}",
+                            userId = userId,
+                            role = "assistant",
+                            content = reply
+                        )
+                    )
+                }
+            } catch (_: Exception) {
+                // Transport or decode failure — never presented as "not a
+                // screenshot", which would blame the user for a network problem.
+                _state.update {
+                    it.copy(error = "I couldn't read that screenshot just now. Try sending it again.")
+                }
             }
         } finally {
             _state.update { it.copy(isThinking = false) }
@@ -345,6 +356,11 @@ class GardenerViewModel @Inject constructor(
                 userId = userId,
                 imageDataUrls = retained,
                 caption = text,
+                // A follow-up is persisted as the plain question. Composing a
+                // camera placeholder here would rewrite the user's own words on
+                // reload and read back as another review for one that was
+                // spent — and that transcript is what feeds the next window.
+                userTurn = text,
                 history = _state.value.messages.dropLast(1)
             )
             _state.update {
@@ -359,8 +375,12 @@ class GardenerViewModel @Inject constructor(
             }
             runCatching { rateLimitService.trackGardenerConversation(userId, text.length) }
         } catch (_: Exception) {
+            // Same shape as send(): hand the text back and take the optimistic
+            // bubble down, so a failed follow-up isn't a lost question.
             _state.update {
                 it.copy(
+                    messages = it.messages.filterNot { m -> m.id == optimistic.id },
+                    draft = text,
                     charactersUsedToday = (it.charactersUsedToday - text.length).coerceAtLeast(0),
                     error = "I couldn't read that screenshot just now. Try sending it again."
                 )
