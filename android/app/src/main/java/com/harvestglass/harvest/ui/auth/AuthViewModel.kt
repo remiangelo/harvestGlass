@@ -84,32 +84,42 @@ class AuthViewModel @Inject constructor(
         _state.update { it.copy(isLoading = true, error = null) }
         runCatching { authService.signUp(email, password) }
             .onSuccess { userId ->
-                if (userId != null) {
-                    // Signup fails if the profile row doesn't land — everything
-                    // downstream reads it. Swift throws here for the same reason.
-                    val created = runCatching { profileService.createProfile(userId, email) }
-                    if (created.isFailure) {
-                        _state.update {
-                            it.copy(
-                                isLoading = false,
-                                error = created.exceptionOrNull()?.userMessage()
-                            )
-                        }
-                        return@onSuccess
+                // Sign-up reported no failure but produced neither a user nor a
+                // session. Saying nothing reads as a dead button, and the
+                // account would reach onboarding with no profile row behind it.
+                if (userId == null) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = "Your account was created but we couldn't sign you in. " +
+                                "Please log in."
+                        )
                     }
-
-                    // Best-effort, as on iOS: a missing row just reads as the
-                    // free tier, which is what a new account gets anyway.
-                    runCatching { subscriptionService.initializeUserSubscription(userId) }
+                    return@onSuccess
                 }
 
-                val profile = userId?.let {
-                    runCatching { authService.loadProfile(it) }.getOrNull()
+                // Signup fails if the profile row doesn't land — everything
+                // downstream reads it. Swift throws here for the same reason.
+                val created = runCatching { profileService.createProfile(userId, email) }
+                if (created.isFailure) {
+                    _state.update {
+                        it.copy(
+                            isLoading = false,
+                            error = created.exceptionOrNull()?.userMessage()
+                        )
+                    }
+                    return@onSuccess
                 }
+
+                // Best-effort, as on iOS: a missing row just reads as the
+                // free tier, which is what a new account gets anyway.
+                runCatching { subscriptionService.initializeUserSubscription(userId) }
+
+                val profile = runCatching { authService.loadProfile(userId) }.getOrNull()
                 _state.update {
                     it.copy(
                         isLoading = false,
-                        isAuthenticated = userId != null,
+                        isAuthenticated = true,
                         currentUserId = userId,
                         profile = profile
                     )

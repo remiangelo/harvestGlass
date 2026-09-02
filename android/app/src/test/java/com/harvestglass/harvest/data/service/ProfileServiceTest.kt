@@ -1,7 +1,11 @@
 package com.harvestglass.harvest.data.service
 
 import io.mockk.mockk
+import kotlinx.serialization.json.buildJsonObject
+import kotlinx.serialization.json.jsonPrimitive
+import kotlinx.serialization.json.put
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Test
 
@@ -59,5 +63,60 @@ class ProfileServiceTest {
     fun `an email with no local part falls back to User`() {
         assertEquals("User", service.defaultNickname("@example.com"))
         assertEquals("User", service.defaultNickname(""))
+    }
+
+    // MARK: - upsertPayload
+    //
+    // users.email is NOT NULL with no default, and Postgres validates the
+    // proposed tuple before it resolves ON CONFLICT, so an upsert that leaves
+    // email out raises 23502 even when the row already exists. Onboarding's
+    // last step is the only caller, which made a missing email strand the user
+    // with "Failed to save profile" and no way forward.
+
+    @Test
+    fun `the upsert payload carries the email`() {
+        val payload = service.upsertPayload(
+            userId = "u1",
+            email = "ada@example.com",
+            updates = buildJsonObject { put("nickname", "Ada") },
+            nowIso = "2026-09-02T00:00:00Z"
+        )
+
+        assertEquals("ada@example.com", payload["email"]?.jsonPrimitive?.content)
+    }
+
+    @Test
+    fun `the upsert payload keeps the id, the updates and a fresh timestamp`() {
+        val payload = service.upsertPayload(
+            userId = "u1",
+            email = "ada@example.com",
+            updates = buildJsonObject { put("nickname", "Ada") },
+            nowIso = "2026-09-02T00:00:00Z"
+        )
+
+        assertEquals("u1", payload["id"]?.jsonPrimitive?.content)
+        assertEquals("Ada", payload["nickname"]?.jsonPrimitive?.content)
+        assertEquals("2026-09-02T00:00:00Z", payload["updated_at"]?.jsonPrimitive?.content)
+    }
+
+    // Writing an explicit null would fail the NOT NULL just as surely, and
+    // would also blank a good address on an existing row.
+    @Test
+    fun `an unknown email is left out rather than written as null`() {
+        val payload = service.upsertPayload("u1", null, buildJsonObject { }, "2026-09-02T00:00:00Z")
+
+        assertFalse(payload.containsKey("email"))
+    }
+
+    @Test
+    fun `an email already in the updates wins over the session one`() {
+        val payload = service.upsertPayload(
+            userId = "u1",
+            email = "session@example.com",
+            updates = buildJsonObject { put("email", "explicit@example.com") },
+            nowIso = "2026-09-02T00:00:00Z"
+        )
+
+        assertEquals("explicit@example.com", payload["email"]?.jsonPrimitive?.content)
     }
 }

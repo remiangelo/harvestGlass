@@ -17,6 +17,7 @@ import kotlinx.coroutines.test.setMain
 import org.junit.After
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
+import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Before
@@ -137,5 +138,23 @@ class AuthViewModelTest {
         coVerify(exactly = 0) { profileService.createProfile(any(), any()) }
         assertFalse(vm.state.value.isAuthenticated)
         assertEquals("User already registered", vm.state.value.error)
+    }
+
+    // supabase-kt's signUpWith returns null whenever sign-up establishes the
+    // session directly, which is every sign-up on this project. AuthService now
+    // falls back to that session, but if an id still can't be resolved the
+    // screen has to say so: silently leaving isAuthenticated false looked like
+    // a dead button, and the account was left with no profile row to onboard
+    // into.
+    @Test
+    fun `a signup that yields no user id reports an error instead of doing nothing`() = runTest {
+        coEvery { authService.signUp(any(), any()) } returns null
+        val vm = vm()
+
+        vm.register("a@b.co", "pw"); advanceUntilIdle()
+
+        coVerify(exactly = 0) { profileService.createProfile(any(), any()) }
+        assertFalse(vm.state.value.isAuthenticated)
+        assertNotNull(vm.state.value.error)
     }
 }

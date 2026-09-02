@@ -12,7 +12,10 @@ ktor = "3.0.3"
 coil = "2.7.0"
 firebaseBom = "33.7.0"
 googleServices = "4.4.2"
-billing = "7.1.1"
+# 8.0.0 is a ceiling, not a preference: 8.1+ ships Kotlin 2.2 metadata that
+# Hilt 2.53 cannot read, and 9.x needs Kotlin 2.3. Play deprecates by major
+# version, so this has the same runway as 8.3.0. See docs/setup/2026-08-26.
+billing = "8.0.0"
 junit = "4.13.2"
 mockk = "1.13.13"
 coroutinesTest = "1.9.0"

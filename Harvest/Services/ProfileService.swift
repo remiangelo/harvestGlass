@@ -40,17 +40,46 @@ struct ProfileService {
     }
 
     func upsertProfile(userId: String, updates: [String: AnyJSON]) async throws -> UserProfile? {
-        var mutableUpdates = updates
-        mutableUpdates["id"] = .string(userId)
-        mutableUpdates["updated_at"] = .string(ISO8601DateFormatter().string(from: Date()))
+        let sessionEmail = try? await client.auth.session.user.email
 
         let response: [UserProfile] = try await client
             .from("users")
-            .upsert(mutableUpdates, onConflict: "id")
+            .upsert(
+                Self.upsertPayload(
+                    userId: userId,
+                    email: sessionEmail,
+                    updates: updates,
+                    nowISO: ISO8601DateFormatter().string(from: Date())
+                ),
+                onConflict: "id"
+            )
             .select()
             .execute()
             .value
         return response.first
+    }
+
+    /// The row an upsert proposes.
+    ///
+    /// `users.email` is NOT NULL with no default, and Postgres validates the
+    /// proposed tuple *before* it resolves ON CONFLICT — so leaving email out
+    /// raises 23502 whether or not the row already exists, which is what
+    /// stranded users at the last step of onboarding.
+    ///
+    /// The session's address goes in first so an explicit one in `updates`
+    /// still wins, and an unknown one is left out rather than written as null.
+    static func upsertPayload(
+        userId: String,
+        email: String?,
+        updates: [String: AnyJSON],
+        nowISO: String
+    ) -> [String: AnyJSON] {
+        var payload: [String: AnyJSON] = [:]
+        if let email { payload["email"] = .string(email) }
+        payload.merge(updates) { _, new in new }
+        payload["id"] = .string(userId)
+        payload["updated_at"] = .string(nowISO)
+        return payload
     }
 
     func updateProfile(userId: String, updates: [String: AnyJSON]) async throws -> UserProfile? {

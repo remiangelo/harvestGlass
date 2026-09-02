@@ -3,6 +3,7 @@ package com.harvestglass.harvest.data.service
 import com.harvestglass.harvest.Config
 import com.harvestglass.harvest.data.model.UserProfile
 import io.github.jan.supabase.SupabaseClient
+import io.github.jan.supabase.auth.auth
 import io.github.jan.supabase.postgrest.postgrest
 import io.github.jan.supabase.storage.storage
 import kotlinx.serialization.json.JsonObject
@@ -42,11 +43,12 @@ class ProfileService(private val client: SupabaseClient) {
     suspend fun upsertProfile(userId: String, updates: JsonObject): UserProfile? =
         client.postgrest.from("users")
             .upsert(
-                buildJsonObject {
-                    updates.forEach { (k, v) -> put(k, v) }
-                    put("id", userId)
-                    put("updated_at", Instant.now().toString())
-                }
+                upsertPayload(
+                    userId = userId,
+                    email = client.auth.currentUserOrNull()?.email,
+                    updates = updates,
+                    nowIso = Instant.now().toString()
+                )
             ) {
                 onConflict = "id"
                 select()
@@ -98,4 +100,25 @@ class ProfileService(private val client: SupabaseClient) {
 
     internal fun defaultNickname(email: String): String =
         email.substringBefore('@').ifEmpty { "User" }
+
+    /**
+     * The row an upsert proposes. `users.email` is NOT NULL with no default,
+     * and Postgres validates the proposed tuple *before* it resolves
+     * ON CONFLICT — so leaving email out raises 23502 whether or not the row
+     * already exists, which is what stranded users at the end of onboarding.
+     *
+     * The session's address goes in first so an explicit one in [updates]
+     * still wins, and an unknown one is left out rather than written as null.
+     */
+    internal fun upsertPayload(
+        userId: String,
+        email: String?,
+        updates: JsonObject,
+        nowIso: String
+    ): JsonObject = buildJsonObject {
+        email?.let { put("email", it) }
+        updates.forEach { (k, v) -> put(k, v) }
+        put("id", userId)
+        put("updated_at", nowIso)
+    }
 }

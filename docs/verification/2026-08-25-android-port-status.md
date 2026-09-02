@@ -23,7 +23,7 @@ Every screen the iOS app can reach has a counterpart.
 | Gardener: chat, daily quiz, screenshot review | Complete |
 | Mindful messaging (pre-send + blur-on-receive) | Complete |
 | Safety analysis, dashboard, ready-to-move gate | Complete |
-| Subscriptions (Play Billing 7, server-verified) | Complete — needs Play Console products |
+| Subscriptions (Play Billing 8, server-verified) | Complete — needs Play Console products |
 | Profile, edit, settings, legal, help | Complete |
 | Push | Client complete — needs a Firebase project |
 

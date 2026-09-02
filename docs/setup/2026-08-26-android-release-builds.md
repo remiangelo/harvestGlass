@@ -128,3 +128,74 @@ Play rejects a re-upload with a versionCode it has already seen. Bump
 `versionCode` in `app/build.gradle.kts` for every upload; `versionName` is the
 human-facing string and only needs changing when you want it to read
 differently.
+
+**versionCode 3** was the first build carrying both of the fixes Play warned
+about on 2026-08-27: targetSdk 36 and Billing 8.0.0. The target-API side
+needed no code change — `targetSdk` was already 36 at versionCode 2; the
+warning stands until a build carrying it is actually **uploaded**.
+
+**versionCode 4 / versionName 1.0.1** supersedes it, and is the one to upload.
+3 was never uploaded, so it carries the Play fixes forward along with the
+sign-up repair: supabase-kt returns no user when sign-up establishes the
+session directly, so `createProfile` was skipped and every Android account
+reached onboarding with no `public.users` row behind it — then failed at the
+last step with `23502 null value in column "email"`. See
+`supabase/migrations/20260902120000_profile_row_on_signup.sql`, which has to
+be applied whether or not this build ships.
+
+## Play Billing Library version
+
+Play deprecates the Billing Library on a two-year cycle and enforces it as a
+**publishing gate, not a runtime one**: builds already live keep transacting,
+but uploads are rejected. From 2026-08-31 an upload must use **version 8 or
+later** (an extension to 2026-11-01 can be requested). The app was on 7.1.1,
+which is what Play's "update to a newer version" warning was about.
+
+Now on **8.0.0**, and that specific version is a ceiling, not a preference:
+
+| billing-ktx | Result with Kotlin 2.1.0 + Hilt 2.53 |
+|---|---|
+| 8.0.0 | builds |
+| 8.1.0 – 8.3.0 | Hilt's `hiltJavaCompileDebug` dies — its bundled kotlinx-metadata-jvm reads at most Kotlin 2.1.0 metadata, these ship 2.2.0 |
+| 9.0.0+ | Kotlin compiler itself rejects them — 2.3.0 metadata |
+
+So moving past 8.0.0 means bumping Hilt first, and reaching 9.x means Kotlin
+2.3. None of that is needed for the deadline: Play deprecates by **major**
+version, so 8.0.0 and 8.3.0 have identical runway (v8 lands ~mid-2027).
+
+### Why no code changed
+
+8.0.0 removes `queryPurchaseHistory()`, `querySkuDetailsAsync()`, the
+no-argument `enablePendingPurchases()`, and the `String`-typed
+`queryPurchasesAsync` overload. `PlayBilling.kt` used none of them — it was
+already on `PendingPurchasesParams` and the params-typed queries.
+
+`queryProductDetailsAsync` did change shape (it now reports *why* a product
+could not be fetched, via `QueryProductDetailsResult.unfetchedProductList`),
+but the `billing-ktx` suspend wrapper flattens that back into the same
+`ProductDetailsResult { billingResult, productDetailsList }` the call site
+already reads. Unfetchable products were absent from the list under 7.x too,
+so the behaviour is unchanged — only the diagnostics we don't consume are new.
+
+`BillingClient.Builder.enableAutoServiceReconnection()` is new in 8.0 and
+deliberately not adopted: `connect()` already re-checks `client.isReady` on
+every call, which covers the same ground.
+
+### Verifying an upload before it goes up
+
+Play reads the library version from the AAB's dependency metadata, not the
+manifest — so check there rather than grepping for a `<meta-data>` tag:
+
+```bash
+unzip -p app/build/outputs/bundle/release/app-release.aab \
+  BUNDLE-METADATA/com.android.tools.build.libraries/dependencies.pb \
+  | tr -c '[:print:]' '\n' | grep -A3 billingclient
+```
+
+targetSdk and versionCode are easier to read from the merged manifest, which
+is plain XML (the copy inside the AAB is protobuf, so `grep` will not help):
+
+```bash
+grep -oE 'android:(versionCode|targetSdkVersion)="[0-9]+"' \
+  app/build/intermediates/merged_manifest/release/processReleaseMainManifest/AndroidManifest.xml
+```

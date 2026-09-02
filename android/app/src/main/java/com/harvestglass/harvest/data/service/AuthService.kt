@@ -29,12 +29,23 @@ class AuthService(private val client: SupabaseClient) {
      */
     private fun String.normalizedId() = lowercase()
 
+    /**
+     * Returns the new account's id, or null if sign-up produced neither a user
+     * nor a session.
+     *
+     * `signUpWith` returns null whenever the sign-up response carries an
+     * access_token — that is, whenever email confirmation is off, which is how
+     * this project is configured, so it returns null for every sign-up we make.
+     * Taking that at face value skipped the profile-row write entirely and left
+     * the account to hit onboarding with no row. The session it imported is the
+     * authority when the return value is empty.
+     */
     suspend fun signUp(email: String, password: String): String? {
         val user = client.auth.signUpWith(Email) {
             this.email = email
             this.password = password
         }
-        return user?.id?.normalizedId()
+        return (user?.id ?: client.auth.currentUserOrNull()?.id)?.normalizedId()
     }
 
     suspend fun signIn(email: String, password: String): String {
