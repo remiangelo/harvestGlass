@@ -10,6 +10,11 @@ alter table public.subscription_tiers
 comment on column public.subscription_tiers.gardener_images_per_review is
   'Max images attachable to one Gardener message. A message is one review however many it carries.';
 
-update public.subscription_tiers set gardener_images_per_review = 3  where tier_key = 'seed';
-update public.subscription_tiers set gardener_images_per_review = 6  where tier_key = 'green';
-update public.subscription_tiers set gardener_images_per_review = 10 where tier_key = 'gold';
+-- Matched on name as well as tier_key, following 20260811100000: a tier row
+-- whose tier_key was never backfilled would otherwise keep the default of 1.
+update public.subscription_tiers set gardener_images_per_review = 3
+  where lower(name) = 'seed' or tier_key = 'seed';
+update public.subscription_tiers set gardener_images_per_review = 6
+  where lower(name) in ('green', 'grow') or tier_key = 'green';
+update public.subscription_tiers set gardener_images_per_review = 10
+  where lower(name) = 'gold' or tier_key = 'gold';
