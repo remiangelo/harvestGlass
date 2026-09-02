@@ -4,35 +4,62 @@ import PhotosUI
 struct GardenerChatView: View {
     let authViewModel: AuthViewModel
     @State private var viewModel = GardenerViewModel()
-    @State private var pickedPhoto: PhotosPickerItem?
+    @State private var pickedPhotos: [PhotosPickerItem] = []
     @FocusState private var isMessageFieldFocused: Bool
 
-    /// The staged screenshot, shown above the composer so it can be captioned
-    /// or removed before sending.
-    private func screenshotPreview(_ image: UIImage) -> some View {
-        HStack(spacing: HarvestTheme.Spacing.sm) {
-            Image(uiImage: image)
-                .resizable()
-                .scaledToFill()
-                .frame(width: 44, height: 44)
-                .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm))
+    /// The staged screenshots, shown above the composer so they can be
+    /// captioned or individually removed before sending.
+    private func screenshotStrip(_ images: [UIImage]) -> some View {
+        ScrollView(.horizontal, showsIndicators: false) {
+            HStack(spacing: HarvestTheme.Spacing.sm) {
+                ForEach(images.indices, id: \.self) { index in
+                    ZStack(alignment: .topTrailing) {
+                        Image(uiImage: images[index])
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: 56, height: 56)
+                            .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm))
 
-            VStack(alignment: .leading, spacing: 1) {
-                Text("Screenshot ready")
-                    .font(HarvestTheme.Typography.caption.weight(.semibold))
-                    .foregroundStyle(HarvestTheme.Colors.textPrimary)
-                Text("Not saved — reviewed once, then discarded.")
-                    .font(HarvestTheme.Typography.caption)
-                    .foregroundStyle(HarvestTheme.Colors.textSecondary)
+                        Button {
+                            viewModel.unstageScreenshot(at: index)
+                        } label: {
+                            Image(systemName: "xmark.circle.fill")
+                                .font(.system(size: 16))
+                                .foregroundStyle(.white)
+                                .background(Circle().fill(Color.black.opacity(0.5)))
+                        }
+                        .padding(2)
+                    }
+                    .frame(width: 56, height: 56)
+                }
             }
+            .padding(.horizontal)
+            .padding(.vertical, HarvestTheme.Spacing.xs)
+        }
+    }
+
+    /// Tells the user their next message will re-send the last review's images
+    /// without them attaching anything — and lets them stop it. The view model
+    /// outlives a single review, so without this the retention is invisible.
+    private var retainedImagesChip: some View {
+        HStack(spacing: HarvestTheme.Spacing.sm) {
+            Image(systemName: "photo.on.rectangle.angled")
+                .font(HarvestTheme.Typography.caption)
+                .foregroundStyle(HarvestTheme.Colors.textTertiary)
+
+            Text(viewModel.retainedImageURLs.count == 1
+                 ? "Following up on 1 image"
+                 : "Following up on \(viewModel.retainedImageURLs.count) images")
+                .font(HarvestTheme.Typography.caption)
+                .foregroundStyle(HarvestTheme.Colors.textSecondary)
 
             Spacer()
 
             Button {
-                viewModel.pendingScreenshot = nil
-                pickedPhoto = nil
+                viewModel.clearRetainedImages()
             } label: {
-                Image(systemName: "xmark.circle.fill")
+                Image(systemName: "xmark")
+                    .font(HarvestTheme.Typography.caption)
                     .foregroundStyle(HarvestTheme.Colors.textTertiary)
             }
         }
@@ -59,17 +86,25 @@ struct GardenerChatView: View {
                         await viewModel.checkDailyQuiz(userId: userId)
                     }
                 }
-                .onChange(of: pickedPhoto) { _, item in
-                    guard let item else { return }
+                .onChange(of: pickedPhotos) { _, items in
+                    guard !items.isEmpty else { return }
                     Task {
                         // Loaded into memory only — never written to disk.
-                        if let data = try? await item.loadTransferable(type: Data.self),
-                           let image = UIImage(data: data) {
-                            viewModel.pendingScreenshot = image
-                        } else {
-                            viewModel.error = "That image couldn't be read. Try a different screenshot."
-                            pickedPhoto = nil
+                        var images: [UIImage] = []
+                        for item in items {
+                            if let data = try? await item.loadTransferable(type: Data.self),
+                               let image = UIImage(data: data) {
+                                images.append(image)
+                            }
                         }
+
+                        if images.isEmpty {
+                            viewModel.error = "That image couldn't be read. Try a different screenshot."
+                        } else {
+                            viewModel.stageScreenshots(images)
+                        }
+                        // Cleared so picking the same photo again still fires.
+                        pickedPhotos = []
                     }
                 }
                 .onAppear {
@@ -176,15 +211,21 @@ struct GardenerChatView: View {
                 .padding(.horizontal)
                 .padding(.vertical, HarvestTheme.Spacing.sm)
             } else {
-                if let staged = viewModel.pendingScreenshot {
-                    screenshotPreview(staged)
+                if viewModel.hasPendingScreenshot {
+                    screenshotStrip(viewModel.pendingScreenshots)
+                } else if !viewModel.retainedImageURLs.isEmpty {
+                    retainedImagesChip
                 }
 
                 HStack(spacing: HarvestTheme.Spacing.sm) {
                     // .images, not .screenshots: a screenshot someone was *sent*
                     // isn't flagged as one by iOS, and the refusal path has to
                     // be reachable for images that genuinely aren't chats.
-                    PhotosPicker(selection: $pickedPhoto, matching: .images) {
+                    PhotosPicker(
+                        selection: $pickedPhotos,
+                        maxSelectionCount: max(viewModel.imageCap, 1),
+                        matching: .images
+                    ) {
                         Image(systemName: "photo.on.rectangle.angled")
                             .font(.title3)
                             .foregroundStyle(viewModel.isAtScreenshotLimit
@@ -224,7 +265,7 @@ struct GardenerChatView: View {
                             guard let userId = authViewModel.currentUserId else { return }
                             Task {
                                 if viewModel.hasPendingScreenshot {
-                                    await viewModel.sendScreenshot(userId: userId)
+                                    await viewModel.sendImages(userId: userId)
                                 } else {
                                     await viewModel.sendMessage(userId: userId)
                                 }
@@ -247,7 +288,7 @@ struct GardenerChatView: View {
                         )
 
                         Text(viewModel.hasPendingScreenshot
-                             ? "\(viewModel.remainingScreenshots)📷"
+                             ? "\(viewModel.pendingScreenshots.count) / \(viewModel.imageCap) 📷"
                              : "\(viewModel.remainingChars)")
                             .font(.system(size: 9))
                             .foregroundStyle(viewModel.remainingChars < 500 ? HarvestTheme.Colors.warning : HarvestTheme.Colors.textTertiary)

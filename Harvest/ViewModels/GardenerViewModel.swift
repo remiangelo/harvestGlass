@@ -52,15 +52,73 @@ final class GardenerViewModel {
         }
     }
 
-    /// The image staged in the composer, awaiting send. Never persisted.
-    var pendingScreenshot: UIImage?
+    /// The images staged in the composer, awaiting send. Never persisted.
+    var pendingScreenshots: [UIImage] = []
 
-    var hasPendingScreenshot: Bool { pendingScreenshot != nil }
+    /// Encoded images from the last send, kept so a follow-up in the same
+    /// sitting can be answered by looking again. Dies with the view model;
+    /// never uploaded, never written to chat history.
+    var retainedImageURLs: [String] = []
 
-    /// Sends the staged screenshot for review. The image is encoded inline and
-    /// dropped — nothing is uploaded to storage.
-    func sendScreenshot(userId: String) async {
-        guard !isSending, let image = pendingScreenshot else { return }
+    /// Images allowed per message on the current tier.
+    var imageCap = 1
+
+    var hasPendingScreenshot: Bool { !pendingScreenshots.isEmpty }
+
+    /// Total encoded budget for one request, in characters of base64.
+    static let payloadBudgetCharacters = 6_000_000
+
+    /// The images actually sent. The picker is opened with the cap, but a
+    /// picker limit is an affordance rather than a guarantee — and a cap of
+    /// zero from a malformed tier row must still let one image through.
+    static func clampSelection<Item>(_ picked: [Item], cap: Int) -> [Item] {
+        Array(picked.prefix(max(cap, 1)))
+    }
+
+    /// Nil when the encoded selection fits, otherwise the message to show.
+    /// Scaling bounds each image; nothing bounds the sum, and a transport
+    /// error tells the user nothing about what to do differently.
+    static func payloadRejection(_ dataURLs: [String]) -> String? {
+        let total = dataURLs.reduce(0) { $0 + $1.count }
+        guard total > payloadBudgetCharacters else { return nil }
+        return "Those \(dataURLs.count) images are too large to send together. "
+            + "Try sending fewer at a time."
+    }
+
+    /// A fresh selection replaces whatever was staged, and drops any images
+    /// retained from a previous review — the view model outlives a single
+    /// review, so without this a review from an hour ago would silently keep
+    /// answering an unrelated new question.
+    func stageScreenshots(_ images: [UIImage]) {
+        pendingScreenshots = Self.clampSelection(images, cap: imageCap)
+        retainedImageURLs = []
+    }
+
+    /// Drops one staged image, e.g. from a thumbnail's remove button.
+    func unstageScreenshot(at index: Int) {
+        guard pendingScreenshots.indices.contains(index) else { return }
+        pendingScreenshots.remove(at: index)
+    }
+
+    func clearScreenshots() {
+        pendingScreenshots = []
+    }
+
+    /// Ends the current follow-up sitting: retained images are dropped, and the
+    /// next question goes through the metered chat path like any other message.
+    /// Wired to the dismissible "following up on N images" chip.
+    func clearRetainedImages() {
+        retainedImageURLs = []
+    }
+
+    /// Sends the staged images for review. They are encoded inline and dropped
+    /// — nothing is uploaded to storage. The encoded data URLs are retained in
+    /// memory afterwards so a same-sitting follow-up question can reuse them
+    /// without spending another daily review.
+    func sendImages(userId: String) async {
+        guard !isSending else { return }
+        let images = pendingScreenshots
+        guard !images.isEmpty else { return }
 
         guard let tier = currentTier else {
             error = "Unable to verify subscription tier"
@@ -88,20 +146,34 @@ final class GardenerViewModel {
 
         // Encode before mutating any state, so a bad image leaves the composer
         // exactly as the user left it.
-        let dataURL: String
+        let target = ScreenshotEncoder.targetDimension(imageCount: images.count)
+        var dataURLs: [String] = []
         do {
-            dataURL = try ScreenshotEncoder.dataURL(from: image)
+            for image in images {
+                let encoded = try ScreenshotEncoder.dataURL(from: image, target: target)
+                dataURLs.append(encoded)
+            }
         } catch {
             self.error = error.localizedDescription
+            return
+        }
+
+        if let rejection = Self.payloadRejection(dataURLs) {
+            self.error = rejection
             return
         }
 
         isSending = true
         defer { isSending = false }
         messageText = ""
-        pendingScreenshot = nil
+        pendingScreenshots = []
+        retainedImageURLs = dataURLs
+        error = nil
 
-        let placeholder = caption.isEmpty ? "📷 Screenshot" : "📷 Screenshot — \(caption)"
+        let placeholder = GardenerService.screenshotPlaceholder(
+            caption: caption,
+            imageCount: images.count
+        )
         messages.append(
             GardenerMessage(
                 id: UUID().uuidString,
@@ -119,11 +191,11 @@ final class GardenerViewModel {
         }
 
         do {
-            let response = try await gardenerService.sendScreenshot(
+            let response = try await gardenerService.sendImages(
                 userId: userId,
-                imageDataURL: dataURL,
+                imageDataURLs: dataURLs,
                 caption: caption,
-                history: messages
+                history: Array(messages.dropLast())
             )
             messages.append(
                 GardenerMessage(
@@ -141,7 +213,59 @@ final class GardenerViewModel {
         }
     }
 
+    /// A follow-up question about images already in hand this sitting. Sends
+    /// the user's real text (not a placeholder) alongside the retained images,
+    /// and deliberately calls neither `checkScreenshotLimit` nor
+    /// `trackScreenshotReview` — this is a second question about one review,
+    /// not a new one. The caller has already run it past `checkGardenerLimit`,
+    /// so this still spends and tracks the chat character budget exactly as
+    /// `sendMessage` would: the exemption is for the review, not the
+    /// conversation that follows it.
+    private func sendRetained(userId: String, retained: [String], text: String) async {
+        isSending = true
+        defer { isSending = false }
+        messageText = ""
+        error = nil
+
+        messages.append(
+            GardenerMessage(
+                id: UUID().uuidString,
+                userId: userId,
+                role: "user",
+                content: text,
+                createdAt: ISO8601DateFormatter().string(from: Date())
+            )
+        )
+        todayCharUsage += text.count
+
+        do {
+            let response = try await gardenerService.sendImages(
+                userId: userId,
+                imageDataURLs: retained,
+                caption: text,
+                history: Array(messages.dropLast())
+            )
+            messages.append(
+                GardenerMessage(
+                    id: UUID().uuidString,
+                    userId: userId,
+                    role: "assistant",
+                    content: response,
+                    createdAt: ISO8601DateFormatter().string(from: Date())
+                )
+            )
+            try? await rateLimitService.trackGardenerConversation(
+                userId: userId,
+                characterCount: text.count
+            )
+        } catch {
+            todayCharUsage = max(0, todayCharUsage - text.count)
+            self.error = "I couldn't read that screenshot just now. Try sending it again."
+        }
+    }
+
     func sendMessage(userId: String) async {
+        guard !isSending else { return }
         let text = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !text.isEmpty else { return }
 
@@ -167,6 +291,18 @@ final class GardenerViewModel {
         } catch {
             print("Warning: Rate limit check failed: \(error)")
             // Continue with send - don't block user due to rate limit check failure
+        }
+
+        // A follow-up while images are still in hand goes back through the
+        // image call so the Gardener can look again rather than guess — but
+        // only after the character-limit check above, so the conversation that
+        // follows a review is still metered like any other message. It is not a
+        // new review though: trackScreenshotReview and checkScreenshotLimit are
+        // deliberately not called for it.
+        let retained = retainedImageURLs
+        if !retained.isEmpty {
+            await sendRetained(userId: userId, retained: retained, text: text)
+            return
         }
 
         isSending = true
@@ -253,6 +389,7 @@ final class GardenerViewModel {
         currentTier = tier
         characterLimit = tier.gardenerCharacterLimit
         screenshotLimit = tier.gardenerScreenshotsPerDay
+        imageCap = tier.gardenerImagesPerReview
 
         let limitCheck = try await rateLimitService.checkGardenerLimit(
             userId: userId,
@@ -304,6 +441,7 @@ final class GardenerViewModel {
         currentTier = fallback
         characterLimit = fallback.gardenerCharacterLimit
         screenshotLimit = fallback.gardenerScreenshotsPerDay
+        imageCap = fallback.gardenerImagesPerReview
         todayCharUsage = 0
         screenshotsUsedToday = 0
     }

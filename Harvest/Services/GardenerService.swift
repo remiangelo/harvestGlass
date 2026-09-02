@@ -39,117 +39,129 @@ struct GardenerService {
         "Remember: you're not just looking for someone to like you. You're looking for someone you genuinely like too. What qualities matter most to you?"
     ]
 
-    // MARK: - Screenshot review
+    // MARK: - Image review
 
-    /// Shown verbatim when the image isn't a conversation. Fixed in the app
-    /// rather than written by the model so the promise is worded identically
-    /// every time — and so it invites a retry, because detection is a
-    /// judgement call that will occasionally be wrong.
-    static let notAScreenshotReply = """
-        I can only read screenshots of a conversation — a chat thread, texts, or DMs.
+    /// The one piece of structure the image call asks for. Compared against the
+    /// whole trimmed reply, never searched for.
+    static let refuseSentinel = "REFUSE_EXPLICIT"
 
-        This one doesn't look like that, so I'd rather not guess at it. If it *is* a \
-        conversation, try a fuller screenshot showing the messages and I'll take another look.
+    /// Shown verbatim when the model refuses. Fixed in the app rather than
+    /// written by the model so the promise is worded identically every time,
+    /// and so it invites a retry — the judgement is the model's and will
+    /// occasionally be wrong.
+    static let explicitRefusalReply = """
+        I can't give you a read on that one — it looks explicit, and that's outside what I can coach on.
+
+        Send me a conversation, a profile, or anything else you'd like a view on and I'll take a proper look.
         """
 
-    private static let screenshotSystemPrompt = """
+    /// Copied character for character from `IMAGE_SYSTEM_PROMPT` in
+    /// GardenerService.kt. Any drift and the two platforms answer differently.
+    private static let imageSystemPrompt = """
         You are The Gardener, a warm and insightful AI dating coach for the Harvest dating app.
 
-        The user has sent an image. First decide whether it is a screenshot of a
-        TEXT CONVERSATION — a chat thread, SMS/iMessage, or DMs from any app, showing
-        messages between people. A selfie, a dating profile, a meme, a landscape, a
-        document, or a photo of a person is NOT a conversation screenshot.
+        The user has attached one or more images and may have asked a question about them.
 
-        Reply with ONLY a JSON object, no code fences, in exactly this shape:
-        {"is_chat_screenshot": <true|false>, "reply": "<your coaching reply>"}
+        If they asked a question, ANSWER THAT QUESTION. Ground every claim in what is
+        actually visible in the images. Do not substitute general dating advice for the
+        thing they asked.
 
-        If is_chat_screenshot is false, set "reply" to an empty string.
+        Several images are one continuous piece of context — usually consecutive
+        screenshots of the same conversation, in the order given. Read them as a whole.
 
-        If it is true, "reply" is your coaching response about the conversation:
-        - Say plainly what you notice in the exchange, then what to do about it.
+        If they asked nothing, give your read: what you notice, then what to do about it.
+
+        Whatever you are looking at — a chat thread, a dating profile, a bio, a photo —
+        respond to it as a coach would.
+
+        - Never invent messages or details that aren't visible.
         - Be specific about tone and what the other person appears to be signalling.
-        - Give 2-4 concrete suggestions, including an example of what to send next.
-        - Never invent messages that aren't visible in the image.
         - Keep it concise: short paragraphs of 1-3 sentences, blank line between each.
         - Never give medical or legal advice. If it shows distress, abuse, or risk,
           name that clearly and encourage professional or trusted human support.
+
+        If ANY image is sexually explicit or graphic, reply with exactly REFUSE_EXPLICIT
+        and nothing else — no explanation, no other text.
         """
 
-    /// Internal, not private: `parseVerdict` returns it and is unit tested.
-    struct ScreenshotVerdict: Decodable, Equatable {
-        let isChatScreenshot: Bool
-        let reply: String
-
-        enum CodingKeys: String, CodingKey {
-            case isChatScreenshot = "is_chat_screenshot"
-            case reply
-        }
-    }
-
-    /// Sends a screenshot for review. The image is passed inline as a data URL
-    /// and never stored; only a placeholder is written to chat history.
+    /// Sends images for review. They are passed inline as data URLs and never
+    /// stored; only a placeholder is written to chat history.
     ///
-    /// Throws on transport or decoding failure — a user must never be told
-    /// their screenshot was invalid because the network dropped.
-    func sendScreenshot(
+    /// Throws on transport failure — a user must never be told their screenshot
+    /// was invalid because the network dropped.
+    func sendImages(
         userId: String,
-        imageDataURL: String,
+        imageDataURLs: [String],
         caption: String,
         history: [GardenerMessage]
     ) async throws -> String {
+        let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+
         var chatMessages: [OpenAIService.ChatMessage] = [
-            .init(role: "system", content: Self.screenshotSystemPrompt)
+            .init(role: "system", content: Self.imageSystemPrompt)
         ]
 
-        for msg in history.suffix(6) {
+        for msg in history.suffix(Self.screenshotHistoryWindow) {
             let role = msg.role == "assistant" ? "assistant" : "user"
             chatMessages.append(.init(role: role, content: msg.content))
         }
 
-        let trimmedCaption = caption.trimmingCharacters(in: .whitespacesAndNewlines)
-        var parts: [OpenAIService.ChatMessage.ContentPart] = []
-        if !trimmedCaption.isEmpty {
-            parts.append(.text(trimmedCaption))
-        }
-        parts.append(.imageURL(imageDataURL))
-        chatMessages.append(.init(role: "user", parts: parts))
+        chatMessages.append(
+            .init(role: "user", parts: Self.imageParts(
+                caption: trimmedCaption,
+                imageDataURLs: imageDataURLs
+            ))
+        )
 
         let raw = try await openAI.sendChat(
             messages: chatMessages,
             temperature: 0.4,
-            maxTokens: 400
+            maxTokens: 700
         )
+        let response = Self.resolveReply(raw)
 
-        let verdict = try Self.parseVerdict(raw)
-        let response = verdict.isChatScreenshot && !verdict.reply.isEmpty
-            ? Self.formatResponse(verdict.reply)
-            : Self.notAScreenshotReply
-
-        let placeholder = trimmedCaption.isEmpty
-            ? "📷 Screenshot"
-            : "📷 Screenshot — \(trimmedCaption)"
+        let placeholder = Self.screenshotPlaceholder(
+            caption: trimmedCaption,
+            imageCount: imageDataURLs.count
+        )
         await persistTurn(userId: userId, userMessage: placeholder, reply: response)
 
         return response
     }
 
-    /// Pulls the verdict out of the model's reply, tolerating code fences and
-    /// stray prose around the object.
-    static func parseVerdict(_ raw: String) throws -> ScreenshotVerdict {
-        let cleaned = raw
-            .replacingOccurrences(of: "```json", with: "")
-            .replacingOccurrences(of: "```", with: "")
-            .trimmingCharacters(in: .whitespacesAndNewlines)
-
-        guard let start = cleaned.firstIndex(of: "{"),
-              let end = cleaned.lastIndex(of: "}"),
-              start < end,
-              let data = String(cleaned[start...end]).data(using: .utf8)
-        else {
-            throw OpenAIService.OpenAIError.noResponse
+    /// The user turn: the question first, then every image in selection order.
+    static func imageParts(
+        caption: String,
+        imageDataURLs: [String]
+    ) -> [OpenAIService.ChatMessage.ContentPart] {
+        var parts: [OpenAIService.ChatMessage.ContentPart] = []
+        let trimmed = caption.trimmingCharacters(in: .whitespacesAndNewlines)
+        if !trimmed.isEmpty {
+            parts.append(.text(trimmed))
         }
-        return try JSONDecoder().decode(ScreenshotVerdict.self, from: data)
+        for url in imageDataURLs {
+            parts.append(.imageURL(url))
+        }
+        return parts
     }
+
+    /// The model's reply, or our own copy when it refused. Compared against the
+    /// whole trimmed reply, not searched for: the sentinel appearing inside a
+    /// sentence is prose, not a refusal.
+    static func resolveReply(_ raw: String) -> String {
+        if raw.trimmingCharacters(in: .whitespacesAndNewlines) == refuseSentinel {
+            return explicitRefusalReply
+        }
+        return formatResponse(raw)
+    }
+
+    /// Android composes the same placeholder, and both stores read it back.
+    static func screenshotPlaceholder(caption: String, imageCount: Int) -> String {
+        let noun = imageCount > 1 ? "\(imageCount) screenshots" : "Screenshot"
+        return caption.isEmpty ? "📷 \(noun)" : "📷 \(noun) — \(caption)"
+    }
+
+    private static let screenshotHistoryWindow = 6
 
     /// Writes one user turn and one Gardener turn. Persistence failures are
     /// logged, never surfaced — the reply is already on screen.

@@ -7,8 +7,10 @@ import UIKit
 /// result is a `data:` URL — the image is never written to disk or uploaded to
 /// storage.
 enum ScreenshotEncoder {
-    /// Longest side, in pixels, after downscaling.
-    static let maxDimension: CGFloat = 1024
+    /// Longest side, in pixels, after downscaling. Matches `MAX_DIMENSION` in
+    /// ScreenshotEncoder.kt: chat text stays legible well below a full-res
+    /// screenshot, and both platforms must send comparable detail.
+    static let maxDimension: CGFloat = 1400
     static let jpegQuality: CGFloat = 0.7
     /// Refuse anything still this large once encoded; the request would be
     /// rejected upstream anyway, and failing here gives a better message.
@@ -28,9 +30,19 @@ enum ScreenshotEncoder {
         }
     }
 
+    /// Longest-edge target for a send of `imageCount` images. Text in a phone
+    /// screenshot stays legible at 900px, which is what makes the top of the
+    /// ladder affordable. Mirrors `targetDimension` in ScreenshotEncoder.kt —
+    /// a count of zero or less falls in the first rung, as it does there.
+    static func targetDimension(imageCount: Int) -> CGFloat {
+        if imageCount <= 2 { return maxDimension }
+        if imageCount <= 5 { return 1100 }
+        return 900
+    }
+
     /// A `data:image/jpeg;base64,...` URL suitable for an `image_url` part.
-    static func dataURL(from image: UIImage) throws -> String {
-        let scaled = downscaled(image)
+    static func dataURL(from image: UIImage, target: CGFloat = maxDimension) throws -> String {
+        let scaled = downscaled(image, limit: target)
         guard let jpeg = scaled.jpegData(compressionQuality: jpegQuality) else {
             throw EncodingError.couldNotEncode
         }
