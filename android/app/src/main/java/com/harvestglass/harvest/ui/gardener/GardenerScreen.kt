@@ -9,11 +9,13 @@ import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Cancel
+import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material.icons.filled.PhotoLibrary
 import androidx.compose.material.icons.filled.Spa
@@ -29,7 +31,6 @@ import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
-import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -63,6 +64,14 @@ fun GardenerScreen(
     // ImageOnly, not a screenshots-only filter: a screenshot someone was *sent*
     // isn't tagged as one, and the refusal path has to stay reachable for
     // images that genuinely aren't conversations.
+    //
+    // PickMultipleVisualMedia requires maxItems >= 2, so the free tier (cap
+    // 1) has to use the single-item contract instead — mixing them up here
+    // crashes on launch for most of the userbase.
+    val pickImages = rememberLauncherForActivityResult(
+        ActivityResultContracts.PickMultipleVisualMedia(state.imageCap.coerceAtLeast(2))
+    ) { uris: List<Uri> -> if (uris.isNotEmpty()) viewModel.stageScreenshots(uris) }
+
     val pickImage = rememberLauncherForActivityResult(
         ActivityResultContracts.PickVisualMedia()
     ) { uri: Uri? -> if (uri != null) viewModel.stageScreenshots(listOf(uri)) }
@@ -162,8 +171,16 @@ fun GardenerScreen(
         if (state.isFullyLocked) {
             AllowanceSpentBar()
         } else {
-            state.pendingScreenshots.firstOrNull()?.let { uri ->
-                ScreenshotPreview(uri) { viewModel.clearScreenshot() }
+            if (state.pendingScreenshots.isNotEmpty()) {
+                ScreenshotStrip(
+                    uris = state.pendingScreenshots,
+                    onRemove = { viewModel.unstageScreenshot(it) }
+                )
+            } else if (state.retainedImageUrls.isNotEmpty()) {
+                RetainedImagesChip(
+                    count = state.retainedImageUrls.size,
+                    onDismiss = { viewModel.clearRetainedImages() }
+                )
             }
 
             ChatComposer(
@@ -201,18 +218,26 @@ fun GardenerScreen(
                             .clickable(
                                 enabled = !state.isThinking && !state.isAtScreenshotLimit
                             ) {
-                                pickImage.launch(
-                                    PickVisualMediaRequest(
-                                        ActivityResultContracts.PickVisualMedia.ImageOnly
+                                if (state.imageCap <= 1) {
+                                    pickImage.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
                                     )
-                                )
+                                } else {
+                                    pickImages.launch(
+                                        PickVisualMediaRequest(
+                                            ActivityResultContracts.PickVisualMedia.ImageOnly
+                                        )
+                                    )
+                                }
                             }
                     )
                 },
                 sendFooter = {
                     Text(
                         text = if (state.hasPendingScreenshot) {
-                            "${state.remainingScreenshots}📷"
+                            "${state.pendingScreenshots.size} / ${state.imageCap} 📷"
                         } else {
                             "${state.remainingCharacters}"
                         },
@@ -255,9 +280,56 @@ private fun AllowanceSpentBar() {
     }
 }
 
-/** The staged screenshot, captionable or removable before it's sent. */
+/** The staged images, individually removable before they're sent. */
 @Composable
-private fun ScreenshotPreview(uri: Uri, onRemove: () -> Unit) {
+private fun ScreenshotStrip(uris: List<Uri>, onRemove: (Int) -> Unit) {
+    LazyRow(
+        horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
+        contentPadding = PaddingValues(
+            horizontal = HarvestTheme.Spacing.md,
+            vertical = HarvestTheme.Spacing.xs
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .background(HarvestTheme.Colors.wineBlack)
+    ) {
+        items(uris.size) { index ->
+            Box(Modifier.size(56.dp)) {
+                AsyncImage(
+                    model = uris[index],
+                    contentDescription = null,
+                    contentScale = ContentScale.Crop,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .clip(RoundedCornerShape(HarvestTheme.Radius.sm))
+                )
+                Icon(
+                    Icons.Filled.Cancel,
+                    contentDescription = "Remove image",
+                    tint = Color.White,
+                    modifier = Modifier
+                        .align(Alignment.TopEnd)
+                        .padding(2.dp)
+                        .size(18.dp)
+                        .background(
+                            HarvestTheme.Colors.photoScrim.copy(alpha = 0.7f),
+                            CircleShape
+                        )
+                        .clickable { onRemove(index) }
+                )
+            }
+        }
+    }
+}
+
+/**
+ * Tells the user their next message will re-send the last review's images
+ * without them attaching anything — and lets them stop it. The ViewModel is
+ * Activity-scoped, so without this the retention silently lasts until the
+ * process dies.
+ */
+@Composable
+private fun RetainedImagesChip(count: Int, onDismiss: () -> Unit) {
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.spacedBy(HarvestTheme.Spacing.sm),
@@ -266,37 +338,29 @@ private fun ScreenshotPreview(uri: Uri, onRemove: () -> Unit) {
             .background(HarvestTheme.Colors.wineBlack)
             .padding(horizontal = HarvestTheme.Spacing.md, vertical = HarvestTheme.Spacing.xs)
     ) {
-        AsyncImage(
-            model = uri,
-            contentDescription = null,
-            contentScale = ContentScale.Crop,
-            modifier = Modifier
-                .size(44.dp)
-                .clip(RoundedCornerShape(HarvestTheme.Radius.sm))
-        )
-        Column(
-            verticalArrangement = Arrangement.spacedBy(1.dp),
-            modifier = Modifier.weight(1f)
-        ) {
-            Text(
-                text = "Screenshot ready",
-                style = HarvestTheme.Typography.caption,
-                fontWeight = FontWeight.SemiBold,
-                color = HarvestTheme.Colors.textPrimary
-            )
-            Text(
-                text = "Not saved — reviewed once, then discarded.",
-                style = HarvestTheme.Typography.caption,
-                color = HarvestTheme.Colors.textSecondary
-            )
-        }
         Icon(
-            Icons.Filled.Cancel,
-            contentDescription = "Remove screenshot",
+            Icons.Filled.PhotoLibrary,
+            contentDescription = null,
+            tint = HarvestTheme.Colors.textTertiary,
+            modifier = Modifier.size(16.dp)
+        )
+        Text(
+            text = if (count == 1) {
+                "Following up on 1 image"
+            } else {
+                "Following up on $count images"
+            },
+            style = HarvestTheme.Typography.caption,
+            color = HarvestTheme.Colors.textSecondary,
+            modifier = Modifier.weight(1f)
+        )
+        Icon(
+            Icons.Filled.Close,
+            contentDescription = "Dismiss",
             tint = HarvestTheme.Colors.textTertiary,
             modifier = Modifier
-                .size(20.dp)
-                .clickable { onRemove() }
+                .size(18.dp)
+                .clickable { onDismiss() }
         )
     }
 }
