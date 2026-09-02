@@ -120,15 +120,6 @@ class GardenerViewModel @Inject constructor(
         val text = content.trim()
         if (text.isEmpty()) return@launch
 
-        // A follow-up while images are still in hand goes back through the
-        // image call so the Gardener can look again rather than guess. It is
-        // not a new review: trackScreenshotReview is deliberately not called.
-        val retained = _state.value.retainedImageUrls
-        if (retained.isNotEmpty()) {
-            sendRetained(userId, retained)
-            return@launch
-        }
-
         val tier = currentTier
         if (tier == null) {
             _state.update { it.copy(error = "Unable to verify subscription tier") }
@@ -143,6 +134,18 @@ class GardenerViewModel @Inject constructor(
 
         if (check != null && !check.canSend) {
             _state.update { it.copy(error = check.reason) }
+            return@launch
+        }
+
+        // A follow-up while images are still in hand goes back through the
+        // image call so the Gardener can look again rather than guess — but
+        // only after the character-limit check above, so the conversation
+        // that follows a review is still metered like any other message.
+        // It is not a new review though: trackScreenshotReview and
+        // checkScreenshotLimit are deliberately not called for it.
+        val retained = _state.value.retainedImageUrls
+        if (retained.isNotEmpty()) {
+            sendRetained(userId, retained, text)
             return@launch
         }
 
@@ -191,8 +194,17 @@ class GardenerViewModel @Inject constructor(
         }
     }
 
+    /**
+     * A fresh selection replaces whatever was staged, and drops any images
+     * retained from a previous review — the ViewModel is Activity-scoped, so
+     * without this a review from an hour ago would silently keep answering
+     * an unrelated new question.
+     */
     fun stageScreenshots(uris: List<Uri>) = _state.update {
-        it.copy(pendingScreenshots = clampSelection(uris, it.imageCap))
+        it.copy(
+            pendingScreenshots = clampSelection(uris, it.imageCap),
+            retainedImageUrls = emptyList()
+        )
     }
 
     /** Drops one staged image, e.g. from a thumbnail's remove button. */
@@ -201,6 +213,14 @@ class GardenerViewModel @Inject constructor(
     }
 
     fun clearScreenshot() = _state.update { it.copy(pendingScreenshots = emptyList()) }
+
+    /**
+     * Ends the current follow-up sitting: retained images are dropped, and
+     * the next question goes through the metered chat path like any other
+     * message. Task 5 wires this to a dismissible "following up on N
+     * images" chip.
+     */
+    fun clearRetainedImages() = _state.update { it.copy(retainedImageUrls = emptyList()) }
 
     /**
      * Sends the staged images for review. They are encoded inline and
@@ -298,11 +318,12 @@ class GardenerViewModel @Inject constructor(
      * the user's real text (not a placeholder) alongside the retained images,
      * and deliberately calls neither checkScreenshotLimit nor
      * trackScreenshotReview — this is a second question about one review, not
-     * a new one.
+     * a new one. The caller has already run it past checkGardenerLimit, so
+     * this still spends and tracks the chat character budget exactly as
+     * send() would: the exemption is for the review, not the conversation
+     * that follows it.
      */
-    private suspend fun sendRetained(userId: String, retained: List<String>) {
-        val text = _state.value.draft.trim()
-
+    private suspend fun sendRetained(userId: String, retained: List<String>, text: String) {
         val optimistic = GardenerMessage(
             id = "local-${System.nanoTime()}",
             userId = userId,
@@ -314,7 +335,8 @@ class GardenerViewModel @Inject constructor(
                 messages = it.messages + optimistic,
                 draft = "",
                 isThinking = true,
-                error = null
+                error = null,
+                charactersUsedToday = it.charactersUsedToday + text.length
             )
         }
 
@@ -335,9 +357,13 @@ class GardenerViewModel @Inject constructor(
                     )
                 )
             }
+            runCatching { rateLimitService.trackGardenerConversation(userId, text.length) }
         } catch (_: Exception) {
             _state.update {
-                it.copy(error = "I couldn't read that screenshot just now. Try sending it again.")
+                it.copy(
+                    charactersUsedToday = (it.charactersUsedToday - text.length).coerceAtLeast(0),
+                    error = "I couldn't read that screenshot just now. Try sending it again."
+                )
             }
         } finally {
             _state.update { it.copy(isThinking = false) }
