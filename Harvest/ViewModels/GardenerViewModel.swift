@@ -144,15 +144,22 @@ final class GardenerViewModel {
 
         let caption = messageText.trimmingCharacters(in: .whitespacesAndNewlines)
 
-        // Encode before mutating any state, so a bad image leaves the composer
-        // exactly as the user left it.
+        // The spinner goes up before the encode rather than after it: ten
+        // screenshots take long enough that a still composer reads as a hang.
+        // The composer's own contents are left exactly as the user arranged
+        // them until the encode has succeeded, so a bad image costs nothing.
+        isSending = true
+        defer { isSending = false }
+
+        // Encoded off the main actor — `ScreenshotEncoder` is `nonisolated` for
+        // this, and Android does the same in `Dispatchers.IO`. On the main
+        // actor this loop freezes the UI for the length of the whole batch.
         let target = ScreenshotEncoder.targetDimension(imageCount: images.count)
-        var dataURLs: [String] = []
+        let dataURLs: [String]
         do {
-            for image in images {
-                let encoded = try ScreenshotEncoder.dataURL(from: image, target: target)
-                dataURLs.append(encoded)
-            }
+            dataURLs = try await Task.detached(priority: .userInitiated) {
+                try images.map { try ScreenshotEncoder.dataURL(from: $0, target: target) }
+            }.value
         } catch {
             self.error = error.localizedDescription
             return
@@ -163,8 +170,6 @@ final class GardenerViewModel {
             return
         }
 
-        isSending = true
-        defer { isSending = false }
         messageText = ""
         pendingScreenshots = []
         retainedImageURLs = dataURLs

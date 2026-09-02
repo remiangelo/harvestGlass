@@ -1,5 +1,6 @@
 import SwiftUI
 import PhotosUI
+import UIKit
 
 struct GardenerChatView: View {
     let authViewModel: AuthViewModel
@@ -12,16 +13,23 @@ struct GardenerChatView: View {
     private func screenshotStrip(_ images: [UIImage]) -> some View {
         ScrollView(.horizontal, showsIndicators: false) {
             HStack(spacing: HarvestTheme.Spacing.sm) {
-                ForEach(images.indices, id: \.self) { index in
+                // Keyed by image identity, not position, as the Android strip
+                // is: removing one must not leave SwiftUI reusing that slot's
+                // state for a different picture. `UIImage` does not override
+                // `isEqual`, so `\.self` here is object identity, and the
+                // picker hands back a distinct instance per pick.
+                ForEach(images, id: \.self) { image in
                     ZStack(alignment: .topTrailing) {
-                        Image(uiImage: images[index])
+                        Image(uiImage: image)
                             .resizable()
                             .scaledToFill()
                             .frame(width: 56, height: 56)
                             .clipShape(RoundedRectangle(cornerRadius: HarvestTheme.Radius.sm))
 
                         Button {
-                            viewModel.unstageScreenshot(at: index)
+                            if let index = images.firstIndex(of: image) {
+                                viewModel.unstageScreenshot(at: index)
+                            }
                         } label: {
                             Image(systemName: "xmark.circle.fill")
                                 .font(.system(size: 16))

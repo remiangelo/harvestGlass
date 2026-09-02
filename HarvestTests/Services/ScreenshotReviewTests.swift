@@ -62,6 +62,7 @@ final class ChatMessageEncodingTests: XCTestCase {
 ///
 /// Mirrors `GardenerScreenshotTest.kt`; the placeholder assertions use the same
 /// literal strings, since both platforms read each other's rows.
+@MainActor
 final class GardenerImageReviewTests: XCTestCase {
     func testCaptionBecomesATextPartBeforeTheImages() {
         let parts = GardenerService.imageParts(
@@ -194,6 +195,65 @@ final class GardenerSelectionTests: XCTestCase {
     }
 }
 
+/// Retained images are in-memory, view-model-scoped state (see the view model's
+/// `retainedImageURLs` doc). Android had to reflect into a private `_state` flow
+/// to seed the precondition; on iOS the view model is directly constructible and
+/// the properties are `var`, so the start state is just assigned and the real,
+/// unmodified production methods run against it. Mirrors
+/// `GardenerRetentionTest.kt`.
+@MainActor
+final class GardenerRetentionTests: XCTestCase {
+    func testStagingANewSelectionClearsAnyRetainedImages() {
+        let viewModel = GardenerViewModel()
+        viewModel.retainedImageURLs = ["data:image/jpeg;base64,AAA"]
+        viewModel.imageCap = 3
+
+        viewModel.stageScreenshots([UIImage()])
+
+        XCTAssertTrue(viewModel.retainedImageURLs.isEmpty)
+        XCTAssertEqual(viewModel.pendingScreenshots.count, 1)
+    }
+
+    func testClearRetainedImagesEmptiesTheField() {
+        let viewModel = GardenerViewModel()
+        viewModel.retainedImageURLs = [
+            "data:image/jpeg;base64,AAA",
+            "data:image/jpeg;base64,BBB"
+        ]
+
+        viewModel.clearRetainedImages()
+
+        XCTAssertTrue(viewModel.retainedImageURLs.isEmpty)
+    }
+
+    /// The other half of the same contract, and cheap to reach on iOS: the
+    /// tier's cap is applied at staging time, not only by the picker.
+    func testStagingClampsToTheTiersCap() {
+        let viewModel = GardenerViewModel()
+        viewModel.imageCap = 2
+
+        viewModel.stageScreenshots([UIImage(), UIImage(), UIImage()])
+
+        XCTAssertEqual(viewModel.pendingScreenshots.count, 2)
+    }
+
+    func testUnstagingRemovesOnlyThatImage() {
+        let viewModel = GardenerViewModel()
+        viewModel.imageCap = 3
+        let first = UIImage()
+        let second = UIImage()
+        let third = UIImage()
+        viewModel.stageScreenshots([first, second, third])
+
+        viewModel.unstageScreenshot(at: 1)
+
+        XCTAssertEqual(viewModel.pendingScreenshots.count, 2)
+        XCTAssertTrue(viewModel.pendingScreenshots[0] === first)
+        XCTAssertTrue(viewModel.pendingScreenshots[1] === third)
+    }
+}
+
+@MainActor
 final class ScreenshotEncoderTests: XCTestCase {
     private func image(width: CGFloat, height: CGFloat) -> UIImage {
         let format = UIGraphicsImageRendererFormat.default()

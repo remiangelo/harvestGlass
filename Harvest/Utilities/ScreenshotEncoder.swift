@@ -6,7 +6,13 @@ import UIKit
 /// scales with resolution, so everything is downscaled before encoding. The
 /// result is a `data:` URL — the image is never written to disk or uploaded to
 /// storage.
-enum ScreenshotEncoder {
+///
+/// `nonisolated` because the target sets `SWIFT_DEFAULT_ACTOR_ISOLATION =
+/// MainActor`: without it every member here is inferred `@MainActor` and a send
+/// of ten screenshots decodes, scales and base64s them all on the main thread.
+/// Nothing it touches is main-actor-only — `UIImage`, `UIGraphicsImageRenderer`
+/// and `Data` are all usable off-main.
+nonisolated enum ScreenshotEncoder {
     /// Longest side, in pixels, after downscaling. Matches `MAX_DIMENSION` in
     /// ScreenshotEncoder.kt: chat text stays legible well below a full-res
     /// screenshot, and both platforms must send comparable detail.
