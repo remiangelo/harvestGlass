@@ -125,6 +125,10 @@ final class SubscriptionTierTests: XCTestCase {
             [1, 5, 20]
         )
         XCTAssertEqual(
+            [seed.gardenerImagesPerReview, green.gardenerImagesPerReview, gold.gardenerImagesPerReview],
+            [3, 6, 10]
+        )
+        XCTAssertEqual(
             [seed.fieldFilterLevel, green.fieldFilterLevel, gold.fieldFilterLevel],
             [FieldFilterLevel.none, .advanced, .full]
         )
@@ -142,5 +146,47 @@ final class SubscriptionTierTests: XCTestCase {
         XCTAssertEqual(MockSupabaseClient.createTestTier(name: .green).marketingDisplayName, "Grow")
         XCTAssertEqual(MockSupabaseClient.createTestTier(name: .seed).marketingDisplayName, "Seed")
         XCTAssertEqual(MockSupabaseClient.createTestTier(name: .gold).marketingDisplayName, "Gold")
+    }
+
+    // MARK: - Images per review
+
+    /// The column arrives with migration 20260902130000. A client running
+    /// against a database without it must still decode, and must not offer
+    /// more images than the free tier allows.
+    func testImagesPerReviewDefaultsToOneWhenAbsent() throws {
+        let tier = try decodeTier("""
+        {
+          "id": "tier-seed",
+          "name": "seed",
+          "display_name": "Seed",
+          "description": "",
+          "price_monthly": 0,
+          "price_weekly": 0,
+          "gardener_character_limit": 2000,
+          "can_disable_mindful_messaging": false,
+          "sort_order": 0
+        }
+        """)
+
+        XCTAssertEqual(tier.gardenerImagesPerReview, 1)
+    }
+
+    func testImagesPerReviewDecodesWhenPresent() throws {
+        let tier = try decodeTier("""
+        {
+          "id": "tier-gold",
+          "name": "gold",
+          "display_name": "Gold",
+          "description": "",
+          "price_monthly": 24.99,
+          "price_weekly": 0,
+          "gardener_character_limit": 25000,
+          "gardener_images_per_review": 10,
+          "can_disable_mindful_messaging": true,
+          "sort_order": 2
+        }
+        """)
+
+        XCTAssertEqual(tier.gardenerImagesPerReview, 10)
     }
 }

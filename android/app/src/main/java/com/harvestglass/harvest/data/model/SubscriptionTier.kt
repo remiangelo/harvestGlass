@@ -34,6 +34,7 @@ data class SubscriptionTier(
     @SerialName("gardener_conversations_per_day") val gardenerConversationsPerDay: Int = 0,
     @SerialName("gardener_character_limit") val gardenerCharacterLimit: Int = 0,
     @SerialName("gardener_screenshots_per_day") val gardenerScreenshotsPerDay: Int = 0,
+    @SerialName("gardener_images_per_review") val gardenerImagesPerReview: Int = 1,
     @SerialName("field_filter_level") val fieldFilterLevelRaw: String? = null,
     @SerialName("has_deep_soil_insights") val hasDeepSoilInsights: Boolean = false,
     @SerialName("has_growth_features") val hasGrowthFeatures: Boolean = false,

@@ -97,24 +97,29 @@ extension MockSupabaseClient {
         name: TierName = .seed,
         gardenerConversationsPerDay: Int? = nil,
         gardenerCharacterLimit: Int? = nil,
-        gardenerScreenshotsPerDay: Int? = nil
+        gardenerScreenshotsPerDay: Int? = nil,
+        gardenerImagesPerReview: Int? = nil
     ) -> SubscriptionTier {
         let defaultCharacters: Int
         let defaultScreenshots: Int
+        let defaultImagesPerReview: Int
         let filterLevel: FieldFilterLevel
 
         switch name {
         case .seed:
             defaultCharacters = 2_000
             defaultScreenshots = 1
+            defaultImagesPerReview = 3
             filterLevel = .none
         case .green:
             defaultCharacters = 10_000
             defaultScreenshots = 5
+            defaultImagesPerReview = 6
             filterLevel = .advanced
         case .gold:
             defaultCharacters = 25_000
             defaultScreenshots = 20
+            defaultImagesPerReview = 10
             filterLevel = .full
         }
 
@@ -128,6 +133,7 @@ extension MockSupabaseClient {
             gardenerConversationsPerDay: gardenerConversationsPerDay,
             gardenerCharacterLimit: gardenerCharacterLimit ?? defaultCharacters,
             gardenerScreenshotsPerDay: gardenerScreenshotsPerDay ?? defaultScreenshots,
+            gardenerImagesPerReview: gardenerImagesPerReview ?? defaultImagesPerReview,
             fieldFilterLevel: filterLevel,
             hasDeepSoilInsights: name != .seed,
             hasGrowthFeatures: name == .gold,

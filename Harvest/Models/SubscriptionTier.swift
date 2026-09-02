@@ -61,6 +61,10 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
     /// Screenshot reviews per day. Separate from the character budget — a
     /// review no longer eats the day's chat allowance.
     let gardenerScreenshotsPerDay: Int
+    /// Max images attachable to one Gardener message. Separate from
+    /// `gardenerScreenshotsPerDay`: a message carrying several screenshots is
+    /// still one review.
+    let gardenerImagesPerReview: Int
     let fieldFilterLevel: FieldFilterLevel
     let hasDeepSoilInsights: Bool
     let hasGrowthFeatures: Bool
@@ -90,6 +94,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         case gardenerConversationsPerDay = "gardener_conversations_per_day"
         case gardenerCharacterLimit = "gardener_character_limit"
         case gardenerScreenshotsPerDay = "gardener_screenshots_per_day"
+        case gardenerImagesPerReview = "gardener_images_per_review"
         case fieldFilterLevel = "field_filter_level"
         case hasDeepSoilInsights = "has_deep_soil_insights"
         case hasGrowthFeatures = "has_growth_features"
@@ -108,6 +113,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         gardenerConversationsPerDay: Int?,
         gardenerCharacterLimit: Int,
         gardenerScreenshotsPerDay: Int = 1,
+        gardenerImagesPerReview: Int = 1,
         fieldFilterLevel: FieldFilterLevel = .none,
         hasDeepSoilInsights: Bool = false,
         hasGrowthFeatures: Bool = false,
@@ -124,6 +130,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         self.gardenerConversationsPerDay = gardenerConversationsPerDay
         self.gardenerCharacterLimit = gardenerCharacterLimit
         self.gardenerScreenshotsPerDay = gardenerScreenshotsPerDay
+        self.gardenerImagesPerReview = gardenerImagesPerReview
         self.fieldFilterLevel = fieldFilterLevel
         self.hasDeepSoilInsights = hasDeepSoilInsights
         self.hasGrowthFeatures = hasGrowthFeatures
@@ -146,6 +153,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         gardenerConversationsPerDay = try container.decodeIfPresent(Int.self, forKey: .gardenerConversationsPerDay)
         gardenerCharacterLimit = try container.decode(Int.self, forKey: .gardenerCharacterLimit)
         gardenerScreenshotsPerDay = try container.decodeIfPresent(Int.self, forKey: .gardenerScreenshotsPerDay) ?? 1
+        gardenerImagesPerReview = try container.decodeIfPresent(Int.self, forKey: .gardenerImagesPerReview) ?? 1
         fieldFilterLevel = try container.decodeIfPresent(FieldFilterLevel.self, forKey: .fieldFilterLevel) ?? .none
         hasDeepSoilInsights = try container.decodeIfPresent(Bool.self, forKey: .hasDeepSoilInsights) ?? false
         hasGrowthFeatures = try container.decodeIfPresent(Bool.self, forKey: .hasGrowthFeatures) ?? false
@@ -166,6 +174,7 @@ struct SubscriptionTier: Codable, Identifiable, Sendable {
         try container.encodeIfPresent(gardenerConversationsPerDay, forKey: .gardenerConversationsPerDay)
         try container.encode(gardenerCharacterLimit, forKey: .gardenerCharacterLimit)
         try container.encode(gardenerScreenshotsPerDay, forKey: .gardenerScreenshotsPerDay)
+        try container.encode(gardenerImagesPerReview, forKey: .gardenerImagesPerReview)
         try container.encode(fieldFilterLevel, forKey: .fieldFilterLevel)
         try container.encode(hasDeepSoilInsights, forKey: .hasDeepSoilInsights)
         try container.encode(hasGrowthFeatures, forKey: .hasGrowthFeatures)
